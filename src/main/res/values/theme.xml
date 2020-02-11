@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <style name="Theme.Utils.Base" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="colorBackgroundFloating">?attr/colorSurface</item>
+
+        <item name="popupMenuStyle">@style/Theme.Utils.Base.PopupMenuStyle</item>
+        <item name="toolbarStyle">@style/Theme.Utils.Base.ToolBarStyle</item>
+        <item name="bottomNavigationStyle">@style/Theme.Utils.Base.NavBarStyle</item>
+        <item name="android:preferenceStyle">@style/Theme.Utils.Base.PreferenceStyle</item>
+        <item name="floatingActionButtonStyle">@style/Theme.Utils.Base.FloatingButtonStyle</item>
+        <item name="alertDialogStyle">@style/Theme.Utils.Base.AlertDialog</item>
+
+        <item name="rippleColor">#FFFFFF</item>
+
+        <item name="boxStrokeColor">?attr/colorPrimaryDark</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="cornerRadius">5dp</item>
+
+        <item name="thumbTint">@color/thumb_color</item>
+
+        <!--Text appearance-->
+        <item name="textAppearanceHeadline1">@style/TextAppearance.MaterialComponents.Headline1
+        </item>
+        <item name="textAppearanceHeadline2">@style/TextAppearance.MaterialComponents.Headline2
+        </item>
+        <item name="textAppearanceHeadline3">@style/TextAppearance.MaterialComponents.Headline3
+        </item>
+        <item name="textAppearanceHeadline4">@style/TextAppearance.MaterialComponents.Headline4
+        </item>
+        <item name="textAppearanceHeadline5">@style/TextAppearance.MaterialComponents.Headline5
+        </item>
+        <item name="textAppearanceHeadline6">@style/TextAppearance.MaterialComponents.Headline6
+        </item>
+        <item name="textAppearanceSubtitle1">@style/TextAppearance.MaterialComponents.Subtitle1
+        </item>
+        <item name="textAppearanceSubtitle2">@style/TextAppearance.MaterialComponents.Subtitle2
+        </item>
+        <item name="textAppearanceBody1">@style/TextAppearance.MaterialComponents.Body1</item>
+        <item name="textAppearanceBody2">@style/TextAppearance.MaterialComponents.Body2</item>
+        <item name="textAppearanceButton">@style/TextAppearance.MaterialComponents.Button</item>
+        <item name="textAppearanceCaption">@style/TextAppearance.MaterialComponents.Caption</item>
+        <item name="textAppearanceOverline">@style/TextAppearance.MaterialComponents.Overline</item>
+
+        <item name="textAppearanceListItem">@style/TextAppearance.Utils.ListItem</item>
+    </style>
+
+    <style name="Theme.Utils.Base.PopupMenuStyle">
+        <item name="android:colorBackground">?attr/colorBackgroundFloating</item>
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="tint">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="Theme.Utils.Base.ToolBarStyle">
+        <item name="android:colorBackground">?attr/colorPrimary</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
+        <item name="tint">?attr/colorOnPrimary</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+    </style>
+
+    <style name="Theme.Utils.Base.NavBarStyle" parent="Theme.Utils.Base.ToolBarStyle" />
+
+    <style name="Theme.Utils.Base.PreferenceStyle">
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="tint">?attr/colorOnSecondary</item>
+    </style>
+
+    <style name="Theme.Utils.Base.FloatingButtonStyle" parent="Widget.MaterialComponents.FloatingActionButton">
+        <item name="borderWidth">2dp</item>
+        <item name="borderColor">?attr/colorOnPrimary</item>
+        <item name="borderFocusColor">?attr/colorAccent</item>
+        <item name="tint">?attr/colorOnPrimary</item>
+        <item name="backgroundTint">?attr/colorPrimary</item>
+    </style>
+
+    <style name="Theme.Utils.Base.AlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="buttonBarPositiveButtonStyle">@style/Theme.Utils.Base.AlertDialog.Button</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Theme.Utils.Base.AlertDialog.Button</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Theme.Utils.Base.AlertDialog.Button</item>
+    </style>
+
+    <style name="Theme.Utils.Base.AlertDialog.Button" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">?attr/colorOnSurface</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">14sp</item>
+        <item name="rippleColor">?attr/rippleColor</item>
+        <item name="android:background">@drawable/focusable_shape_transparent</item>
+    </style>
+
+    <style name="TextAppearance.Utils.ListItem" parent="@style/TextAppearance.MaterialComponents.Headline6">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+</resources>

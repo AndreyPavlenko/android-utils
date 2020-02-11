@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <attr name="icon" format="reference" />
+    <attr name="text" format="reference" />
+    <attr name="checkable" format="boolean" />
+    <attr name="submenu" format="reference" />
+    <attr name="numLabels" format="integer" />
+
+    <declare-styleable name="OverlayMenuItemView">
+        <attr name="icon" />
+        <attr name="text" />
+        <attr name="checkable" />
+        <attr name="submenu" />
+    </declare-styleable>
+
+    <declare-styleable name="NavButtonView">
+        <attr name="icon" />
+        <attr name="text" />
+    </declare-styleable>
+
+    <declare-styleable name="OutlinedLinearLayout">
+        <attr name="backgroundColor" />
+        <attr name="boxStrokeColor" />
+        <attr name="boxStrokeWidth" />
+        <attr name="cornerRadius" />
+        <attr name="numLabels" />
+    </declare-styleable>
+
+    <declare-styleable name="OutlinedConstraintLayout">
+        <attr name="backgroundColor" />
+        <attr name="boxStrokeColor" />
+        <attr name="boxStrokeWidth" />
+        <attr name="cornerRadius" />
+        <attr name="numLabels" />
+    </declare-styleable>
+
+    <declare-styleable name="FloatingButton">
+        <attr name="borderWidth" />
+        <attr name="borderColor" format="color|reference" />
+        <attr name="borderFocusColor" format="color|reference" />
+    </declare-styleable>
+
+</resources>
