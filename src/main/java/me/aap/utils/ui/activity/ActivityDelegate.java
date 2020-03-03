@@ -31,7 +31,6 @@ import me.aap.utils.ui.menu.OverlayMenuView;
 import me.aap.utils.ui.view.NavBarView;
 import me.aap.utils.ui.view.ToolBarView;
 
-import static android.view.View.GONE;
 import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
 import static android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
 import static android.view.View.SYSTEM_UI_FLAG_IMMERSIVE;
@@ -41,7 +40,6 @@ import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
 import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
 import static android.view.View.SYSTEM_UI_FLAG_VISIBLE;
-import static android.view.View.VISIBLE;
 import static me.aap.utils.collection.CollectionUtils.forEach;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_DESTROY;
@@ -225,36 +223,45 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 		return null;
 	}
 
-	public void showFragment(@IdRes int id) {
-		if (id == getActiveFragmentId()) return;
+	@SuppressWarnings("unchecked")
+	public <F extends ActivityFragment> F showFragment(@IdRes int id) {
+		int activeId = getActiveFragmentId();
+		if (id == activeId) return (F) getActiveFragment();
 
 		FragmentManager fm = getSupportFragmentManager();
 		FragmentTransaction tr = fm.beginTransaction();
-		ActivityFragment active = null;
+		ActivityFragment switchingFrom = null;
+		ActivityFragment switchingTo = null;
 
 		for (Fragment f : fm.getFragments()) {
 			if (!(f instanceof ActivityFragment)) continue;
 
-			ActivityFragment m = (ActivityFragment) f;
+			ActivityFragment af = (ActivityFragment) f;
+			int afid = af.getFragmentId();
 
-			if (m.getFragmentId() == id) {
+			if (afid == id) {
 				tr.show(f);
-				active = m;
+				switchingTo = af;
+			} else if (afid == activeId) {
+				switchingFrom = af;
+				tr.hide(f);
 			} else {
 				tr.hide(f);
 			}
 		}
 
-		if (active == null) {
-			active = createFragment(id);
-			Fragment f = active;
-			tr.add(getFrameContainerId(), f);
-			tr.show(f);
+		if (switchingTo == null) {
+			switchingTo = createFragment(id);
+			tr.add(getFrameContainerId(), switchingTo);
+			tr.show(switchingTo);
 		}
 
-		activeFragmentId = active.getFragmentId();
+		activeFragmentId = switchingTo.getFragmentId();
+		if (switchingFrom != null) switchingFrom.switchingTo(switchingTo);
+		switchingTo.switchingFrom(switchingFrom);
 		tr.commitAllowingStateLoss();
 		postBroadcastEvent(FRAGMENT_CHANGED);
+		return (F) switchingTo;
 	}
 
 	public int getActiveNavItemId() {

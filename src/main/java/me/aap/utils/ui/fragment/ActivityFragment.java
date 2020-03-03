@@ -1,5 +1,7 @@
 package me.aap.utils.ui.fragment;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import me.aap.utils.ui.activity.ActivityDelegate;
@@ -16,7 +18,9 @@ public abstract class ActivityFragment extends Fragment {
 
 	public abstract int getFragmentId();
 
-	public abstract CharSequence getTitle();
+	public CharSequence getTitle() {
+		return "";
+	}
 
 	public ToolBarView.Mediator getToolBarMediator() {
 		return ToolBarView.Mediator.BackTitle.instance;
@@ -39,17 +43,16 @@ public abstract class ActivityFragment extends Fragment {
 		return false;
 	}
 
-	public void initNavBarMenu(OverlayMenu menu) {
-	}
-
 	public void navBarItemReselected(int itemId) {
-	}
-
-	public boolean navBarMenuItemSelected(OverlayMenuItem item) {
-		return false;
 	}
 
 	public ActivityDelegate getActivityDelegate() {
 		return ActivityDelegate.get(getContext());
+	}
+
+	public void switchingFrom(@Nullable ActivityFragment currentFragment) {
+	}
+
+	public void switchingTo(@NonNull ActivityFragment newFragment) {
 	}
 }

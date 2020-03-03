@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <attr name="fileListViewStyle" format="reference" />
+
     <style name="Theme.Utils.Base" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="android:background">@android:color/transparent</item>
         <item name="colorBackgroundFloating">?attr/colorSurface</item>
@@ -9,6 +11,7 @@
         <item name="toolbarStyle">@style/Theme.Utils.Base.ToolBarStyle</item>
         <item name="bottomNavigationStyle">@style/Theme.Utils.Base.NavBarStyle</item>
         <item name="android:preferenceStyle">@style/Theme.Utils.Base.PreferenceStyle</item>
+        <item name="fileListViewStyle">@style/Theme.Utils.Base.FileListViewStyle</item>
         <item name="floatingActionButtonStyle">@style/Theme.Utils.Base.FloatingButtonStyle</item>
         <item name="alertDialogStyle">@style/Theme.Utils.Base.AlertDialog</item>
 
@@ -65,6 +68,15 @@
     <style name="Theme.Utils.Base.PreferenceStyle">
         <item name="android:textColor">?android:attr/textColorSecondary</item>
         <item name="tint">?attr/colorOnSecondary</item>
+    </style>
+
+    <style name="Theme.Utils.Base.FileListViewStyle">
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:textAppearance">?attr/textAppearanceListItem</item>
+        <item name="tint">?attr/colorOnSecondary</item>
+        <item name="fileIcon">@drawable/file</item>
+        <item name="folderIcon">@drawable/folder</item>
+        <item name="itemBackground">@drawable/focusable_shape_transparent</item>
     </style>
 
     <style name="Theme.Utils.Base.FloatingButtonStyle" parent="Widget.MaterialComponents.FloatingActionButton">

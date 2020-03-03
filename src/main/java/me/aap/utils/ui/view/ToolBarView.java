@@ -283,7 +283,6 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 			default ForcedVisibilityButton createBackButton(ToolBarView tb) {
 				ForcedVisibilityButton b = new ForcedVisibilityButton(tb.getContext(), null, R.attr.toolbarStyle);
 				initButton(b, getBackButtonIcon(), this);
-				b.setOnClickListener(this);
 				return b;
 			}
 
@@ -303,7 +302,6 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 			default void enable(ToolBarView tb, ActivityFragment f) {
 				EditText t = createFilter(tb);
 				t.setVisibility(GONE);
-				t.setOnKeyListener(UiUtils::dpadFocusHelper);
 				addView(tb, t, getFilterId(), LEFT);
 
 				BackTitle.super.enable(tb, f);
@@ -369,7 +367,8 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 				TextChangedListener l = s -> tb.getActivity().fireBroadcastEvent(FILTER_CHANGED);
 				t.addTextChangedListener(l);
 				t.setTextAppearance(getFilterTextAppearance(ctx));
-				t.setBackgroundResource(R.drawable.tool_bar_filter_bg);
+				t.setBackgroundResource(R.drawable.tool_bar_edittext_bg);
+				t.setOnKeyListener(UiUtils::dpadFocusHelper);
 				t.setMaxLines(1);
 				lp.horizontalWeight = 2;
 				setFilterPadding(t);
@@ -403,7 +402,6 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 			default ForcedVisibilityButton createFilterButton(ToolBarView tb) {
 				ForcedVisibilityButton b = new ForcedVisibilityButton(tb.getContext(), null, R.attr.toolbarStyle);
 				initButton(b, getFilterButtonIcon(), this);
-				b.setOnClickListener(this);
 				return b;
 			}
 		}

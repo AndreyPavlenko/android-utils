@@ -4,4 +4,8 @@
     <item name="tool_bar_title" type="id" />
     <item name="tool_bar_filter" type="id" />
     <item name="tool_bar_filter_button" type="id" />
+    <item name="file_picker" type="id" />
+    <item name="file_picker_ok" type="id" />
+    <item name="file_picker_close" type="id" />
+    <item name="file_picker_path" type="id" />
 </resources>
