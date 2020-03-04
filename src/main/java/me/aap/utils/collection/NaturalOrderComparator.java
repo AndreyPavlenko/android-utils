@@ -7,9 +7,9 @@ import static java.lang.Character.isDigit;
 /**
  * @author Andrey Pavlenko
  */
-public class NaturalOrderComparator implements Comparator<String> {
+public class NaturalOrderComparator<S extends CharSequence> implements Comparator<S> {
 
-	public static int compareNatural(String a, String b) {
+	public static <S extends CharSequence> int compareNatural(S a, S b) {
 		int alen = a.length();
 		int blen = b.length();
 
@@ -31,8 +31,8 @@ public class NaturalOrderComparator implements Comparator<String> {
 				int nblen = bidx - boff;
 
 				if ((nalen != 1) || (nblen != 1)) {
-					long na = Long.parseLong(a.substring(aoff, aidx));
-					long nb = Long.parseLong(b.substring(boff, bidx));
+					long na = Long.parseLong(a.subSequence(aoff, aidx).toString());
+					long nb = Long.parseLong(b.subSequence(boff, bidx).toString());
 
 					if (na == nb) {
 						if (nalen != nblen) return (nalen < nblen) ? -1 : 1;
@@ -53,7 +53,7 @@ public class NaturalOrderComparator implements Comparator<String> {
 		}
 	}
 
-	public int compare(String a, String b) {
+	public int compare(S a, S b) {
 		return compareNatural(a, b);
 	}
 }

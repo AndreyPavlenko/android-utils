@@ -136,8 +136,8 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 	}
 
 	@Override
-	public OverlayMenuItem addItem(int id, boolean checkable, Drawable icon, CharSequence title) {
-		OverlayMenuItemView i = new OverlayMenuItemView(this, id, checkable, icon, title);
+	public OverlayMenuItem addItem(int id, Drawable icon, CharSequence title) {
+		OverlayMenuItemView i = new OverlayMenuItemView(this, id, icon, title);
 		getChildGroup().addView(i);
 		return i;
 	}

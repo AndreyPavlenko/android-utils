@@ -39,10 +39,10 @@ public interface OverlayMenu {
 
 	OverlayMenuItem findItem(int id);
 
-	OverlayMenuItem addItem(int id, boolean checkable, Drawable icon, CharSequence title);
+	OverlayMenuItem addItem(int id, Drawable icon, CharSequence title);
 
-	default OverlayMenuItem addItem(int id, boolean checkable, Drawable icon, @StringRes int title) {
-		return addItem(id, checkable, icon, getContext().getResources().getString(title));
+	default OverlayMenuItem addItem(int id, Drawable icon, @StringRes int title) {
+		return addItem(id, icon, getContext().getResources().getString(title));
 	}
 
 	default OverlayMenuItem addItem(int id, @StringRes int title) {
@@ -50,7 +50,7 @@ public interface OverlayMenu {
 	}
 
 	default OverlayMenuItem addItem(int id, CharSequence title) {
-		return addItem(id, false, null, title);
+		return addItem(id, null, title);
 	}
 
 	void setSelectedItem(OverlayMenuItem item);

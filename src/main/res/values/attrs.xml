@@ -3,15 +3,17 @@
 <resources>
     <attr name="icon" format="reference" />
     <attr name="text" format="reference" />
-    <attr name="checkable" format="boolean" />
     <attr name="submenu" format="reference" />
     <attr name="numLabels" format="integer" />
 
     <declare-styleable name="OverlayMenuItemView">
         <attr name="icon" />
         <attr name="text" />
-        <attr name="checkable" />
+        <attr name="tint" />
         <attr name="submenu" />
+        <attr name="android:padding" />
+        <attr name="android:textColor" />
+        <attr name="android:textAppearance" />
     </declare-styleable>
 
     <declare-styleable name="NavButtonView">
@@ -43,7 +45,7 @@
 
     <declare-styleable name="ListView">
         <attr name="tint" />
-        <attr name="itemBackground" />
+        <attr name="background" />
         <attr name="android:textColor" />
         <attr name="android:textAppearance" />
     </declare-styleable>

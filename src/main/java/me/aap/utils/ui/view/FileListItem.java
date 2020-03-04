@@ -35,6 +35,7 @@ public class FileListItem implements ListView.ListItem<FileListItem>, Comparable
 				return children;
 			}
 
+
 			@Nullable
 			@Override
 			public Drawable getIcon() {
@@ -43,6 +44,11 @@ public class FileListItem implements ListView.ListItem<FileListItem>, Comparable
 
 			@Override
 			public boolean hasChildren() {
+				return true;
+			}
+
+			@Override
+			public boolean isRoot() {
 				return true;
 			}
 		};
@@ -65,8 +71,10 @@ public class FileListItem implements ListView.ListItem<FileListItem>, Comparable
 	@NonNull
 	@Override
 	public CharSequence getText() {
+		if ((parent == null) || parent.isRoot()) return file.getAbsolutePath();
+
 		String n = file.getName();
-		return n.isEmpty() ? file.getPath() : n;
+		return n.isEmpty() ? file.getAbsolutePath() : n;
 	}
 
 	@Nullable
@@ -86,17 +94,18 @@ public class FileListItem implements ListView.ListItem<FileListItem>, Comparable
 		return getFile().isDirectory();
 	}
 
-	@Override
-	public int compareTo(FileListItem o) {
-		File f1 = getFile();
-		File f2 = o.getFile();
+	public boolean isRoot() {
+		return false;
+	}
 
-		if (f1.isDirectory()) {
-			return (f2.isDirectory()) ? compareNatural(f1.getName(), f2.getName()) : -1;
-		} else if (f2.isDirectory()) {
+	@Override
+	public int compareTo(@NonNull FileListItem o) {
+		if (hasChildren()) {
+			return (o.hasChildren()) ? compareNatural(getText(), o.getText()) : -1;
+		} else if (o.hasChildren()) {
 			return 1;
 		} else {
-			return compareNatural(f1.getName(), f2.getName());
+			return compareNatural(getText(), o.getText());
 		}
 	}
 

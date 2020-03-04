@@ -2,17 +2,16 @@ package me.aap.utils.ui.menu;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
-import android.view.Gravity;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
-import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.LayoutRes;
@@ -21,8 +20,9 @@ import androidx.appcompat.widget.LinearLayoutCompat;
 
 import me.aap.utils.R;
 
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
-import static me.aap.utils.ui.UiUtils.toPx;
 
 /**
  * @author Andrey Pavlenko
@@ -36,50 +36,62 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 	private Object data;
 	private boolean isLongClick;
 
-	OverlayMenuItemView(OverlayMenuView parent, int id, boolean checkable, Drawable icon, CharSequence title) {
+	OverlayMenuItemView(OverlayMenuView parent, int id, Drawable icon, CharSequence text) {
 		super(parent.getContext(), null, R.attr.popupMenuStyle);
 		this.parent = parent;
 		setId(id);
-		init(parent.getContext(), checkable, icon, title);
+
+		Context ctx = parent.getContext();
+		TypedArray ta = ctx.obtainStyledAttributes(null, R.styleable.OverlayMenuItemView,
+				R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
+		ColorStateList iconTint = ta.getColorStateList(R.styleable.OverlayMenuItemView_tint);
+		int textColor = ta.getColor(R.styleable.OverlayMenuItemView_android_textColor, Color.BLACK);
+		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance, R.attr.textAppearanceListItem);
+		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_android_padding, 5);
+		ta.recycle();
+		init(ctx, null, icon, iconTint, text, textColor, textAppearance, padding);
 	}
 
 	@SuppressLint("InlinedApi")
 	public OverlayMenuItemView(Context ctx, AttributeSet attrs) {
 		super(ctx, attrs, R.attr.popupMenuStyle);
+
 		TypedArray ta = ctx.obtainStyledAttributes(attrs, R.styleable.OverlayMenuItemView,
 				R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
-		boolean checkable = ta.getBoolean(R.styleable.OverlayMenuItemView_checkable, false);
+		ColorStateList iconTint = ta.getColorStateList(R.styleable.OverlayMenuItemView_tint);
 		Drawable icon = ta.getDrawable(R.styleable.OverlayMenuItemView_icon);
-		CharSequence title = ta.getText(R.styleable.OverlayMenuItemView_text);
+		CharSequence text = ta.getText(R.styleable.OverlayMenuItemView_text);
+		int textColor = ta.getColor(R.styleable.OverlayMenuItemView_android_textColor, Color.BLACK);
+		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance, R.attr.textAppearanceListItem);
+		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_android_padding, 5);
 		submenu = ta.getResourceId(R.styleable.OverlayMenuItemView_submenu, ID_NULL);
 		ta.recycle();
-		init(ctx, checkable, icon, title);
+		init(ctx, attrs, icon, iconTint, text, textColor, textAppearance, padding);
 	}
 
-	private void init(Context ctx, boolean checkable, Drawable icon, CharSequence title) {
+	private void init(Context ctx, AttributeSet attrs, Drawable icon, ColorStateList iconTint,
+										CharSequence text, int textColor, int textAppearance, int padding) {
 		setOrientation(HORIZONTAL);
 
-		if (submenu != ID_NULL) {
-			inflate(ctx, R.layout.submenu_item, this);
-		} else if (checkable) {
-			inflate(ctx, R.layout.checkable_menu_item, this);
-			CheckBox cb = getCheckBox();
-			cb.setOnCheckedChangeListener(this);
-			cb.setGravity(Gravity.CENTER_VERTICAL);
-			cb.setLayoutDirection(LAYOUT_DIRECTION_LTR);
-		} else {
-			inflate(ctx, R.layout.menu_item, this);
-		}
-
-		if (icon == null) getIconView().setVisibility(GONE);
-		else getIconView().setImageDrawable(icon);
-
-		getTitleView().setText(title);
+		Drawable rightIcon = (submenu == ID_NULL) ? null : ctx.getDrawable(R.drawable.chevron_right);
+		TextView t = new TextView(ctx, attrs, R.attr.popupMenuStyle);
+		LinearLayoutCompat.LayoutParams lp = new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
+		t.setLayoutParams(lp);
+		t.setText(text);
+		t.setTextColor(textColor);
+		t.setTextAppearance(textAppearance);
+		t.setCompoundDrawableTintList(iconTint);
+		t.setCompoundDrawablesWithIntrinsicBounds(icon, null, rightIcon, null);
+		t.setCompoundDrawablePadding(padding);
+		t.setPadding(padding, padding, padding, padding);
+		t.setSingleLine(true);
+		t.setVisibility(VISIBLE);
+		t.setTextAlignment(TEXT_ALIGNMENT_VIEW_START);
+		addView(t);
 
 		setFocusable(true);
 		setOnClickListener(this);
 		setOnLongClickListener(this);
-		setPadding(toPx(5), toPx(10), toPx(20), toPx(10));
 		setBackgroundResource(R.drawable.focusable_shape_transparent);
 	}
 
@@ -97,17 +109,17 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 	}
 
 	public CharSequence getTitle() {
-		return getTitleView().getText();
+		return getText().getText();
 	}
 
 	@Override
 	public OverlayMenuItem setTitle(@StringRes int title) {
-		getTitleView().setText(title);
+		getText().setText(title);
 		return this;
 	}
 
 	public OverlayMenuItem setTitle(CharSequence title) {
-		getTitleView().setText(title);
+		getText().setText(title);
 		return this;
 	}
 
@@ -125,12 +137,10 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 
 	@Override
 	public OverlayMenuItem setChecked(boolean checked) {
-		if (checked) {
-			getCheckBox().setChecked(true);
-			if ((parent != null) && (parent.getSelectedItem() == null)) parent.setSelectedItem(this);
-		} else {
-			getCheckBox().setChecked(false);
-		}
+		TextView t = getText();
+		Drawable[] d = t.getCompoundDrawables();
+		d[2] = getContext().getDrawable(checked ? R.drawable.check_box : R.drawable.check_box_blank);
+		t.setCompoundDrawablesWithIntrinsicBounds(d[0], d[1], d[2], d[3]);
 		return this;
 	}
 
@@ -157,15 +167,7 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 		onClick(v);
 	}
 
-	private ImageView getIconView() {
-		return (ImageView) getChildAt(0);
-	}
-
-	private TextView getTitleView() {
-		return (TextView) getChildAt(1);
-	}
-
-	private CheckBox getCheckBox() {
-		return (CheckBox) getChildAt(2);
+	private TextView getText() {
+		return (TextView) getChildAt(0);
 	}
 }

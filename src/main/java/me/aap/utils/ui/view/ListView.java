@@ -58,7 +58,7 @@ public class ListView<I extends ListView.ListItem<I>> extends RecyclerView {
 
 		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.ListView, defStyleAttr, defStyleRes);
 		iconTint = ta.getColorStateList(R.styleable.ListView_tint);
-		itemBackground = ta.getResourceId(R.styleable.ListView_itemBackground, ID_NULL);
+		itemBackground = ta.getResourceId(R.styleable.ListView_background, ID_NULL);
 		textColor = ta.getColor(R.styleable.ListView_android_textColor, Color.BLACK);
 		textAppearance = ta.getResourceId(R.styleable.ListView_android_textAppearance, R.attr.textAppearanceBody1);
 		ta.recycle();

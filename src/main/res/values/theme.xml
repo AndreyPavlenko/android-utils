@@ -50,9 +50,11 @@
     </style>
 
     <style name="Theme.Utils.Base.PopupMenuStyle">
-        <item name="android:colorBackground">?attr/colorBackgroundFloating</item>
-        <item name="android:textColor">?android:attr/textColorSecondary</item>
         <item name="tint">?attr/colorOnSurface</item>
+        <item name="android:padding">5dp</item>
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:colorBackground">?attr/colorBackgroundFloating</item>
+        <item name="android:textAppearance">?attr/textAppearanceListItem</item>
     </style>
 
     <style name="Theme.Utils.Base.ToolBarStyle">
@@ -76,7 +78,7 @@
         <item name="tint">?attr/colorOnSecondary</item>
         <item name="fileIcon">@drawable/file</item>
         <item name="folderIcon">@drawable/folder</item>
-        <item name="itemBackground">@drawable/focusable_shape_transparent</item>
+        <item name="background">@drawable/focusable_shape_transparent</item>
     </style>
 
     <style name="Theme.Utils.Base.FloatingButtonStyle" parent="Widget.MaterialComponents.FloatingActionButton">
