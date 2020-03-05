@@ -1,7 +1,6 @@
 package me.aap.utils.ui;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -16,6 +15,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.IdRes;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 
@@ -33,8 +33,8 @@ import static android.view.KeyEvent.KEYCODE_DPAD_UP;
 public class UiUtils {
 	public static final byte ID_NULL = 0;
 
-	public static int toPx(int dp) {
-		return Math.round(dp * Resources.getSystem().getDisplayMetrics().density);
+	public static float toPx(Context ctx, int dp) {
+		return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
 	}
 
 	public static void showError(String msg) {
@@ -85,6 +85,34 @@ public class UiUtils {
 		}
 	}
 
+	@IdRes
+	public static int getArrayItemId(int idx) {
+		switch (idx) {
+			case 0:
+				return R.id.array_item_id_0;
+			case 1:
+				return R.id.array_item_id_1;
+			case 2:
+				return R.id.array_item_id_2;
+			case 3:
+				return R.id.array_item_id_3;
+			case 4:
+				return R.id.array_item_id_4;
+			case 5:
+				return R.id.array_item_id_5;
+			case 6:
+				return R.id.array_item_id_6;
+			case 7:
+				return R.id.array_item_id_7;
+			case 8:
+				return R.id.array_item_id_8;
+			case 9:
+				return R.id.array_item_id_9;
+			default:
+				return R.id.array_item_id_unknown;
+		}
+	}
+
 	public static Paint getPaint() {
 		ConcurrentUtils.ensureMainThread(true);
 		Paint p = PaintHolder.paint;
@@ -96,7 +124,6 @@ public class UiUtils {
 																			@ColorInt int backgroundColor,
 																			@ColorInt int strokeColor, float strokeWidth,
 																			float cornerRadius) {
-
 		float w = group.getWidth();
 		float h = group.getHeight();
 		float x1 = label.getX();

@@ -175,7 +175,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 
 		default ConstraintLayout.LayoutParams setLayoutParams(View v, int width, int height) {
 			ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(width, height);
-			lp.leftMargin = lp.rightMargin = toPx(getLeftRightMargin());
+			lp.leftMargin = lp.rightMargin = (int) toPx(v.getContext(), getLeftRightMargin());
 			v.setLayoutParams(lp);
 			return lp;
 		}
@@ -253,6 +253,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 				MaterialTextView t = new MaterialTextView(ctx, null, R.attr.toolbarStyle);
 				t.setTextAppearance(getTitleTextAppearance(ctx));
 				t.setMaxLines(1);
+				t.setFocusable(false);
 				setLayoutParams(t, WRAP_CONTENT, WRAP_CONTENT);
 				return t;
 			}
@@ -385,7 +386,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 			}
 
 			default void setFilterPadding(EditText t) {
-				int p = toPx(2);
+				int p = (int) toPx(t.getContext(), 2);
 				t.setPadding(p, p, p, p);
 			}
 

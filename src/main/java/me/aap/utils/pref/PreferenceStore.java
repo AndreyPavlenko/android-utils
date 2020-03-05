@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.List;
+
 import me.aap.utils.function.BooleanSupplier;
 import me.aap.utils.function.DoubleSupplier;
 import me.aap.utils.function.IntSupplier;
@@ -40,7 +41,11 @@ public interface PreferenceStore extends EventBroadcaster<PreferenceStore.Listen
 
 	boolean hasPref(Pref<?> pref, boolean checkParent);
 
-	Edit editPreferenceStore();
+	Edit editPreferenceStore(boolean removeDefault);
+
+	default Edit editPreferenceStore() {
+		return editPreferenceStore(true);
+	}
 
 	@NonNull
 	default PreferenceStore getRootPreferenceStore() {

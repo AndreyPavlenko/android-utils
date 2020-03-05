@@ -35,6 +35,10 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 		return parent;
 	}
 
+	public List<Supplier<? extends PreferenceView.Opts>> getPreferences() {
+		return preferences;
+	}
+
 	@Override
 	public PreferenceView.Opts get() {
 		PreferenceView.Opts opts = new PreferenceView.Opts();
@@ -102,8 +106,8 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 		v.setAdapter(new PreferenceViewAdapter(this));
 	}
 
-	public void addToMenu(OverlayMenu menu, boolean setMinWidth) {
-		View v = menu.inflate(R.layout.pref_list_view);
+	public void addToMenu(OverlayMenu.Builder b, boolean setMinWidth) {
+		View v = b.inflate(R.layout.pref_list_view);
 		RecyclerView prefsView = v.findViewById(R.id.prefs_list_view);
 		addToView(prefsView);
 

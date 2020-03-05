@@ -29,6 +29,7 @@ import me.aap.utils.ui.UiUtils;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
+import static me.aap.utils.ui.UiUtils.toPx;
 
 /**
  * @author Andrey Pavlenko
@@ -186,10 +187,10 @@ public class ListView<I extends ListView.ListItem<I>> extends RecyclerView {
 
 			if (itemView instanceof TextView) {
 				TextView t = (TextView) itemView;
-				t.setTextColor(getTextColor());
 				t.setTextAppearance(getTextAppearance());
+				t.setTextColor(getTextColor());
 				t.setCompoundDrawableTintList(getIconTint());
-				int pad = UiUtils.toPx(5);
+				int pad = (int) toPx(getContext(), 5);
 				t.setCompoundDrawablePadding(pad);
 				t.setPadding(pad, 2 * pad, pad, 2 * pad);
 			}

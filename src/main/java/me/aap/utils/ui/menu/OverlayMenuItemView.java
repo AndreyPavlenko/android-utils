@@ -14,11 +14,14 @@ import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.TextView;
 
-import androidx.annotation.LayoutRes;
+import androidx.annotation.DrawableRes;
 import androidx.annotation.StringRes;
 import androidx.appcompat.widget.LinearLayoutCompat;
 
 import me.aap.utils.R;
+import me.aap.utils.function.Consumer;
+import me.aap.utils.ui.menu.OverlayMenu.Builder;
+import me.aap.utils.ui.menu.OverlayMenu.SelectionHandler;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
@@ -29,10 +32,9 @@ import static me.aap.utils.ui.UiUtils.ID_NULL;
  */
 public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMenuItem, OnClickListener,
 		OnLongClickListener, OnCheckedChangeListener {
-	@SuppressLint("InlinedApi")
-	@LayoutRes
-	int submenu = ID_NULL;
 	OverlayMenuView parent;
+	SelectionHandler handler;
+	Consumer<Builder> submenuBuilder;
 	private Object data;
 	private boolean isLongClick;
 
@@ -47,7 +49,7 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 		ColorStateList iconTint = ta.getColorStateList(R.styleable.OverlayMenuItemView_tint);
 		int textColor = ta.getColor(R.styleable.OverlayMenuItemView_android_textColor, Color.BLACK);
 		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance, R.attr.textAppearanceListItem);
-		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_android_padding, 5);
+		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_itemPadding, 5);
 		ta.recycle();
 		init(ctx, null, icon, iconTint, text, textColor, textAppearance, padding);
 	}
@@ -63,25 +65,31 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 		CharSequence text = ta.getText(R.styleable.OverlayMenuItemView_text);
 		int textColor = ta.getColor(R.styleable.OverlayMenuItemView_android_textColor, Color.BLACK);
 		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance, R.attr.textAppearanceListItem);
-		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_android_padding, 5);
-		submenu = ta.getResourceId(R.styleable.OverlayMenuItemView_submenu, ID_NULL);
+		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_itemPadding, 5);
+		int submenu = ta.getResourceId(R.styleable.OverlayMenuItemView_submenu, ID_NULL);
 		ta.recycle();
+
 		init(ctx, attrs, icon, iconTint, text, textColor, textAppearance, padding);
+
+		if (submenu != ID_NULL) {
+			setSubmenu(submenu);
+		} else if (submenu == R.layout.dynamic) {
+			setRightIcon(R.drawable.chevron_right);
+		}
 	}
 
 	private void init(Context ctx, AttributeSet attrs, Drawable icon, ColorStateList iconTint,
 										CharSequence text, int textColor, int textAppearance, int padding) {
 		setOrientation(HORIZONTAL);
 
-		Drawable rightIcon = (submenu == ID_NULL) ? null : ctx.getDrawable(R.drawable.chevron_right);
 		TextView t = new TextView(ctx, attrs, R.attr.popupMenuStyle);
 		LinearLayoutCompat.LayoutParams lp = new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
 		t.setLayoutParams(lp);
 		t.setText(text);
-		t.setTextColor(textColor);
 		t.setTextAppearance(textAppearance);
+		t.setTextColor(textColor);
 		t.setCompoundDrawableTintList(iconTint);
-		t.setCompoundDrawablesWithIntrinsicBounds(icon, null, rightIcon, null);
+		t.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
 		t.setCompoundDrawablePadding(padding);
 		t.setPadding(padding, padding, padding, padding);
 		t.setSingleLine(true);
@@ -136,11 +144,9 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 	}
 
 	@Override
-	public OverlayMenuItem setChecked(boolean checked) {
-		TextView t = getText();
-		Drawable[] d = t.getCompoundDrawables();
-		d[2] = getContext().getDrawable(checked ? R.drawable.check_box : R.drawable.check_box_blank);
-		t.setCompoundDrawablesWithIntrinsicBounds(d[0], d[1], d[2], d[3]);
+	public OverlayMenuItem setChecked(boolean checked, boolean selectChecked) {
+		setRightIcon(checked ? R.drawable.check_box : R.drawable.check_box_blank);
+		if (selectChecked && checked && (parent.builder != null)) parent.builder.setSelectedItem(this);
 		return this;
 	}
 
@@ -155,6 +161,19 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 	}
 
 	@Override
+	public OverlayMenuItem setHandler(SelectionHandler handler) {
+		this.handler = handler;
+		return this;
+	}
+
+	@Override
+	public OverlayMenuItem setSubmenu(Consumer<Builder> builder) {
+		submenuBuilder = builder;
+		setRightIcon(R.drawable.chevron_right);
+		return this;
+	}
+
+	@Override
 	public boolean onLongClick(View v) {
 		isLongClick = true;
 		getMenu().menuItemSelected(this);
@@ -165,6 +184,13 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 	@Override
 	public void onCheckedChanged(CompoundButton v, boolean isChecked) {
 		onClick(v);
+	}
+
+	private void setRightIcon(@DrawableRes int icon) {
+		TextView t = getText();
+		Drawable[] d = t.getCompoundDrawables();
+		d[2] = (icon == ID_NULL) ? null : getContext().getDrawable(icon);
+		t.setCompoundDrawablesWithIntrinsicBounds(d[0], d[1], d[2], d[3]);
 	}
 
 	private TextView getText() {

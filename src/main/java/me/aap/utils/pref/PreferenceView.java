@@ -37,6 +37,7 @@ import me.aap.utils.ui.menu.OverlayMenu;
 import me.aap.utils.ui.menu.OverlayMenuItem;
 
 import static me.aap.utils.ui.UiUtils.ID_NULL;
+import static me.aap.utils.ui.UiUtils.toPx;
 
 /**
  * @author Andrey Pavlenko
@@ -45,6 +46,10 @@ public class PreferenceView extends ConstraintLayout {
 	private Opts opts;
 	private PreferenceStore.Listener prefListener;
 	private ChangeableCondition.Listener condListener;
+
+	public PreferenceView(Context ctx) {
+		this(ctx, null);
+	}
 
 	public PreferenceView(Context ctx, AttributeSet attrs) {
 		super(ctx, attrs, android.R.attr.preferenceStyle);
@@ -273,33 +278,35 @@ public class PreferenceView extends ConstraintLayout {
 			if (o.initList != null) o.initList.accept(o);
 			ActivityDelegate a = ActivityDelegate.get(getContext());
 			OverlayMenu menu = a.createMenu(this);
-			int currentValue = o.store.getIntPref(o.pref);
-			menu.hide();
 
-			if (o.values != null) {
-				Resources res = getContext().getResources();
+			menu.show(b -> {
+				int currentValue = o.store.getIntPref(o.pref);
 
-				for (int i = 0; i < o.values.length; i++) {
-					int id = (o.valuesMap == null) ? i : o.valuesMap[i];
-					OverlayMenuItem item = menu.addItem(id, res.getString(o.values[i]));
-					if (id == currentValue) menu.setSelectedItem(item);
+				if (o.values != null) {
+					Resources res = getContext().getResources();
+
+					for (int i = 0; i < o.values.length; i++) {
+						int id = (o.valuesMap == null) ? i : o.valuesMap[i];
+						OverlayMenuItem item = b.addItem(id, res.getString(o.values[i]));
+						if (id == currentValue) b.setSelectedItem(item);
+					}
+				} else {
+					for (int i = 0; i < o.stringValues.length; i++) {
+						int id = (o.valuesMap == null) ? i : o.valuesMap[i];
+						OverlayMenuItem item = b.addItem(id, o.stringValues[i]);
+						if (id == currentValue) b.setSelectedItem(item);
+					}
 				}
-			} else {
-				for (int i = 0; i < o.stringValues.length; i++) {
-					int id = (o.valuesMap == null) ? i : o.valuesMap[i];
-					OverlayMenuItem item = menu.addItem(id, o.stringValues[i]);
-					if (id == currentValue) menu.setSelectedItem(item);
-				}
-			}
 
-			menu.show(item -> {
-				int id = item.getItemId();
-				if (id == currentValue) return true;
+				b.setSelectionHandler(item -> {
+					int id = item.getItemId();
+					if (id == currentValue) return true;
 
-				o.store.applyIntPref(o.pref, id);
-				if (formatTitle != null) formatTitle.run();
-				if (formatSubtitle != null) formatSubtitle.run();
-				return true;
+					o.store.applyIntPref(o.pref, id);
+					if (formatTitle != null) formatTitle.run();
+					if (formatSubtitle != null) formatSubtitle.run();
+					return true;
+				});
 			});
 		});
 	}
@@ -367,7 +374,8 @@ public class PreferenceView extends ConstraintLayout {
 
 		if (opts.subtitle == ID_NULL) {
 			if (!(opts instanceof NumberOpts) && !(opts instanceof BooleanOpts)) {
-				titleView.setPadding(0, UiUtils.toPx(8), 0, UiUtils.toPx(8));
+				int padding = (int) toPx(getContext(), 8);
+				titleView.setPadding(0, padding, 0, padding);
 			}
 
 			subtitleView.setVisibility(GONE);

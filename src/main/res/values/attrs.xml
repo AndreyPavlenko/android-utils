@@ -5,13 +5,14 @@
     <attr name="text" format="reference" />
     <attr name="submenu" format="reference" />
     <attr name="numLabels" format="integer" />
+    <attr name="itemPadding" format="dimension" />
 
     <declare-styleable name="OverlayMenuItemView">
         <attr name="icon" />
         <attr name="text" />
         <attr name="tint" />
         <attr name="submenu" />
-        <attr name="android:padding" />
+        <attr name="itemPadding" />
         <attr name="android:textColor" />
         <attr name="android:textAppearance" />
     </declare-styleable>

@@ -77,7 +77,7 @@ public class BasicPreferenceStore extends BasicEventBroadcaster<PreferenceStore.
 	}
 
 	@Override
-	public Edit editPreferenceStore() {
+	public Edit editPreferenceStore(boolean removeDefault) {
 		return new Edit() {
 			@Override
 			public void setBooleanPref(Pref<? extends BooleanSupplier> pref, boolean value) {

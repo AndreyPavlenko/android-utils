@@ -433,7 +433,7 @@ public class FilePickerFragment extends ActivityFragment implements OnItemClickL
 		}
 
 		default void setPathPadding(EditText t) {
-			int p = toPx(2);
+			int p = (int) toPx(t.getContext(), 2);
 			t.setPadding(p, p, p, p);
 		}
 	}

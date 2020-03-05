@@ -51,7 +51,7 @@
 
     <style name="Theme.Utils.Base.PopupMenuStyle">
         <item name="tint">?attr/colorOnSurface</item>
-        <item name="android:padding">5dp</item>
+        <item name="itemPadding">10dp</item>
         <item name="android:textColor">?android:attr/textColorSecondary</item>
         <item name="android:colorBackground">?attr/colorBackgroundFloating</item>
         <item name="android:textAppearance">?attr/textAppearanceListItem</item>

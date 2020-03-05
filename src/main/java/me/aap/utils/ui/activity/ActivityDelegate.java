@@ -283,7 +283,10 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 			return;
 		}
 
-		if (hideActiveMenu()) return;
+		if (activeMenu != null) {
+			if (activeMenu.back()) return;
+			else if (hideActiveMenu()) return;
+		}
 
 		ToolBarView tb = getToolBar();
 		if ((tb != null) && tb.onBackPressed()) return;

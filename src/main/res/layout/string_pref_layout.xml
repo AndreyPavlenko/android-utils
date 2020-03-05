@@ -23,6 +23,7 @@
         android:focusable="true"
         android:maxLines="1"
         android:textAppearance="?attr/textAppearanceListItem"
+        android:textColorHint="?android:attr/textColorHint"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/pref_value"
         app:layout_constraintHorizontal_weight="1"

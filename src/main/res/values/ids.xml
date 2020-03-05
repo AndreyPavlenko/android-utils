@@ -8,4 +8,19 @@
     <item name="file_picker_ok" type="id" />
     <item name="file_picker_close" type="id" />
     <item name="file_picker_path" type="id" />
+    <item name="overlay_menu_title" type="id" />
+
+    <item name="array_item_id_0" type="id" />
+    <item name="array_item_id_1" type="id" />
+    <item name="array_item_id_2" type="id" />
+    <item name="array_item_id_3" type="id" />
+    <item name="array_item_id_4" type="id" />
+    <item name="array_item_id_5" type="id" />
+    <item name="array_item_id_6" type="id" />
+    <item name="array_item_id_7" type="id" />
+    <item name="array_item_id_8" type="id" />
+    <item name="array_item_id_9" type="id" />
+    <item name="array_item_id_unknown" type="id" />
+
+
 </resources>

@@ -234,8 +234,8 @@ public interface SharedPreferenceStore extends PreferenceStore {
 	}
 
 	@Override
-	default PreferenceStore.Edit editPreferenceStore() {
-		return new Edit(this);
+	default PreferenceStore.Edit editPreferenceStore(boolean removeDefault) {
+		return new Edit(removeDefault, this);
 	}
 
 	default void notifyPreferenceChange(PreferenceStore store, List<Pref<?>> prefs) {
@@ -243,12 +243,14 @@ public interface SharedPreferenceStore extends PreferenceStore {
 	}
 
 	class Edit implements PreferenceStore.Edit {
+		private boolean removeDefault;
 		private final SharedPreferenceStore store;
 		private final SharedPreferences.Editor edit;
 		private List<Pref<?>> changed;
 
 		@SuppressLint("CommitPrefEdits")
-		Edit(SharedPreferenceStore store) {
+		Edit(boolean removeDefault, SharedPreferenceStore store) {
+			this.removeDefault = removeDefault;
 			this.store = store;
 			this.edit = store.getSharedPreferences().edit();
 		}
@@ -360,6 +362,8 @@ public interface SharedPreferenceStore extends PreferenceStore {
 		}
 
 		private <S> boolean removeDefault(Pref<S> pref, Function<PreferenceStore, Boolean> compare) {
+			if (!removeDefault) return false;
+
 			if (!pref.isInheritable()) {
 				removePref(pref);
 				return true;
