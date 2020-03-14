@@ -6,6 +6,7 @@ import android.graphics.drawable.Drawable;
 import android.view.View;
 
 import androidx.annotation.DrawableRes;
+import androidx.annotation.IntDef;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.StringRes;
 
@@ -37,6 +38,8 @@ public interface OverlayMenu {
 
 		OverlayMenuItem addItem(int id, Drawable icon, CharSequence title);
 
+		OverlayMenuItem addItem(int id, Drawable icon, CharSequence title, int relativeToId, boolean after);
+
 		default OverlayMenuItem addItem(int id, @DrawableRes int icon, @StringRes int title) {
 			Context ctx = getMenu().getContext();
 			Resources r = ctx.getResources();
@@ -59,6 +62,30 @@ public interface OverlayMenu {
 
 		default OverlayMenuItem addItem(int id, CharSequence title) {
 			return addItem(id, null, title);
+		}
+
+		default OverlayMenuItem addItem(int id, @DrawableRes int icon, @StringRes int title, int relativeToId, boolean after) {
+			Context ctx = getMenu().getContext();
+			Resources r = ctx.getResources();
+			return addItem(id, r.getDrawable(icon, ctx.getTheme()), r.getString(title), relativeToId, after);
+		}
+
+		default OverlayMenuItem addItem(int id, Drawable icon, @StringRes int title, int relativeToId, boolean after) {
+			return addItem(id, icon, getMenu().getContext().getResources().getString(title), relativeToId, after);
+		}
+
+		default OverlayMenuItem addItem(int id, @DrawableRes int icon, CharSequence title, int relativeToId, boolean after) {
+			Context ctx = getMenu().getContext();
+			Resources r = ctx.getResources();
+			return addItem(id, r.getDrawable(icon, ctx.getTheme()), title, relativeToId, after);
+		}
+
+		default OverlayMenuItem addItem(int id, @StringRes int title, int relativeToId, boolean after) {
+			return addItem(id, getMenu().getContext().getResources().getString(title), relativeToId, after);
+		}
+
+		default OverlayMenuItem addItem(int id, CharSequence title, int relativeToId, boolean after) {
+			return addItem(id, null, title, relativeToId, after);
 		}
 
 		Builder setSelectedItem(OverlayMenuItem item);
@@ -87,6 +114,11 @@ public interface OverlayMenu {
 				@Override
 				public OverlayMenuItem addItem(int id, Drawable icon, CharSequence title) {
 					return Builder.this.addItem(id, icon, title).setHandler(selectionHandler);
+				}
+
+				@Override
+				public OverlayMenuItem addItem(int id, Drawable icon, CharSequence title, int relativeToId, boolean after) {
+					return Builder.this.addItem(id, icon, title, relativeToId, after).setHandler(selectionHandler);
 				}
 
 				@Override

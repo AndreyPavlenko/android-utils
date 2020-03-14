@@ -192,7 +192,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 			LinearLayoutCompat view = new LinearLayoutCompat(getContext());
 			view.setOrientation(LinearLayoutCompat.VERTICAL);
 			view.setLayoutParams(new FrameLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT));
-			view.setPadding(0,0,0,0);
+			view.setPadding(0, 0, 0, 0);
 			addView(view);
 			this.view = view;
 		}
@@ -220,6 +220,20 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		public OverlayMenuItem addItem(int id, Drawable icon, CharSequence title) {
 			OverlayMenuItemView i = new OverlayMenuItemView(OverlayMenuView.this, id, icon, title);
 			view.addView(i);
+			return i;
+		}
+
+		@Override
+		public OverlayMenuItem addItem(int id, Drawable icon, CharSequence title,
+																	 int relativeToId, boolean after) {
+			OverlayMenuItemView i = (OverlayMenuItemView) findItem(relativeToId);
+			if (i == null) return addItem(id, icon, title);
+
+			int idx = view.indexOfChild((View) i);
+			if (after) idx++;
+
+			i = new OverlayMenuItemView(OverlayMenuView.this, id, icon, title);
+			view.addView(i, idx);
 			return i;
 		}
 
