@@ -48,7 +48,7 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 
 	public void showMenu() {
 		Mediator m = getMediator();
-		if(m != null) m.showMenu(this);
+		if (m != null) m.showMenu(this);
 	}
 
 	protected Mediator getMediator() {
@@ -120,9 +120,14 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 				if (v == null) return;
 
 				v.setSelected(true);
-				v = nb.findViewById(a.getActiveNavItemId());
-				a.setActiveNavItemId(id);
-				if (v != null) v.setSelected(true);
+				View active = nb.findViewById(a.getActiveNavItemId());
+
+				if (active == null) {
+					a.setActiveNavItemId(id);
+				} else if (v != active) {
+					a.setActiveNavItemId(id);
+					active.setSelected(false);
+				}
 			}
 		}
 

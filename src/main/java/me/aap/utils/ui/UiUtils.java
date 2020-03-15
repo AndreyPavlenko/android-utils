@@ -2,11 +2,18 @@ package me.aap.utils.ui;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.CornerPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.drawable.AdaptiveIconDrawable;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.VectorDrawable;
+import android.os.Build.VERSION_CODES;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -24,6 +31,8 @@ import me.aap.utils.app.App;
 import me.aap.utils.concurrent.ConcurrentUtils;
 import me.aap.utils.function.Consumer;
 
+import static android.graphics.Bitmap.Config.ARGB_8888;
+import static android.os.Build.VERSION.SDK_INT;
 import static android.view.KeyEvent.KEYCODE_DPAD_DOWN;
 import static android.view.KeyEvent.KEYCODE_DPAD_UP;
 
@@ -111,6 +120,33 @@ public class UiUtils {
 			default:
 				return R.id.array_item_id_unknown;
 		}
+	}
+
+	public static Bitmap getBitmap(Drawable d) {
+		if (d instanceof BitmapDrawable) return ((BitmapDrawable) d).getBitmap();
+
+		if (d instanceof VectorDrawable) {
+			Bitmap bm = Bitmap.createBitmap(d.getIntrinsicWidth(), d.getIntrinsicHeight(), ARGB_8888);
+			Canvas c = new Canvas(bm);
+			d.setBounds(0, 0, c.getWidth(), c.getHeight());
+			d.draw(c);
+			return bm;
+		}
+
+		if (SDK_INT < VERSION_CODES.O) return null;
+		if (!(d instanceof AdaptiveIconDrawable)) return null;
+
+		AdaptiveIconDrawable ad = (AdaptiveIconDrawable) d;
+		Drawable bg = ad.getBackground();
+		Drawable fg = ad.getForeground();
+		LayerDrawable ld = new LayerDrawable(new Drawable[]{bg, fg});
+		int w = ld.getIntrinsicWidth();
+		int h = ld.getIntrinsicHeight();
+		Bitmap bm = Bitmap.createBitmap(w, h, ARGB_8888);
+		Canvas c = new Canvas(bm);
+		ld.setBounds(0, 0, c.getWidth(), c.getHeight());
+		ld.draw(c);
+		return bm;
 	}
 
 	public static Paint getPaint() {

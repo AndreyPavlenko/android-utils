@@ -6,16 +6,17 @@ import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.text.method.ScrollingMovementMethod;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.TextView;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.StringRes;
+import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.LinearLayoutCompat;
 
 import me.aap.utils.R;
@@ -30,7 +31,7 @@ import static me.aap.utils.ui.UiUtils.ID_NULL;
 /**
  * @author Andrey Pavlenko
  */
-public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMenuItem, OnClickListener,
+public class OverlayMenuItemView extends AppCompatTextView implements OverlayMenuItem, OnClickListener,
 		OnLongClickListener, OnCheckedChangeListener {
 	OverlayMenuView parent;
 	SelectionHandler handler;
@@ -51,7 +52,7 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance, R.attr.textAppearanceListItem);
 		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_itemPadding, 5);
 		ta.recycle();
-		init(ctx, null, icon, iconTint, text, textColor, textAppearance, padding);
+		init(icon, iconTint, text, textColor, textAppearance, padding);
 	}
 
 	@SuppressLint("InlinedApi")
@@ -69,7 +70,7 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 		int submenu = ta.getResourceId(R.styleable.OverlayMenuItemView_submenu, ID_NULL);
 		ta.recycle();
 
-		init(ctx, attrs, icon, iconTint, text, textColor, textAppearance, padding);
+		init(icon, iconTint, text, textColor, textAppearance, padding);
 
 		if (submenu != ID_NULL) {
 			setSubmenu(submenu);
@@ -78,29 +79,26 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 		}
 	}
 
-	private void init(Context ctx, AttributeSet attrs, Drawable icon, ColorStateList iconTint,
-										CharSequence text, int textColor, int textAppearance, int padding) {
-		setOrientation(HORIZONTAL);
-
-		TextView t = new TextView(ctx, attrs, R.attr.popupMenuStyle);
+	private void init(Drawable icon, ColorStateList iconTint, CharSequence text,
+										int textColor, int textAppearance, int padding) {
 		LinearLayoutCompat.LayoutParams lp = new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
-		t.setLayoutParams(lp);
-		t.setText(text);
-		t.setTextAppearance(textAppearance);
-		t.setTextColor(textColor);
-		t.setCompoundDrawableTintList(iconTint);
-		t.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
-		t.setCompoundDrawablePadding(padding);
-		t.setPadding(padding, padding, padding, padding);
-		t.setSingleLine(true);
-		t.setVisibility(VISIBLE);
-		t.setTextAlignment(TEXT_ALIGNMENT_VIEW_START);
-		addView(t);
+		setLayoutParams(lp);
+		setText(text);
+		setTextAppearance(textAppearance);
+		setTextColor(textColor);
+		setCompoundDrawableTintList(iconTint);
+		setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
+		setCompoundDrawablePadding(padding);
+		setPadding(padding, padding, padding, padding);
+		setSingleLine(true);
+		setVisibility(VISIBLE);
+		setTextAlignment(TEXT_ALIGNMENT_VIEW_START);
 
 		setFocusable(true);
 		setOnClickListener(this);
 		setOnLongClickListener(this);
 		setBackgroundResource(R.drawable.focusable_shape_transparent);
+		setMovementMethod(new ScrollingMovementMethod());
 	}
 
 	public int getItemId() {
@@ -117,17 +115,17 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 	}
 
 	public CharSequence getTitle() {
-		return getText().getText();
+		return getText();
 	}
 
 	@Override
 	public OverlayMenuItem setTitle(@StringRes int title) {
-		getText().setText(title);
+		setText(title);
 		return this;
 	}
 
 	public OverlayMenuItem setTitle(CharSequence title) {
-		getText().setText(title);
+		setText(title);
 		return this;
 	}
 
@@ -187,13 +185,8 @@ public class OverlayMenuItemView extends LinearLayoutCompat implements OverlayMe
 	}
 
 	private void setRightIcon(@DrawableRes int icon) {
-		TextView t = getText();
-		Drawable[] d = t.getCompoundDrawables();
+		Drawable[] d = getCompoundDrawables();
 		d[2] = (icon == ID_NULL) ? null : getContext().getDrawable(icon);
-		t.setCompoundDrawablesWithIntrinsicBounds(d[0], d[1], d[2], d[3]);
-	}
-
-	private TextView getText() {
-		return (TextView) getChildAt(0);
+		setCompoundDrawablesWithIntrinsicBounds(d[0], d[1], d[2], d[3]);
 	}
 }
