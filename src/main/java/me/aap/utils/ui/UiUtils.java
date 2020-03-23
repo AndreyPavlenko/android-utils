@@ -46,6 +46,10 @@ public class UiUtils {
 		return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
 	}
 
+	public static int toIntPx(Context ctx, int dp) {
+		return (int) toPx(ctx, dp);
+	}
+
 	public static void showError(String msg) {
 		Toast.makeText(App.get(), msg, Toast.LENGTH_LONG).show();
 	}

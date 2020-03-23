@@ -229,7 +229,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 			OverlayMenuItemView i = (OverlayMenuItemView) findItem(relativeToId);
 			if (i == null) return addItem(id, icon, title);
 
-			int idx = view.indexOfChild((View) i);
+			int idx = view.indexOfChild(i);
 			if (after) idx++;
 
 			i = new OverlayMenuItemView(OverlayMenuView.this, id, icon, title);
@@ -283,6 +283,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		@Override
 		public Builder setView(View view) {
 			initMenuItems(this.view);
+			this.view.addView(view);
 			return this;
 		}
 

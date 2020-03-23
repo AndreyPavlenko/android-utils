@@ -6,7 +6,6 @@ import android.graphics.drawable.Drawable;
 import android.view.View;
 
 import androidx.annotation.DrawableRes;
-import androidx.annotation.IntDef;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.StringRes;
 

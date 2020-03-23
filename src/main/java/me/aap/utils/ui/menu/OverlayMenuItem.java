@@ -40,6 +40,8 @@ public interface OverlayMenuItem {
 
 	OverlayMenuItem setVisible(boolean visible);
 
+	OverlayMenuItem setMultiLine(boolean multiLine);
+
 	OverlayMenuItem setHandler(SelectionHandler handler);
 
 	OverlayMenuItem setSubmenu(Consumer<Builder> builder);

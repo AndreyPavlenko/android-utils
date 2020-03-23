@@ -154,6 +154,12 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 	}
 
 	@Override
+	public OverlayMenuItem setMultiLine(boolean multiLine) {
+		setSingleLine(!multiLine);
+		return this;
+	}
+
+	@Override
 	public void onClick(View v) {
 		getMenu().menuItemSelected(this);
 	}
