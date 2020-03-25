@@ -44,6 +44,7 @@ public class FileUtils {
 	}
 
 	public static String getFileExtension(String fileName) {
+		if (fileName == null) return null;
 		int idx = fileName.lastIndexOf('.');
 		return ((idx == -1) || (idx == (fileName.length() - 1))) ? null : fileName.substring(idx + 1);
 	}

@@ -6,6 +6,9 @@ import android.os.Handler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import me.aap.utils.function.Consumer;
+import me.aap.utils.function.Supplier;
+
 /**
  * @author Andrey Pavlenko
  */
@@ -60,5 +63,12 @@ public class App extends android.app.Application {
 		}
 
 		return e;
+	}
+
+	public <T> void execute(Supplier<T> resultSupplier, Consumer<T> resultConsumer) {
+		getExecutor().submit(() -> {
+			T result = resultSupplier.get();
+			getHandler().post(() -> resultConsumer.accept(result));
+		});
 	}
 }

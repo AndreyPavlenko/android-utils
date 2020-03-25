@@ -17,4 +17,9 @@ public class ConcurrentUtils {
 		if (debug && !BuildConfig.DEBUG) return;
 		if (!isMainThread()) throw new AssertionError("Not the main thread");
 	}
+
+	public static void ensureNotMainThread(boolean debug) {
+		if (debug && !BuildConfig.DEBUG) return;
+		if (isMainThread()) throw new AssertionError("Main thread");
+	}
 }

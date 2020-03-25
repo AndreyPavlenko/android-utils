@@ -23,6 +23,24 @@ public class TextUtils {
 		return sb;
 	}
 
+	public static int indexOfChar(CharSequence seq, int from, int to, CharSequence chars) {
+		for (int len = chars.length(); from < to; from++) {
+			char c = seq.charAt(from);
+			for (int n = 0; n < len; n++) {
+				if (chars.charAt(n) == c) return from;
+			}
+		}
+		return -1;
+	}
+
+	public static long toLong(CharSequence seq, int from, int to, long defaultValue) {
+		try {
+			return Long.parseLong(seq.subSequence(from, to).toString());
+		} catch (NumberFormatException ignore) {
+			return defaultValue;
+		}
+	}
+
 	public static String timeToString(int seconds) {
 		StringBuilder sb = getSharedStringBuilder();
 		timeToString(sb, seconds);
