@@ -1,17 +1,21 @@
 package me.aap.utils.concurrent;
 
-import androidx.annotation.NonNull;
+import android.os.Handler;
 
-import java.util.concurrent.Future;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import java.util.concurrent.TimeUnit;
+
+import me.aap.utils.function.BiConsumer;
 
 /**
  * @author Andrey Pavlenko
  */
-public class CompletedFuture<V> implements Future<V> {
-	private final V result;
+public class CompletedFuture<T> implements FutureSupplier<T> {
+	private final T result;
 
-	public CompletedFuture(V result) {
+	public CompletedFuture(T result) {
 		this.result = result;
 	}
 
@@ -36,13 +40,22 @@ public class CompletedFuture<V> implements Future<V> {
 	}
 
 	@Override
-	public V get() {
+	public T get() {
 		return result;
 	}
 
 	@Override
-	public V get(long timeout, @NonNull TimeUnit unit) {
+	public T get(long timeout, @NonNull TimeUnit unit) {
 		return result;
+	}
+
+	public void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler) {
+		if (c == null) return;
+		if ((handler == null) || (c instanceof CompletableFuture) || handler.getLooper().isCurrentThread()) {
+			c.accept(result, null);
+		} else {
+			handler.post(() -> c.accept(result, null));
+		}
 	}
 
 	@SuppressWarnings("unchecked")

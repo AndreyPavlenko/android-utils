@@ -107,6 +107,17 @@ public class CollectionUtils {
 		}
 	}
 
+	public static <K, V> V putIfAbsent(Map<K, V> m, K key, V value) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+			return m.putIfAbsent(key, value);
+		} else {
+			V v = m.get(key);
+			if (v != null) return v;
+			m.put(key, value);
+			return null;
+		}
+	}
+
 	public static boolean remove(Map<?, ?> m, Object key, Object value) {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
 			return m.remove(key, value);

@@ -127,12 +127,20 @@ public class UiUtils {
 	}
 
 	public static Bitmap getBitmap(Drawable d) {
+		return getBitmap(d, Color.TRANSPARENT);
+	}
+
+	public static Bitmap getBitmap(Drawable d, @ColorInt int color) {
 		if (d instanceof BitmapDrawable) return ((BitmapDrawable) d).getBitmap();
 
 		if (d instanceof VectorDrawable) {
 			Bitmap bm = Bitmap.createBitmap(d.getIntrinsicWidth(), d.getIntrinsicHeight(), ARGB_8888);
 			Canvas c = new Canvas(bm);
 			d.setBounds(0, 0, c.getWidth(), c.getHeight());
+			if (color != Color.TRANSPARENT) {
+				d = d.mutate();
+				d.setTint(color);
+			}
 			d.draw(c);
 			return bm;
 		}
@@ -149,8 +157,27 @@ public class UiUtils {
 		Bitmap bm = Bitmap.createBitmap(w, h, ARGB_8888);
 		Canvas c = new Canvas(bm);
 		ld.setBounds(0, 0, c.getWidth(), c.getHeight());
+		if (color != Color.TRANSPARENT) ld.setTint(color);
 		ld.draw(c);
 		return bm;
+	}
+
+	public static Bitmap resizedBitmap(Bitmap bm, int maxSize) {
+		int width = bm.getWidth();
+		int height = bm.getHeight();
+		if ((width <= maxSize) && (height <= maxSize)) return bm;
+
+		float ratio = (float) width / (float) height;
+
+		if (ratio > 1) {
+			width = maxSize;
+			height = (int) (width / ratio);
+		} else {
+			height = maxSize;
+			width = (int) (height * ratio);
+		}
+
+		return Bitmap.createScaledBitmap(bm, width, height, true);
 	}
 
 	public static Paint getPaint() {
