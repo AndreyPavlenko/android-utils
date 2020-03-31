@@ -2,12 +2,16 @@ package me.aap.utils.app;
 
 import android.annotation.SuppressLint;
 import android.os.Handler;
+import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -17,9 +21,11 @@ import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
 /**
  * @author Andrey Pavlenko
  */
-public class App extends android.app.Application {
+public class App extends android.app.Application implements ThreadFactory,
+		Thread.UncaughtExceptionHandler {
 	@SuppressLint("StaticFieldLeak")
 	private static App instance;
+	private int threadCounter;
 	private volatile Handler handler;
 	private volatile ExecutorService executor;
 
@@ -62,7 +68,12 @@ public class App extends android.app.Application {
 		if (e == null) {
 			synchronized (this) {
 				if ((e = executor) == null) {
-					executor = e = Executors.newSingleThreadExecutor();
+					ThreadPoolExecutor tp = new ThreadPoolExecutor(getNumberOfCoreThreads(),
+							getMaxNumberOfThreads(),
+							60L, TimeUnit.SECONDS,
+							new LinkedBlockingQueue<>());
+					tp.setThreadFactory(this);
+					return executor = tp;
 				}
 			}
 		}
@@ -70,7 +81,7 @@ public class App extends android.app.Application {
 		return e;
 	}
 
-	public <T> void execute(Runnable run) {
+	public void execute(Runnable run) {
 		if (isMainThread()) getExecutor().submit(run);
 		else run.run();
 	}
@@ -85,5 +96,31 @@ public class App extends android.app.Application {
 			T result = resultSupplier.get();
 			consumeInMainThread(resultConsumer, result);
 		}
+	}
+
+	@Override
+	public Thread newThread(@NonNull Runnable r) {
+		int n;
+
+		synchronized (this) {
+			n = ++threadCounter;
+		}
+
+		Thread t = new Thread(r, getPackageName() + '-' + n);
+		t.setUncaughtExceptionHandler(this);
+		return t;
+	}
+
+	@Override
+	public void uncaughtException(@NonNull Thread t, @NonNull Throwable ex) {
+		Log.e(getPackageName(), "Exception in thread " + t, ex);
+	}
+
+	protected int getNumberOfCoreThreads() {
+		return 1;
+	}
+
+	protected int getMaxNumberOfThreads() {
+		return 1;
 	}
 }
