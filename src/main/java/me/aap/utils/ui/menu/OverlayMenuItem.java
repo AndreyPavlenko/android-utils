@@ -5,7 +5,7 @@ import android.content.Context;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.StringRes;
 
-import me.aap.utils.function.Consumer;
+import java.util.function.Consumer;
 import me.aap.utils.ui.menu.OverlayMenu.Builder;
 import me.aap.utils.ui.menu.OverlayMenu.SelectionHandler;
 

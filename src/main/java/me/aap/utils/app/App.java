@@ -8,8 +8,8 @@ import androidx.annotation.Nullable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import me.aap.utils.function.Consumer;
-import me.aap.utils.function.Supplier;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static me.aap.utils.concurrent.ConcurrentUtils.consumeInMainThread;
 import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;

@@ -13,8 +13,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import me.aap.utils.function.BiConsumer;
-import me.aap.utils.function.Consumer;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * @author Andrey Pavlenko

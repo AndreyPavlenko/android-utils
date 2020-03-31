@@ -11,7 +11,7 @@ import androidx.annotation.StringRes;
 
 import java.util.List;
 
-import me.aap.utils.function.Consumer;
+import java.util.function.Consumer;
 
 /**
  * @author Andrey Pavlenko

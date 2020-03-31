@@ -10,8 +10,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import me.aap.utils.function.BiConsumer;
-import me.aap.utils.function.Supplier;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 /**
  * @author Andrey Pavlenko

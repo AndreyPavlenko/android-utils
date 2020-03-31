@@ -5,7 +5,7 @@ import android.util.Log;
 
 import me.aap.utils.BuildConfig;
 import me.aap.utils.app.App;
-import me.aap.utils.function.Consumer;
+import java.util.function.Consumer;
 
 /**
  * @author Andrey Pavlenko

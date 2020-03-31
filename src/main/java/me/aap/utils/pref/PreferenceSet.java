@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import me.aap.utils.R;
-import me.aap.utils.function.Consumer;
-import me.aap.utils.function.Supplier;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import me.aap.utils.ui.menu.OverlayMenu;
 
 /**

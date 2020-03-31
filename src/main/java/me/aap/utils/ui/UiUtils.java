@@ -29,7 +29,7 @@ import androidx.appcompat.app.AlertDialog;
 import me.aap.utils.R;
 import me.aap.utils.app.App;
 import me.aap.utils.concurrent.ConcurrentUtils;
-import me.aap.utils.function.Consumer;
+import java.util.function.Consumer;
 
 import static android.graphics.Bitmap.Config.ARGB_8888;
 import static android.os.Build.VERSION.SDK_INT;

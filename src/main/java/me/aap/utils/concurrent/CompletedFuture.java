@@ -7,7 +7,7 @@ import androidx.annotation.Nullable;
 
 import java.util.concurrent.TimeUnit;
 
-import me.aap.utils.function.BiConsumer;
+import java.util.function.BiConsumer;
 
 /**
  * @author Andrey Pavlenko

@@ -9,9 +9,9 @@ import androidx.annotation.Nullable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import me.aap.utils.function.BiConsumer;
-import me.aap.utils.function.Consumer;
-import me.aap.utils.function.Supplier;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * @author Andrey Pavlenko

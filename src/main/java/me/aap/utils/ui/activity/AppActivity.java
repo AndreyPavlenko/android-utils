@@ -11,7 +11,7 @@ import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 
-import me.aap.utils.function.BiConsumer;
+import java.util.function.BiConsumer;
 
 /**
  * @author Andrey Pavlenko
