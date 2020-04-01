@@ -10,7 +10,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import java.util.function.BiConsumer;
+import me.aap.utils.function.BiConsumer;
 
 /**
  * @author Andrey Pavlenko

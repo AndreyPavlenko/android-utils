@@ -3,11 +3,11 @@ package me.aap.utils.pref;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BooleanSupplier;
-import java.util.function.DoubleSupplier;
-import java.util.function.IntSupplier;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
+import me.aap.utils.function.BooleanSupplier;
+import me.aap.utils.function.DoubleSupplier;
+import me.aap.utils.function.IntSupplier;
+import me.aap.utils.function.LongSupplier;
+import me.aap.utils.function.Supplier;
 
 import me.aap.utils.event.BasicEventBroadcaster;
 

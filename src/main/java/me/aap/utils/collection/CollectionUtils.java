@@ -10,12 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.IntFunction;
-import java.util.function.Predicate;
-
+import me.aap.utils.function.Consumer;
+import me.aap.utils.function.Function;
 import me.aap.utils.function.IntBiConsumer;
+import me.aap.utils.function.IntFunction;
+import me.aap.utils.function.Predicate;
 
 import static java.util.Objects.requireNonNull;
 

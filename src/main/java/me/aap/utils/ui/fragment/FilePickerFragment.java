@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import me.aap.utils.R;
-import java.util.function.Consumer;
+import me.aap.utils.function.Consumer;
 import me.aap.utils.ui.UiUtils;
 import me.aap.utils.ui.activity.ActivityDelegate;
 import me.aap.utils.ui.view.FileListItem;

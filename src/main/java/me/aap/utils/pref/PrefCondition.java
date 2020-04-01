@@ -4,8 +4,8 @@ import androidx.annotation.Nullable;
 
 import java.util.List;
 
-import java.util.function.BooleanSupplier;
-import java.util.function.Predicate;
+import me.aap.utils.function.BooleanSupplier;
+import me.aap.utils.function.Predicate;
 import me.aap.utils.pref.PreferenceStore.Pref;
 import me.aap.utils.misc.ChangeableCondition;
 

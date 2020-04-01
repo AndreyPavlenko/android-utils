@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 
 import me.aap.utils.R;
-import java.util.function.Consumer;
+import me.aap.utils.function.Consumer;
 import me.aap.utils.ui.activity.ActivityDelegate;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;

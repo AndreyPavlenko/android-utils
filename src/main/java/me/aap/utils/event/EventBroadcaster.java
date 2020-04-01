@@ -7,8 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import me.aap.utils.app.App;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
+import me.aap.utils.function.Consumer;
+import me.aap.utils.function.Predicate;
 
 /**
  * @author Andrey Pavlenko

@@ -4,8 +4,8 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import me.aap.utils.function.Consumer;
+import me.aap.utils.function.Supplier;
 import me.aap.utils.ui.activity.ActivityDelegate;
 import me.aap.utils.ui.activity.ActivityListener;
 

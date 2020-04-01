@@ -20,7 +20,7 @@ import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.LinearLayoutCompat;
 
 import me.aap.utils.R;
-import java.util.function.Consumer;
+import me.aap.utils.function.Consumer;
 import me.aap.utils.ui.menu.OverlayMenu.Builder;
 import me.aap.utils.ui.menu.OverlayMenu.SelectionHandler;
 
