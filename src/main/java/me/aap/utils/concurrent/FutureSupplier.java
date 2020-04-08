@@ -18,32 +18,57 @@ import me.aap.utils.function.Supplier;
  */
 public interface FutureSupplier<T> extends Future<T> {
 
-	void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler);
+	void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler, boolean runInSameThread);
+
+	default void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler) {
+		addConsumer(c, handler, true);
+	}
 
 	default void addConsumer(@Nullable BiConsumer<T, Throwable> c) {
-		addConsumer(c, null);
+		addConsumer(c, null, true);
 	}
 
 	default void addConsumer(@Nullable Consumer<T> c) {
-		addConsumer(c, null, null);
+		addConsumer(c, null, null, true);
 	}
 
 	default void addConsumer(@Nullable Consumer<T> c, @Nullable Supplier<T> onError) {
-		addConsumer(c, onError, null);
+		addConsumer(c, onError, null, true);
 	}
 
-	@SuppressWarnings("unchecked")
-	default void addConsumer(@Nullable Consumer<T> c, @Nullable Supplier<T> onError, @Nullable Handler handler) {
+	default void addConsumer(@Nullable Consumer<T> c, @Nullable Supplier<T> onError,
+													 @Nullable Handler handler) {
+		addConsumer(c, onError, handler, true);
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	default void addConsumer(@Nullable Consumer<T> c, @Nullable Supplier<T> onError,
+													 @Nullable Handler handler, boolean runInSameThread) {
 		if (c == null) return;
-		if (c instanceof CompletableFuture) addConsumer((BiConsumer) c);
-		else addConsumer((v, err) -> {
-			if (err == null) {
-				c.accept(v);
-			} else {
-				Log.e(getClass().getName(), err.getMessage(), err);
-				c.accept((onError != null) ? onError.get() : null);
-			}
-		}, handler);
+
+		if (c instanceof BiConsumer) {
+			addConsumer((BiConsumer) c, null, false);
+		} else {
+			BiConsumer<T, Throwable> consumer = new BiConsumer<T, Throwable>() {
+
+				@Override
+				public void accept(T v, Throwable err) {
+					if (err == null) {
+						c.accept(v);
+					} else {
+						Log.e(getClass().getName(), err.getMessage(), err);
+						c.accept((onError != null) ? onError.get() : null);
+					}
+				}
+
+				@Override
+				public boolean canBlockThread() {
+					return c.canBlockThread();
+				}
+			};
+
+			addConsumer(consumer, handler, runInSameThread);
+		}
 	}
 
 

@@ -5,4 +5,8 @@ package me.aap.utils.function;
  */
 public interface Consumer<T> {
 	void accept(T t);
+
+	default boolean canBlockThread() {
+		return false;
+	}
 }

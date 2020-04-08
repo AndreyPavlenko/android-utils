@@ -127,22 +127,14 @@ public class UiUtils {
 	}
 
 	public static Bitmap getBitmap(Drawable d) {
-		return getBitmap(d, Color.TRANSPARENT);
+		return getBitmap(d, 0, 0);
 	}
 
-	public static Bitmap getBitmap(Drawable d, @ColorInt int color) {
+	public static Bitmap getBitmap(Drawable d, int width, int height) {
 		if (d instanceof BitmapDrawable) return ((BitmapDrawable) d).getBitmap();
 
 		if (d instanceof VectorDrawable) {
-			Bitmap bm = Bitmap.createBitmap(d.getIntrinsicWidth(), d.getIntrinsicHeight(), ARGB_8888);
-			Canvas c = new Canvas(bm);
-			d.setBounds(0, 0, c.getWidth(), c.getHeight());
-			if (color != Color.TRANSPARENT) {
-				d = d.mutate();
-				d.setTint(color);
-			}
-			d.draw(c);
-			return bm;
+			return drawBitmap(d, Color.TRANSPARENT, Color.TRANSPARENT, 0, 0);
 		}
 
 		if (SDK_INT < VERSION_CODES.O) return null;
@@ -152,13 +144,23 @@ public class UiUtils {
 		Drawable bg = ad.getBackground();
 		Drawable fg = ad.getForeground();
 		LayerDrawable ld = new LayerDrawable(new Drawable[]{bg, fg});
-		int w = ld.getIntrinsicWidth();
-		int h = ld.getIntrinsicHeight();
+		return drawBitmap(ld, Color.TRANSPARENT, Color.TRANSPARENT, width, height);
+	}
+
+	public static Bitmap drawBitmap(Drawable d, @ColorInt int bgColor, @ColorInt int fgColor) {
+		return drawBitmap(d, bgColor, fgColor, 0, 0);
+	}
+
+	public static Bitmap drawBitmap(Drawable d, @ColorInt int bgColor, @ColorInt int fgColor,
+																	int width, int height) {
+		int w = (width != 0) ? width : d.getIntrinsicWidth();
+		int h = (height != 0) ? height : d.getIntrinsicHeight();
 		Bitmap bm = Bitmap.createBitmap(w, h, ARGB_8888);
 		Canvas c = new Canvas(bm);
-		ld.setBounds(0, 0, c.getWidth(), c.getHeight());
-		if (color != Color.TRANSPARENT) ld.setTint(color);
-		ld.draw(c);
+		d.setBounds(0, 0, c.getWidth(), c.getHeight());
+		if (bgColor != Color.TRANSPARENT) bm.eraseColor(bgColor);
+		if (fgColor != Color.TRANSPARENT) d.setTint(fgColor);
+		d.draw(c);
 		return bm;
 	}
 

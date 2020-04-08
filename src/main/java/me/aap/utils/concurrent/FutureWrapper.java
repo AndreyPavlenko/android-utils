@@ -48,7 +48,7 @@ public class FutureWrapper<T> implements FutureSupplier<T> {
 	}
 
 	@Override
-	public void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler) {
+	public void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler, boolean runInSameThread) {
 		throw new UnsupportedOperationException();
 	}
 }

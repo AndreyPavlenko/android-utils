@@ -49,9 +49,9 @@ public class CompletedFuture<T> implements FutureSupplier<T> {
 		return result;
 	}
 
-	public void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler) {
+	public void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler, boolean runInSameThread) {
 		if (c == null) return;
-		if ((handler == null) || (c instanceof CompletableFuture) || handler.getLooper().isCurrentThread()) {
+		if ((handler == null) || c.canBlockThread() || (runInSameThread && handler.getLooper().isCurrentThread())) {
 			c.accept(result, null);
 		} else {
 			handler.post(() -> c.accept(result, null));

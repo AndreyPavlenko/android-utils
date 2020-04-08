@@ -2,26 +2,10 @@ package me.aap.utils.text;
 
 import android.util.Log;
 
-import me.aap.utils.concurrent.ConcurrentUtils;
-
 /**
  * @author Andrey Pavlenko
  */
 public class TextUtils {
-
-	public static StringBuilder getSharedStringBuilder() {
-		if (!ConcurrentUtils.isMainThread()) return new StringBuilder();
-		StringBuilderHolder.sharedStringBuilder.setLength(0);
-		return StringBuilderHolder.sharedStringBuilder;
-	}
-
-	public static StringBuilder getSharedStringBuilder(int minCapacity) {
-		if (!ConcurrentUtils.isMainThread()) return new StringBuilder(minCapacity);
-		StringBuilder sb = StringBuilderHolder.sharedStringBuilder;
-		sb.ensureCapacity(minCapacity);
-		sb.setLength(0);
-		return sb;
-	}
 
 	public static int indexOfChar(CharSequence seq, int from, int to, CharSequence chars) {
 		for (int len = chars.length(); from < to; from++) {
@@ -42,12 +26,13 @@ public class TextUtils {
 	}
 
 	public static String timeToString(int seconds) {
-		StringBuilder sb = getSharedStringBuilder();
-		timeToString(sb, seconds);
-		return sb.toString();
+		try (SharedTextBuilder tb = SharedTextBuilder.get()) {
+			timeToString(tb, seconds);
+			return tb.toString();
+		}
 	}
 
-	public static void timeToString(StringBuilder sb, int seconds) {
+	public static void timeToString(TextBuilder sb, int seconds) {
 		if (seconds < 60) {
 			sb.append("00:");
 			appendTime(sb, seconds);
@@ -64,7 +49,7 @@ public class TextUtils {
 		}
 	}
 
-	private static void appendTime(StringBuilder sb, int time) {
+	private static void appendTime(TextBuilder sb, int time) {
 		if (time < 10) sb.append(0);
 		sb.append(time);
 	}
@@ -115,7 +100,9 @@ public class TextUtils {
 	}
 
 	public static String toHexString(byte[] bytes) {
-		return appendHexString(getSharedStringBuilder(bytes.length * 2), bytes).toString();
+		try (SharedTextBuilder tb = SharedTextBuilder.get(bytes.length * 2)) {
+			return appendHexString(tb, bytes).toString();
+		}
 	}
 
 	public static StringBuilder appendHexString(StringBuilder sb, byte[] bytes) {
@@ -126,12 +113,16 @@ public class TextUtils {
 		return sb;
 	}
 
+	public static TextBuilder appendHexString(TextBuilder sb, byte[] bytes) {
+		for (final byte b : bytes) {
+			int v = b & 0xFF;
+			sb.append(HexTable._table[v >>> 4]).append(HexTable._table[v & 0xF]);
+		}
+		return sb;
+	}
+
 	private static final class HexTable {
 		static final char[] _table = {'0', '1', '2', '3', '4', '5', '6', '7',
 				'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-	}
-
-	private interface StringBuilderHolder {
-		StringBuilder sharedStringBuilder = new StringBuilder();
 	}
 }

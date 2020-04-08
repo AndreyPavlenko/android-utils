@@ -13,6 +13,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import me.aap.utils.concurrent.AppThread;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Supplier;
 
@@ -69,12 +70,7 @@ public class App extends android.app.Application implements ThreadFactory,
 		if (e == null) {
 			synchronized (this) {
 				if ((e = executor) == null) {
-					ThreadPoolExecutor tp = new ThreadPoolExecutor(getNumberOfCoreThreads(),
-							getMaxNumberOfThreads(),
-							60L, TimeUnit.SECONDS,
-							new LinkedBlockingQueue<>());
-					tp.setThreadFactory(this);
-					return executor = tp;
+					executor = e = createExecutor();
 				}
 			}
 		}
@@ -99,6 +95,16 @@ public class App extends android.app.Application implements ThreadFactory,
 		}
 	}
 
+	protected ExecutorService createExecutor() {
+		ThreadPoolExecutor executor = new ThreadPoolExecutor(getNumberOfCoreThreads(),
+				getMaxNumberOfThreads(),
+				60L, TimeUnit.SECONDS,
+				new LinkedBlockingQueue<>());
+		executor.setThreadFactory(this);
+		executor.allowCoreThreadTimeOut(true);
+		return executor;
+	}
+
 	@Override
 	public Thread newThread(@NonNull Runnable r) {
 		int n;
@@ -107,7 +113,7 @@ public class App extends android.app.Application implements ThreadFactory,
 			n = ++threadCounter;
 		}
 
-		Thread t = new Thread(r, getPackageName() + '-' + n);
+		AppThread t = new AppThread(r, getPackageName() + '-' + n);
 		t.setUncaughtExceptionHandler(this);
 		return t;
 	}

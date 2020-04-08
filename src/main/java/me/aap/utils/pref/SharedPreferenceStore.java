@@ -24,8 +24,8 @@ import me.aap.utils.function.IntFunction;
 import me.aap.utils.function.IntSupplier;
 import me.aap.utils.function.LongSupplier;
 import me.aap.utils.function.Supplier;
-
-import static me.aap.utils.text.TextUtils.getSharedStringBuilder;
+import me.aap.utils.text.SharedTextBuilder;
+import me.aap.utils.text.TextBuilder;
 
 /**
  * @author Andrey Pavlenko
@@ -319,12 +319,13 @@ public interface SharedPreferenceStore extends PreferenceStore {
 					!removeDefault(pref, p -> Arrays.equals(p.getStringArrayPref(pref), value))) {
 				String key = store.getPreferenceKey(pref);
 				Set<String> set = new HashSet<>((int) (value.length * 1.5f));
-				StringBuilder sb = getSharedStringBuilder();
 
-				for (int i = 0; i < value.length; i++) {
-					sb.setLength(0);
-					sb.append(i).append(' ').append(value[i]);
-					set.add(sb.toString());
+				try (SharedTextBuilder tb = SharedTextBuilder.get()) {
+					for (int i = 0; i < value.length; i++) {
+						tb.setLength(0);
+						tb.append(i).append(' ').append(value[i]);
+						set.add(tb.toString());
+					}
 				}
 
 				edit.putStringSet(key, set);
@@ -333,9 +334,9 @@ public interface SharedPreferenceStore extends PreferenceStore {
 		}
 
 		public <A> void setArrayPref(Pref<? extends Supplier<A>> pref, A value, int len,
-																 IntBiConsumer<A, StringBuilder> appendFunc) {
+																 IntBiConsumer<A, TextBuilder> appendFunc) {
 			String key = store.getPreferenceKey(pref);
-			StringBuilder sb = getSharedStringBuilder();
+			SharedTextBuilder sb = SharedTextBuilder.get();
 
 			for (int i = 0; i < len; i++) {
 				appendFunc.accept(i, value, sb);

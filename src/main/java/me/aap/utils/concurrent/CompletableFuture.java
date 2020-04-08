@@ -14,16 +14,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import me.aap.utils.function.BiConsumer;
+import me.aap.utils.function.CheckedSupplier;
 import me.aap.utils.function.Consumer;
+
+import static me.aap.utils.misc.Assert.assertTrue;
 
 /**
  * @author Andrey Pavlenko
  */
 public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiConsumer<T, Throwable> {
-	private static final Object NULL = new Object();
-	private static final Object CANCELLED = new Object();
 	private final long defaultTimeout;
-	private Object value = NULL;
+	private Object value = State.INITIAL;
 	private List<BiConsumer<T, Throwable>> consumers = Collections.emptyList();
 
 	public CompletableFuture() {
@@ -38,35 +39,41 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 		this(unit.toMillis(defaultTimeout));
 	}
 
+	public boolean canBlockThread() {
+		return true;
+	}
+
 	@Override
-	public final void accept(T value) {
+	public void accept(T value) {
 		complete(value);
 	}
 
 	@Override
-	public final void accept(T value, Throwable ex) {
+	public void accept(T value, Throwable ex) {
 		if (ex != null) completeExceptionally(ex);
 		else complete(value);
 	}
 
 	@SuppressWarnings("unchecked")
-	public void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler) {
+	public void addConsumer(@Nullable BiConsumer<T, Throwable> c, @Nullable Handler handler, boolean runInSameThread) {
 		if (c == null) return;
 
 		Object value;
 		BiConsumer<T, Throwable> consumer;
 
-		if ((handler == null) || (c instanceof CompletableFuture)) {
+		if ((handler == null) || c.canBlockThread()) {
 			consumer = c;
 		} else {
 			consumer = (v, e) -> {
-				if (handler.getLooper().isCurrentThread()) c.accept(v, e);
+				if (runInSameThread && handler.getLooper().isCurrentThread()) c.accept(v, e);
 				else handler.post(() -> c.accept(v, e));
 			};
 		}
 
 		synchronized (this) {
-			if ((value = this.value) == NULL) {
+			value = this.value;
+
+			if ((value == State.INITIAL) || (value == State.RUNNING)) {
 				if (consumers == Collections.EMPTY_LIST) {
 					consumers = Collections.singletonList(consumer);
 					return;
@@ -79,7 +86,7 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 			}
 		}
 
-		if (value == CANCELLED) {
+		if (value == State.CANCELLED) {
 			consumer.accept(null, new CancellationException());
 		} else if (value instanceof ExceptionWrapper) {
 			consumer.accept(null, new ExecutionException(((ExceptionWrapper) value).ex));
@@ -89,7 +96,7 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 	}
 
 	public synchronized boolean complete(T value) {
-		if (this.value != NULL) return false;
+		if (isDone()) return false;
 		this.value = value;
 		notifyAll();
 		supplyValue();
@@ -97,8 +104,8 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 	}
 
 	public synchronized boolean completeExceptionally(Throwable ex) {
-		if (this.value != NULL) return false;
-		this.value = new ExceptionWrapper(ex);
+		if (isDone()) return false;
+		value = new ExceptionWrapper(ex);
 		notifyAll();
 		supplyValue();
 		return true;
@@ -106,21 +113,49 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 
 	@Override
 	public synchronized boolean cancel(boolean mayInterruptIfRunning) {
-		if (this.value != NULL) return false;
-		this.value = CANCELLED;
+		if (isDone()) return false;
+		value = State.CANCELLED;
 		notifyAll();
 		supplyValue();
 		return true;
 	}
 
+
+	public synchronized boolean setRunning() {
+		if (value != State.INITIAL) return false;
+		value = State.RUNNING;
+		return true;
+	}
+
+	public boolean run(CheckedSupplier<T, Throwable> task) {
+		return run(task, null);
+	}
+
+	public boolean run(CheckedSupplier<T, Throwable> task, @Nullable Runnable ifAlreadyRunning) {
+		if (!setRunning()) {
+			if (ifAlreadyRunning != null) ifAlreadyRunning.run();
+			return false;
+		}
+
+		try {
+			return complete(task.get());
+		} catch (Throwable ex) {
+			return completeExceptionally(ex);
+		}
+	}
+
 	@Override
 	public synchronized boolean isCancelled() {
-		return value == CANCELLED;
+		return value == State.CANCELLED;
 	}
 
 	@Override
 	public synchronized boolean isDone() {
-		return value != NULL;
+		return ((value != State.INITIAL) && (value != State.RUNNING));
+	}
+
+	public synchronized boolean isRunning() {
+		return value == State.RUNNING;
 	}
 
 	@Override
@@ -133,7 +168,7 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 			}
 		}
 
-		while (value == NULL) {
+		while (!isDone()) {
 			ConcurrentUtils.wait(this);
 		}
 
@@ -143,14 +178,14 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 	@Override
 	public synchronized T get(long timeout, @NonNull TimeUnit unit) throws ExecutionException,
 			InterruptedException, TimeoutException {
-		if (value != NULL) return getValue();
+		if (isDone()) return getValue();
 
 		long startTime = System.currentTimeMillis();
 		long waitTime = unit.toMillis(timeout);
 
 		for (; ; ) {
 			ConcurrentUtils.wait(this, waitTime);
-			if (value != NULL) return getValue();
+			if (isDone()) return getValue();
 
 			waitTime -= System.currentTimeMillis() - startTime;
 			if (waitTime <= 0) throw new TimeoutException();
@@ -159,7 +194,9 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 
 	@SuppressWarnings("unchecked")
 	private T getValue() throws ExecutionException {
-		if (value == CANCELLED) {
+		assertTrue(isDone());
+
+		if (value == State.CANCELLED) {
 			throw new CancellationException();
 		} else if (value instanceof ExceptionWrapper) {
 			throw new ExecutionException(((ExceptionWrapper) value).ex);
@@ -170,9 +207,10 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 
 	@SuppressWarnings("unchecked")
 	private void supplyValue() {
+		assertTrue(isDone());
 		if (consumers.isEmpty()) return;
 
-		if (value == CANCELLED) {
+		if (value == State.CANCELLED) {
 			CancellationException ex = new CancellationException();
 			for (BiConsumer<T, Throwable> c : consumers) {
 				c.accept(null, ex);
@@ -188,6 +226,10 @@ public class CompletableFuture<T> implements FutureSupplier<T>, Consumer<T>, BiC
 				c.accept(v, null);
 			}
 		}
+	}
+
+	private enum State {
+		INITIAL, RUNNING, CANCELLED
 	}
 
 	private static final class ExceptionWrapper {

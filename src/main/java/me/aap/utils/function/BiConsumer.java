@@ -5,4 +5,8 @@ package me.aap.utils.function;
  */
 public interface BiConsumer<T, U> {
 	void accept(T t, U u);
+
+	default boolean canBlockThread() {
+		return false;
+	}
 }

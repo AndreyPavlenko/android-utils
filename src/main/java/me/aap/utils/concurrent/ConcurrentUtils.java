@@ -28,7 +28,7 @@ public class ConcurrentUtils {
 
 	public static <T> void consumeInMainThread(Consumer<T> c, T t) {
 		if (c != null) {
-			if ((c instanceof CompletableFuture) || isMainThread()) c.accept(t);
+			if (c.canBlockThread() || isMainThread()) c.accept(t);
 			else App.get().getHandler().post(() -> c.accept(t));
 		}
 	}
