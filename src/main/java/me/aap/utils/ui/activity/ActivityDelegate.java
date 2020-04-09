@@ -21,11 +21,14 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import me.aap.utils.BuildConfig;
+import me.aap.utils.R;
 import me.aap.utils.app.App;
 import me.aap.utils.event.EventBroadcaster;
 import me.aap.utils.function.Function;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.ui.fragment.ActivityFragment;
+import me.aap.utils.ui.fragment.FilePickerFragment;
+import me.aap.utils.ui.fragment.GenericFragment;
 import me.aap.utils.ui.menu.OverlayMenu;
 import me.aap.utils.ui.menu.OverlayMenuView;
 import me.aap.utils.ui.view.NavBarView;
@@ -71,8 +74,6 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 	public ActivityDelegate() {
 		this.recreate = true;
 	}
-
-	protected abstract ActivityFragment createFragment(int id);
 
 	@IdRes
 	protected abstract int getFrameContainerId();
@@ -262,6 +263,12 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 		tr.commitAllowingStateLoss();
 		postBroadcastEvent(FRAGMENT_CHANGED);
 		return (F) switchingTo;
+	}
+
+	protected ActivityFragment createFragment(int id) {
+		if (id == R.id.file_picker) return new FilePickerFragment();
+		else if (id == R.id.generic_fragment) return new GenericFragment();
+		else throw new IllegalArgumentException("Invalid fragment id: " + id);
 	}
 
 	public int getActiveNavItemId() {
