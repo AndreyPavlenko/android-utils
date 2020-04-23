@@ -62,14 +62,6 @@ public class GenericFragment extends ActivityFragment {
 		this.floatingButtonMediator = floatingButtonMediator;
 	}
 
-	public boolean isRootPage() {
-		return true;
-	}
-
-	public boolean onBackPressed() {
-		return false;
-	}
-
 	public void setViewFunction(BiFunction<LayoutInflater, ViewGroup, View> viewFunction) {
 		this.viewFunction = viewFunction;
 	}

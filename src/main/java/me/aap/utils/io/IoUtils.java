@@ -2,27 +2,24 @@ package me.aap.utils.io;
 
 import android.util.Log;
 
-import java.io.Closeable;
-import java.io.IOException;
-
 /**
  * @author Andrey Pavlenko
  */
 public class IoUtils {
 
-	public static void close(Closeable c) {
+	public static void close(AutoCloseable c) {
 		if (c != null) {
 			try {
 				c.close();
-			} catch (IOException ex) {
+			} catch (Exception ex) {
 				Log.d(IoUtils.class.getName(), "Failed to close " + c, ex);
 			}
 		}
 	}
 
-	public static void close(Closeable... closeables) {
+	public static void close(AutoCloseable... closeables) {
 		if (closeables != null) {
-			for (Closeable c : closeables) {
+			for (AutoCloseable c : closeables) {
 				close(c);
 			}
 		}

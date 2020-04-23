@@ -9,6 +9,10 @@ import static java.lang.Character.isDigit;
  */
 public class NaturalOrderComparator<S extends CharSequence> implements Comparator<S> {
 
+	public static <S extends CharSequence> int compareNatural(S a, S b, boolean reverse) {
+		return reverse ? compareNatural(b, a) : compareNatural(a, b);
+	}
+
 	public static <S extends CharSequence> int compareNatural(S a, S b) {
 		int alen = a.length();
 		int blen = b.length();

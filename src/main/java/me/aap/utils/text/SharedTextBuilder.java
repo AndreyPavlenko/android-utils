@@ -7,7 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import me.aap.utils.BuildConfig;
-import me.aap.utils.concurrent.AppThread;
+import me.aap.utils.concurrent.PooledThread;
 
 import static me.aap.utils.misc.Assert.assertSame;
 import static me.aap.utils.misc.Assert.assertTrue;
@@ -41,14 +41,11 @@ public class SharedTextBuilder implements TextBuilder, AutoCloseable {
 		Thread t = Thread.currentThread();
 		SharedTextBuilder sb;
 
-		if (t instanceof AppThread) {
-			sb = ((AppThread) t).getSharedStringBuilder();
-		} else if (t == Looper.getMainLooper().getThread()) {
-			sb = MainThreadBuilder.instance;
+		if (t instanceof PooledThread) {
+			sb = ((PooledThread) t).getSharedTextBuilder();
 		} else {
-			if (BuildConfig.DEBUG) throw new AssertionError("Unknown thread: " + t);
-			sb = create(t);
-			sb.inUse = true;
+			assertSame(t, Looper.getMainLooper().getThread());
+			sb = MainThreadBuilder.instance;
 		}
 
 		if (sb.inUse) {
@@ -86,6 +83,12 @@ public class SharedTextBuilder implements TextBuilder, AutoCloseable {
 		release();
 	}
 
+	@Override
+	public StringBuilder getStringBuilder() {
+		assertTrue(inUse);
+		assertSame(thread, Thread.currentThread());
+		return sb;
+	}
 
 	@NonNull
 	public SharedTextBuilder append(@Nullable Object obj) {

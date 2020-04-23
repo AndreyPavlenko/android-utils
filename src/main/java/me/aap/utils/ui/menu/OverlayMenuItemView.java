@@ -20,7 +20,8 @@ import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.LinearLayoutCompat;
 
 import me.aap.utils.R;
-import me.aap.utils.function.Consumer;
+import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.function.Function;
 import me.aap.utils.ui.menu.OverlayMenu.Builder;
 import me.aap.utils.ui.menu.OverlayMenu.SelectionHandler;
 
@@ -35,7 +36,7 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 		OnLongClickListener, OnCheckedChangeListener {
 	OverlayMenuView parent;
 	SelectionHandler handler;
-	Consumer<Builder> submenuBuilder;
+	Function<? super Builder, FutureSupplier<Void>> submenuBuilder;
 	private Object data;
 	private boolean isLongClick;
 
@@ -170,8 +171,7 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 		return this;
 	}
 
-	@Override
-	public OverlayMenuItem setSubmenu(Consumer<Builder> builder) {
+	public OverlayMenuItem setFutureSubmenu(Function<? super Builder, FutureSupplier<Void>> builder) {
 		submenuBuilder = builder;
 		setRightIcon(R.drawable.chevron_right);
 		return this;

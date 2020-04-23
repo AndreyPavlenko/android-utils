@@ -3,9 +3,14 @@ package me.aap.utils.concurrent;
 import android.os.Looper;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
+import java.util.concurrent.locks.LockSupport;
+
 import me.aap.utils.BuildConfig;
 import me.aap.utils.app.App;
 import me.aap.utils.function.Consumer;
+import me.aap.utils.misc.MiscUtils;
 
 /**
  * @author Andrey Pavlenko
@@ -13,7 +18,7 @@ import me.aap.utils.function.Consumer;
 public class ConcurrentUtils {
 
 	public static boolean isMainThread() {
-		return (Thread.currentThread() == Looper.getMainLooper().getThread());
+		return !MiscUtils.isTestMode() && Looper.getMainLooper().isCurrentThread();
 	}
 
 	public static void ensureMainThread(boolean debug) {
@@ -26,9 +31,9 @@ public class ConcurrentUtils {
 		if (isMainThread()) throw new AssertionError("Main thread");
 	}
 
-	public static <T> void consumeInMainThread(Consumer<T> c, T t) {
+	public static <T> void consumeInMainThread(@Nullable Consumer<T> c, T t) {
 		if (c != null) {
-			if (c.canBlockThread() || isMainThread()) c.accept(t);
+			if (isMainThread()) c.accept(t);
 			else App.get().getHandler().post(() -> c.accept(t));
 		}
 	}
@@ -45,5 +50,21 @@ public class ConcurrentUtils {
 			Log.w(ConcurrentUtils.class.getName(), "Waiting on the main thread!", new Throwable());
 		}
 		monitor.wait(timeout);
+	}
+
+	public static void park() {
+		if (BuildConfig.DEBUG && isMainThread()) {
+			Log.w(ConcurrentUtils.class.getName(), "Parking the main thread!", new Throwable());
+		}
+
+		LockSupport.park();
+	}
+
+	public static void parkNanos(long nanos) {
+		if (BuildConfig.DEBUG && isMainThread()) {
+			Log.w(ConcurrentUtils.class.getName(), "Parking the main thread!", new Throwable());
+		}
+
+		LockSupport.parkNanos(nanos);
 	}
 }

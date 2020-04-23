@@ -280,8 +280,11 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 	}
 
 	public boolean isRootPage() {
+		int navId = getActiveNavItemId();
+		if (navId == ID_NULL) return true;
+
 		ActivityFragment f = getActiveFragment();
-		return (f != null) && f.isRootPage() && (getActiveNavItemId() == f.getFragmentId());
+		return (f != null) && f.isRootPage() && (navId == f.getFragmentId());
 	}
 
 	public void onBackPressed() {

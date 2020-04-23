@@ -8,6 +8,8 @@ import androidx.annotation.Nullable;
  */
 public interface TextBuilder extends CharSequence, Appendable {
 
+	StringBuilder getStringBuilder();
+
 	@NonNull
 	TextBuilder append(@Nullable Object obj);
 
@@ -140,4 +142,10 @@ public interface TextBuilder extends CharSequence, Appendable {
 	int codePointCount(int beginIndex, int endIndex);
 
 	int offsetByCodePoints(int index, int codePointOffset);
+
+	@NonNull
+	default TextBuilder clear() {
+		setLength(0);
+		return this;
+	}
 }

@@ -11,7 +11,11 @@ import androidx.annotation.StringRes;
 
 import java.util.List;
 
+import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Consumer;
+import me.aap.utils.function.Function;
+
+import static me.aap.utils.async.Completed.completedVoid;
 
 /**
  * @author Andrey Pavlenko
@@ -20,7 +24,14 @@ public interface OverlayMenu {
 
 	Context getContext();
 
-	void show(Consumer<Builder> builder);
+	void showFuture(Function<? super Builder, FutureSupplier<Void>> builder);
+
+	default void show(Consumer<Builder> builder) {
+		showFuture(b -> {
+			builder.accept(b);
+			return completedVoid();
+		});
+	}
 
 	void hide();
 

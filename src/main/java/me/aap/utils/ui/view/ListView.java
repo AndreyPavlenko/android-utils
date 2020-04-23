@@ -6,9 +6,12 @@ import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.AttrRes;
 import androidx.annotation.ColorInt;
@@ -20,21 +23,28 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import me.aap.utils.R;
-import me.aap.utils.ui.UiUtils;
+import me.aap.utils.async.Completed;
+import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.function.Consumer;
+import me.aap.utils.function.Function;
+import me.aap.utils.holder.BiHolder;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_DONE;
+import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_UNKNOWN;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.UiUtils.toPx;
 
 /**
  * @author Andrey Pavlenko
  */
-public class ListView<I extends ListView.ListItem<I>> extends RecyclerView {
+public class ListView<I> extends RecyclerView {
 	@ColorInt
 	private final int textColor;
 	@StyleRes
@@ -45,9 +55,17 @@ public class ListView<I extends ListView.ListItem<I>> extends RecyclerView {
 	private final int itemBackground;
 	@AttrRes
 	private int defStyleAttr;
+	private ItemAdapter<I> itemAdapter;
+	private ProgressBar progressBar;
+	private boolean hideProgressBar;
+	private ItemClickListener<I> itemClickListener;
+	private ItemsChangeListener<I> itemsChangeListener;
+	private Consumer<Throwable> errorHandler;
+	private Function<I, Boolean> filter;
+	private Function<List<? extends I>, List<? extends I>> sort = this::sort;
 	private I parent;
-	private List<I> items = Collections.emptyList();
-	private OnItemClickListener<I> onItemClickListener;
+	private List<? extends I> items = Collections.emptyList();
+	private FutureSupplier<?> loading = Completed.completedNull();
 
 	public ListView(Context context, @Nullable AttributeSet attrs, @AttrRes int defStyleAttr) {
 		this(context, attrs, defStyleAttr, ID_NULL);
@@ -89,33 +107,119 @@ public class ListView<I extends ListView.ListItem<I>> extends RecyclerView {
 		return itemBackground;
 	}
 
-	public List<I> getItems() {
-		return items;
-	}
-
 	public I getParentItem() {
 		return parent;
 	}
 
-	public void setItems(I parent) {
-		setItems(parent, parent.getChildren());
+	public List<? extends I> getItems() {
+		return items;
+	}
+
+	public void setParentItems() {
+		if (parent != null) setItems(itemAdapter.getParent(parent));
+	}
+
+	public void setItems(@NonNull String findParent) {
+		if (parent != null) setItems(itemAdapter.findParent(parent, findParent));
+	}
+
+	public void setItems(@NonNull I parent) {
+		cancel();
+		loading = itemAdapter.getChildren(parent).withMainHandler()
+				.onSuccess(items -> setItems(parent, items))
+				.onFailure(this::onFailure)
+				.onCancel(this::onCancel)
+				.onProgress(this::onProgress);
+		loading();
+	}
+
+	public void setItems(FutureSupplier<BiHolder<? extends I, List<? extends I>>> supplier) {
+		cancel();
+		loading = supplier.withMainHandler()
+				.onSuccess(h -> {
+					if (h != null) setItems(h.getValue1(), h.getValue2());
+				})
+				.onFailure(this::onFailure)
+				.onCancel(this::onCancel)
+				.onProgress(this::onProgress);
+		loading();
+	}
+
+	public void setItems(@Nullable I parent, @NonNull List<? extends I> items) {
+		onCancel();
+		this.parent = parent;
+
+		if ((filter == null) || items.isEmpty()) {
+			this.items = sort.apply(items);
+		} else {
+			List<I> filtered = new ArrayList<>(items.size());
+			for (I i : items) {
+				if (filter.apply(i)) filtered.add(i);
+			}
+			this.items = sort.apply(filtered);
+		}
+
+		notifyDataSetChanged();
 	}
 
 	@SuppressWarnings("unchecked")
-	public void setItems(I parent, List<I> items) {
-		this.parent = parent;
-		this.items = items;
+	private void notifyDataSetChanged() {
 		RecyclerView.Adapter<Holder> a = getAdapter();
 		if (a != null) a.notifyDataSetChanged();
+		if (itemsChangeListener != null) itemsChangeListener.onListItemsChange(parent, items);
 	}
 
-	public void setOnItemClickListener(OnItemClickListener<I> onItemClickListener) {
-		this.onItemClickListener = onItemClickListener;
+	public void setItemAdapter(ItemAdapter<I> itemAdapter) {
+		this.itemAdapter = itemAdapter;
+	}
+
+	public void setProgressBar(ProgressBar progressBar, boolean hideProgressBar) {
+		this.progressBar = progressBar;
+		this.hideProgressBar = hideProgressBar;
+	}
+
+	public void setItemClickListener(@Nullable ItemClickListener<I> itemClickListener) {
+		this.itemClickListener = itemClickListener;
+	}
+
+	public void setItemsChangeListener(@Nullable ItemsChangeListener<I> itemsChangeListener) {
+		this.itemsChangeListener = itemsChangeListener;
+	}
+
+	public void setErrorHandler(@NonNull Consumer<Throwable> errorHandler) {
+		this.errorHandler = errorHandler;
+	}
+
+	public void setFilter(@Nullable Function<I, Boolean> filter) {
+		this.filter = filter;
+	}
+
+	public void setSort(@NonNull Function<List<? extends I>, List<? extends I>> sort) {
+		this.sort = sort;
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	protected List<? extends I> sort(List<? extends I> list) {
+		if (list.isEmpty()) return Collections.emptyList();
+		if (!(list.get(0) instanceof Comparable)) return list;
+		List l = new ArrayList(list);
+		Collections.sort(l);
+		return l;
 	}
 
 	protected void onItemClick(I item) {
-		if ((onItemClickListener != null) && (onItemClickListener.onListItemClick(item))) return;
-		if (item.hasChildren()) setItems(item, item.getChildren());
+		if ((itemClickListener != null) && (itemClickListener.onListItemClick(item))) return;
+		if ((itemAdapter == null) || !itemAdapter.hasChildren(item)) return;
+		setItems(item);
+	}
+
+	public void cleanUp() {
+		cancel();
+		loading = Completed.completedNull();
+		parent = null;
+		progressBar = null;
+		items = Collections.emptyList();
+		notifyDataSetChanged();
 	}
 
 	protected RecyclerView.Adapter<Holder> createAdapter() {
@@ -143,31 +247,73 @@ public class ListView<I extends ListView.ListItem<I>> extends RecyclerView {
 		return new Holder();
 	}
 
-	public interface OnItemClickListener<I extends ListItem<I>> {
+	private void cancel() {
+		loading.cancel();
+		loading = Completed.completedNull();
+	}
+
+	private void onCancel() {
+		onProgress(null, PROGRESS_DONE, PROGRESS_DONE);
+	}
+
+	private void loading() {
+		if ((progressBar == null) || loading.isDone()) return;
+		onProgress(null, 0, PROGRESS_UNKNOWN);
+	}
+
+	private <T> void onProgress(T incomplete, int progress, int total) {
+		if (progressBar == null) return;
+
+		if (progress == PROGRESS_DONE) {
+			if (hideProgressBar) {
+				progressBar.setVisibility(GONE);
+			} else {
+				progressBar.setVisibility(VISIBLE);
+				progressBar.setIndeterminate(false);
+				progressBar.setMax(total);
+				progressBar.setProgress(total);
+			}
+		} else {
+			if (total != PROGRESS_UNKNOWN) {
+				progressBar.setIndeterminate(false);
+				progressBar.setMax(total);
+				progressBar.setProgress(progress);
+			} else {
+				progressBar.setIndeterminate(true);
+			}
+		}
+	}
+
+	private void onFailure(Throwable err) {
+		onCancel();
+		Log.w(getClass().getName(), "Failed to load items", err);
+		if (errorHandler != null) errorHandler.accept(err);
+		else Toast.makeText(getContext(), err.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+	}
+
+	public interface ItemAdapter<I> {
+
+		@Nullable
+		Drawable getIcon(I item);
+
+		@NonNull
+		CharSequence getText(I item);
+
+		boolean hasChildren(I item);
+
+		FutureSupplier<List<I>> getChildren(I item);
+
+		FutureSupplier<BiHolder<? extends I, List<? extends I>>> getParent(I item);
+
+		FutureSupplier<BiHolder<? extends I, List<? extends I>>> findParent(I current, String find);
+	}
+
+	public interface ItemClickListener<I> {
 		boolean onListItemClick(I item);
 	}
 
-	public interface ListItem<I extends ListItem<I>> {
-
-		@Nullable
-		Drawable getIcon();
-
-		@NonNull
-		CharSequence getText();
-
-		@Nullable
-		default I getParent() {
-			return null;
-		}
-
-		@NonNull
-		default List<I> getChildren() {
-			return Collections.emptyList();
-		}
-
-		default boolean hasChildren() {
-			return false;
-		}
+	public interface ItemsChangeListener<I> {
+		void onListItemsChange(@Nullable I parent, @NonNull List<? extends I> items);
 	}
 
 	protected class Holder extends ViewHolder implements OnClickListener {
@@ -206,9 +352,10 @@ public class ListView<I extends ListView.ListItem<I>> extends RecyclerView {
 		}
 
 		protected void initView(I item) {
+			if (!(itemView instanceof TextView) || (itemAdapter == null)) return;
 			TextView t = (TextView) itemView;
-			t.setText(item.getText());
-			t.setCompoundDrawablesWithIntrinsicBounds(item.getIcon(), null, null, null);
+			t.setText(itemAdapter.getText(item));
+			t.setCompoundDrawablesWithIntrinsicBounds(itemAdapter.getIcon(item), null, null, null);
 		}
 
 		@Override

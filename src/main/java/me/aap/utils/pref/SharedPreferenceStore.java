@@ -336,14 +336,16 @@ public interface SharedPreferenceStore extends PreferenceStore {
 		public <A> void setArrayPref(Pref<? extends Supplier<A>> pref, A value, int len,
 																 IntBiConsumer<A, TextBuilder> appendFunc) {
 			String key = store.getPreferenceKey(pref);
-			SharedTextBuilder sb = SharedTextBuilder.get();
 
-			for (int i = 0; i < len; i++) {
-				appendFunc.accept(i, value, sb);
-				if (i != (len - 1)) sb.append(' ');
+			try (SharedTextBuilder sb = SharedTextBuilder.get()) {
+				for (int i = 0; i < len; i++) {
+					appendFunc.accept(i, value, sb);
+					if (i != (len - 1)) sb.append(' ');
+				}
+
+				edit.putString(key, sb.toString());
 			}
 
-			edit.putString(key, sb.toString());
 			notifyPreferenceChange(pref);
 		}
 

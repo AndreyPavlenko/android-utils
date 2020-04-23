@@ -23,7 +23,8 @@ import java.util.Collections;
 import java.util.List;
 
 import me.aap.utils.R;
-import me.aap.utils.function.Consumer;
+import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.function.Function;
 import me.aap.utils.ui.activity.ActivityDelegate;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
@@ -52,7 +53,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 	}
 
 	@Override
-	public void show(Consumer<Builder> consumer) {
+	public void showFuture(Function<? super Builder, FutureSupplier<Void>> consumer) {
 		hide();
 		MenuBuilder b = new MenuBuilder(consumer, null);
 		b.focus = ActivityDelegate.get(getContext()).getCurrentFocus();
@@ -65,55 +66,59 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		setVisibility(VISIBLE);
 
 		ViewGroup g = builder.view;
-		builder.consumer.accept(builder);
-		int count = g.getChildCount();
-		if (count == 0) return;
+		builder.consumer.apply(builder).withMainHandler().onSuccess(ignore -> {
+			int count = g.getChildCount();
+			if (count == 0) return;
 
-		List<View> items = new ArrayList<>(count);
+			List<View> items = new ArrayList<>(count);
 
-		for (int i = 0; i < count; i++) {
-			View c = g.getChildAt(i);
-			if (c.getId() == R.id.overlay_menu_title) continue;
-			if (!(c instanceof OverlayMenuItemView)) return;
-			if (c.getVisibility() != VISIBLE) continue;
-			items.add(c);
-		}
-
-		int size = items.size();
-		if (size == 0) return;
-
-		View focus = items.get(0);
-		int firstId = focus.getId();
-		int lastId = items.get(size - 1).getId();
-
-		for (int i = 0; i < size; i++) {
-			View c = items.get(i);
-			int downId = (i == (size - 1)) ? firstId : items.get(i + 1).getId();
-			c.setNextFocusDownId(downId);
-			c.setNextFocusForwardId(downId);
-			c.setNextFocusUpId((i == 0) ? lastId : items.get(i - 1).getId());
-			c.setNextFocusLeftId(firstId);
-			c.setNextFocusRightId(lastId);
-
-			if (c == builder.selectedItem) {
-				focus = c;
-				focus.setSelected(true);
+			for (int i = 0; i < count; i++) {
+				View c = g.getChildAt(i);
+				if (c.getId() == R.id.overlay_menu_title) continue;
+				if (!(c instanceof OverlayMenuItemView)) return;
+				if (c.getVisibility() != VISIBLE) continue;
+				items.add(c);
 			}
-		}
 
-		focus.requestFocus();
-		invalidate();
+			int size = items.size();
+			if (size == 0) return;
+
+			View focus = items.get(0);
+			int firstId = focus.getId();
+			int lastId = items.get(size - 1).getId();
+
+			for (int i = 0; i < size; i++) {
+				View c = items.get(i);
+				int downId = (i == (size - 1)) ? firstId : items.get(i + 1).getId();
+				c.setNextFocusDownId(downId);
+				c.setNextFocusForwardId(downId);
+				c.setNextFocusUpId((i == 0) ? lastId : items.get(i - 1).getId());
+				c.setNextFocusLeftId(firstId);
+				c.setNextFocusRightId(lastId);
+
+				if (c == builder.selectedItem) {
+					focus = c;
+					focus.setSelected(true);
+				}
+			}
+
+			focus.requestFocus();
+			invalidate();
+		});
 	}
 
 	@Override
 	public void hide() {
 		if (builder == null) return;
+
+		ActivityDelegate a = ActivityDelegate.get(getContext());
 		CloseHandler ch = builder.closeHandler;
 		View f = builder.focus;
 		builder.cleanUp();
 		builder = null;
 		setVisibility(GONE);
-		ActivityDelegate.get(getContext()).setActiveMenu(null);
+
+		if (a != null) a.setActiveMenu(null);
 		if (ch != null) ch.menuClosed(this);
 		if (f != null) f.requestFocus();
 	}
@@ -172,7 +177,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 	}
 
 	final class MenuBuilder implements Builder {
-		final Consumer<Builder> consumer;
+		final Function<? super Builder, FutureSupplier<Void>> consumer;
 		final MenuBuilder parent;
 		ViewGroup view;
 		SelectionHandler selectionHandler;
@@ -182,7 +187,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		String title;
 		int parentItemId = NO_ID;
 
-		public MenuBuilder(Consumer<Builder> consumer, MenuBuilder parent) {
+		public MenuBuilder(Function<? super Builder, FutureSupplier<Void>> consumer, MenuBuilder parent) {
 			this.consumer = consumer;
 			this.parent = parent;
 			init();

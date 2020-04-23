@@ -9,21 +9,21 @@ import me.aap.utils.text.SharedTextBuilder;
 /**
  * @author Andrey Pavlenko
  */
-public class AppThread extends Thread {
+public class PooledThread extends Thread {
 	private SharedTextBuilder sb;
 
-	public AppThread() {
+	public PooledThread() {
 	}
 
-	public AppThread(@Nullable Runnable target) {
+	public PooledThread(@Nullable Runnable target) {
 		super(target);
 	}
 
-	public AppThread(@Nullable Runnable target, @NonNull String name) {
+	public PooledThread(@Nullable Runnable target, @NonNull String name) {
 		super(target, name);
 	}
 
-	public SharedTextBuilder getSharedStringBuilder() {
+	public SharedTextBuilder getSharedTextBuilder() {
 		Assert.assertSame(this, Thread.currentThread());
 		return (sb != null) ? sb : (sb = SharedTextBuilder.create(this));
 	}

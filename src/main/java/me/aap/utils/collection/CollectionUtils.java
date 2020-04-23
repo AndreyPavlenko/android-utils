@@ -3,6 +3,7 @@ package me.aap.utils.collection;
 import android.os.Build;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -141,6 +142,20 @@ public class CollectionUtils {
 		return filterMap(collection, t -> true, mapper, generator);
 	}
 
+	public static <T> List<T> filter(List<T> list, Predicate<? super T> predicate) {
+		return filter(list, predicate, ArrayList::new);
+	}
+
+	public static <T, C extends Collection<T>> C filter(C collection, Predicate<? super T> predicate,
+																											IntFunction<C> generator) {
+		return filterMap(collection, predicate, t -> t, generator);
+	}
+
+	public static <T, R> List<R> filterMap(List<? extends T> list, Predicate<? super T> predicate,
+																				 Function<? super T, R> mapper) {
+		return filterMap(list, predicate, mapper, ArrayList::new);
+	}
+
 	public static <T, R> R filterMap(Collection<? extends T> collection,
 																	 Predicate<? super T> predicate,
 																	 IntBiConsumer<? super T, R> mapper,
@@ -154,6 +169,16 @@ public class CollectionUtils {
 		}
 
 		return a;
+	}
+
+	public static <T, R, TC extends Collection<? extends T>, RC extends Collection<R>>
+	RC filterMap(TC collection, Predicate<? super T> predicate, Function<? super T, R> mapper, IntFunction<RC> generator) {
+		int size = collection.size();
+		RC mapped = generator.apply(size);
+		for (T t : collection) {
+			if (predicate.test(t)) mapped.add(mapper.apply(t));
+		}
+		return mapped;
 	}
 
 	public static <T> void forEach(Iterable<T> it, Consumer<? super T> action) {
