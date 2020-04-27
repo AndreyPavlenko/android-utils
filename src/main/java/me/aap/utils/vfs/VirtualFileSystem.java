@@ -5,9 +5,11 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.pref.PreferenceStore;
 
 import static me.aap.utils.async.Completed.completedEmptyList;
 
@@ -20,8 +22,15 @@ public interface VirtualFileSystem {
 	Provider getProvider();
 
 	@NonNull
+	FutureSupplier<VirtualResource> getResource(Uri uri);
+
+	@NonNull
 	default FutureSupplier<List<VirtualFolder>> getRoots() {
 		return completedEmptyList();
+	}
+
+	default boolean isSupportedResource(Uri uri) {
+		return getProvider().getSupportedSchemes().contains(uri.getScheme());
 	}
 
 	interface Provider {
@@ -30,13 +39,6 @@ public interface VirtualFileSystem {
 		Set<String> getSupportedSchemes();
 
 		@NonNull
-		FutureSupplier<VirtualFileSystem> getFileSystem();
-
-		@NonNull
-		FutureSupplier<VirtualResource> getResource(Uri uri);
-
-		default boolean isSupportedResource(Uri uri) {
-			return getSupportedSchemes().contains(uri.getScheme());
-		}
+		FutureSupplier<VirtualFileSystem> createFileSystem(PreferenceStore ps);
 	}
 }

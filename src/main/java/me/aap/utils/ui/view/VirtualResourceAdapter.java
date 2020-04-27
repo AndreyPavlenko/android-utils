@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 
 import me.aap.utils.R;
-import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.holder.BiHolder;
 import me.aap.utils.vfs.VirtualFolder;
@@ -85,7 +84,7 @@ public class VirtualResourceAdapter implements ListView.ItemAdapter<VirtualResou
 
 	@Override
 	public FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>> findParent(VirtualResource current, String find) {
-		return current.getVirtualFileSystem().getProvider().getResource(Uri.parse(find)).then(p -> {
+		return current.getVirtualFileSystem().getResource(Uri.parse(find)).then(p -> {
 			if (!(p instanceof VirtualFolder)) return completedNull();
 			return ((VirtualFolder) p).getChildren().map(children -> new BiHolder<>(p, children));
 		});

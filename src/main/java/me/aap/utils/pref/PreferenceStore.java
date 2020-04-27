@@ -5,13 +5,12 @@ import androidx.annotation.Nullable;
 
 import java.util.List;
 
+import me.aap.utils.event.EventBroadcaster;
 import me.aap.utils.function.BooleanSupplier;
 import me.aap.utils.function.DoubleSupplier;
 import me.aap.utils.function.IntSupplier;
 import me.aap.utils.function.LongSupplier;
 import me.aap.utils.function.Supplier;
-
-import me.aap.utils.event.EventBroadcaster;
 
 /**
  * @author Andrey Pavlenko
@@ -173,6 +172,10 @@ public interface PreferenceStore extends EventBroadcaster<PreferenceStore.Listen
 
 		static Pref<DoubleSupplier> f(String name, DoubleSupplier defaultValue) {
 			return create(name, defaultValue);
+		}
+
+		static Pref<Supplier<String>> s(String name) {
+			return s(name, () -> null);
 		}
 
 		static Pref<Supplier<String>> s(String name, String defaultValue) {

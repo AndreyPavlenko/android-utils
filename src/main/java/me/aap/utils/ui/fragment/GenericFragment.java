@@ -4,13 +4,13 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
 
 import me.aap.utils.R;
-import me.aap.utils.function.BiFunction;
+import me.aap.utils.function.Consumer;
 import me.aap.utils.ui.view.FloatingButton;
 import me.aap.utils.ui.view.NavBarView;
 import me.aap.utils.ui.view.ToolBarView;
@@ -23,7 +23,7 @@ public class GenericFragment extends ActivityFragment {
 	private ToolBarView.Mediator toolBarMediator;
 	private NavBarView.Mediator navBarMediator;
 	private FloatingButton.Mediator floatingButtonMediator;
-	private BiFunction<LayoutInflater, ViewGroup, View> viewFunction;
+	private Consumer<ViewGroup> contentProvider;
 
 	@Override
 	public int getFragmentId() {
@@ -62,29 +62,35 @@ public class GenericFragment extends ActivityFragment {
 		this.floatingButtonMediator = floatingButtonMediator;
 	}
 
-	public void setViewFunction(BiFunction<LayoutInflater, ViewGroup, View> viewFunction) {
-		this.viewFunction = viewFunction;
+	public void setContentProvider(Consumer<ViewGroup> contentProvider) {
+		this.contentProvider = contentProvider;
+		ViewGroup v = getView();
+		if (v == null) return;
+		if (contentProvider == null) v.removeAllViews();
+		else contentProvider.accept(v);
 	}
 
 	@Nullable
 	@Override
-	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		return (viewFunction != null) ? viewFunction.apply(inflater, container)
-				: super.onCreateView(inflater, container, savedInstanceState);
+	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+													 @Nullable Bundle savedInstanceState) {
+		return new LinearLayout(getContext());
+	}
+
+	@Override
+	public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+		if (contentProvider != null) contentProvider.accept(getView());
+	}
+
+	@Nullable
+	@Override
+	public ViewGroup getView() {
+		return (ViewGroup) super.getView();
 	}
 
 	@Override
 	public void switchingFrom(@Nullable ActivityFragment currentFragment) {
 		if ((navBarMediator != null) || (currentFragment == null)) return;
 		navBarMediator = currentFragment.getNavBarMediator();
-	}
-
-	@Override
-	public void switchingTo(@NonNull ActivityFragment newFragment) {
-		title = "";
-		toolBarMediator = null;
-		navBarMediator = null;
-		floatingButtonMediator = null;
-		viewFunction = null;
 	}
 }

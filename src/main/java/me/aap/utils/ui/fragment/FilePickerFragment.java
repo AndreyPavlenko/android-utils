@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 
+import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -16,15 +17,18 @@ import androidx.annotation.StyleRes;
 import androidx.appcompat.widget.AppCompatEditText;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import me.aap.utils.R;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Consumer;
+import me.aap.utils.function.Function;
 import me.aap.utils.holder.BiHolder;
 import me.aap.utils.ui.UiUtils;
 import me.aap.utils.ui.activity.ActivityDelegate;
+import me.aap.utils.ui.view.FloatingButton;
 import me.aap.utils.ui.view.ListView;
 import me.aap.utils.ui.view.ToolBarView;
 import me.aap.utils.ui.view.VirtualResourceAdapter;
@@ -41,8 +45,10 @@ import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEFT;
 import static java.util.Objects.requireNonNull;
+import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.UiUtils.toPx;
+import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
 import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
 
 /**
@@ -53,13 +59,10 @@ public class FilePickerFragment extends GenericDialogFragment implements
 	public static final byte FILE = 1;
 	public static final byte FOLDER = 2;
 	public static final byte FILE_OR_FOLDER = FILE | FOLDER;
-	private Consumer<? super VirtualResource> consumer;
-	private FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>> supplier;
-	private byte mode = FILE_OR_FOLDER;
-	private Pattern pattern;
+	private State state = new State();
 
 	public FilePickerFragment() {
-		super(ToolBarMediator.instance);
+		super(ToolBarMediator.instance, FloatingButtonMediator.instance);
 	}
 
 	@Override
@@ -75,22 +78,34 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		setSupplier(folder.getChildren().map(c -> new BiHolder<>(folder, c)));
 	}
 
+	public void setResources(VirtualResource parent, List<? extends VirtualResource> children) {
+		setSupplier(completed(new BiHolder<>(parent, children)));
+	}
+
 	public void setSupplier(FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>> supplier) {
-		this.supplier = supplier;
+		state.supplier = supplier;
 		ListView<VirtualResource> v = getListView();
 		if (v != null) v.setItems(supplier);
 	}
 
-	public void setConsumer(Consumer<VirtualResource> consumer) {
-		this.consumer = consumer;
+	public void setFileConsumer(Consumer<VirtualResource> consumer) {
+		state.consumer = consumer;
 	}
 
 	public void setMode(byte mode) {
-		this.mode = mode;
+		state.mode = mode;
 	}
 
 	public void setPattern(@Nullable Pattern pattern) {
-		this.pattern = pattern;
+		state.pattern = pattern;
+	}
+
+	public void setCreateFolder(CreateFolder create) {
+		state.create = create;
+	}
+
+	public void setOnLongClick(Function<VirtualResource, Boolean> onLongClick) {
+		state.onLongClick = onLongClick;
 	}
 
 	@Nullable
@@ -112,22 +127,18 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		v.setItemClickListener(this);
 		v.setItemsChangeListener(this);
 
-		if ((pattern != null) || (mode != FILE_OR_FOLDER)) {
+		if ((state.pattern != null) || (state.mode != FILE_OR_FOLDER)) {
 			v.setFilter(this::filter);
 		} else {
 			v.setFilter(null);
 		}
 
-		v.setItems(requireNonNull(supplier));
+		v.setItems(requireNonNull(state.supplier));
 	}
 
 	private boolean filter(VirtualResource f) {
-		if (mode == FILE) {
-			if (!f.isFile()) return false;
-		} else if (mode == FOLDER) {
-			if (!f.isFolder()) return false;
-		}
-		return (pattern == null) || pattern.matcher(f.getName()).matches();
+		if ((state.mode == FOLDER) && !f.isFolder()) return false;
+		return (state.pattern == null) || state.pattern.matcher(f.getName()).matches();
 	}
 
 	@Override
@@ -156,11 +167,16 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		if (v == null) return false;
 
 		if (item.isFile()) {
-			if ((mode & FILE) != 0) pick(item);
+			if ((state.mode & FILE) != 0) pick(item);
 			return true;
 		}
 
 		return false;
+	}
+
+	@Override
+	public boolean onListItemLongClick(VirtualResource item) {
+		return (state.onLongClick != null) && state.onLongClick.apply(item);
 	}
 
 	@Override
@@ -199,12 +215,9 @@ public class FilePickerFragment extends GenericDialogFragment implements
 	}
 
 	private void pick(VirtualResource v) {
-		Consumer<? super VirtualResource> c = consumer;
+		Consumer<? super VirtualResource> c = state.consumer;
 		ListView<VirtualResource> view = getListView();
-		pattern = null;
-		supplier = null;
-		consumer = null;
-		mode = FILE_OR_FOLDER;
+		state = new State();
 		if (view != null) view.cleanUp();
 		if (c != null) c.accept(v);
 	}
@@ -213,10 +226,60 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		ListView<VirtualResource> v = getListView();
 		if (v == null) return GONE;
 		if (v.getParentItem() == null) return GONE;
-		return ((mode & FOLDER) != 0) ? VISIBLE : GONE;
+		return ((state.mode & FOLDER) != 0) ? VISIBLE : GONE;
 	}
 
-	interface ToolBarMediator extends GenericDialogFragment.ToolBarMediator {
+	public Object resetState() {
+		State st = state;
+		state = new State();
+		ListView<VirtualResource> v = getListView();
+
+		if (v != null) {
+			st.parent = v.getParentItem();
+			st.children = v.getItems();
+		} else {
+			st.parent = null;
+			st.children = Collections.emptyList();
+		}
+
+		return st;
+	}
+
+	public void restoreState(Object state) {
+		State st = (State) state;
+		this.state = st;
+		ListView<VirtualResource> v = getListView();
+		if (v != null) v.setItems(st.parent, st.children);
+	}
+
+	private static final class State {
+		Consumer<? super VirtualResource> consumer;
+		FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>> supplier;
+		byte mode = FILE_OR_FOLDER;
+		Pattern pattern;
+		CreateFolder create;
+		Function<VirtualResource, Boolean> onLongClick;
+		VirtualResource parent;
+		List<? extends VirtualResource> children;
+	}
+
+	public interface CreateFolder {
+
+		@DrawableRes
+		int getIcon();
+
+		boolean isAvailable(VirtualResource parent, List<? extends VirtualResource> children);
+
+		FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>>
+		create(VirtualResource parent, List<? extends VirtualResource> children);
+
+		default boolean isAvailable(FilePickerFragment p) {
+			ListView<VirtualResource> v = p.getListView();
+			return (v != null) && p.state.create.isAvailable(v.getParentItem(), v.getItems());
+		}
+	}
+
+	public interface ToolBarMediator extends GenericDialogFragment.ToolBarMediator {
 		ToolBarMediator instance = new ToolBarMediator() {
 		};
 
@@ -234,10 +297,13 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		@Override
 		default void onActivityEvent(ToolBarView tb, ActivityDelegate a, long e) {
 			if (e == FRAGMENT_CONTENT_CHANGED) {
-				FilePickerFragment p = (FilePickerFragment) a.getActiveFragment();
-				if (p == null) return;
+				ActivityFragment f = a.getActiveFragment();
+				if (!(f instanceof FilePickerFragment)) return;
+				FilePickerFragment p = (FilePickerFragment) f;
 
 				EditText t = tb.findViewById(getPathId());
+				if (t == null) return;
+
 				t.setText(p.getPath());
 				GenericDialogFragment.ToolBarMediator.super.onActivityEvent(tb, a, e);
 			}
@@ -291,6 +357,72 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		default void setPathPadding(EditText t) {
 			int p = (int) toPx(t.getContext(), 2);
 			t.setPadding(p, p, p, p);
+		}
+	}
+
+	public interface FloatingButtonMediator extends FloatingButton.Mediator.Back {
+		FloatingButtonMediator instance = new FloatingButtonMediator() {
+		};
+
+		@Override
+		default void onActivityEvent(FloatingButton fb, ActivityDelegate a, long e) {
+			FloatingButton.Mediator.Back.super.onActivityEvent(fb, a, e);
+
+			switch ((int) e) {
+				case FRAGMENT_CHANGED:
+				case FRAGMENT_CONTENT_CHANGED:
+					fb.setImageResource(getIcon(fb));
+					break;
+			}
+		}
+
+		@Override
+		default int getIcon(FloatingButton fb) {
+			ActivityDelegate a = ActivityDelegate.get(fb.getContext());
+			ActivityFragment f = a.getActiveFragment();
+
+			if (f instanceof FilePickerFragment) {
+				FilePickerFragment p = (FilePickerFragment) f;
+				State st = p.state;
+				if ((st.create != null) && st.create.isAvailable(p)) return st.create.getIcon();
+			}
+
+			return FloatingButton.Mediator.Back.super.getIcon(fb);
+		}
+
+		@Override
+		default void onClick(View v) {
+			ActivityDelegate a = ActivityDelegate.get(v.getContext());
+			ActivityFragment f = a.getActiveFragment();
+
+			if (f instanceof FilePickerFragment) {
+				FilePickerFragment p = (FilePickerFragment) f;
+				State st = p.state;
+
+				if ((st.create != null) && st.create.isAvailable(p)) {
+					State state = (State) p.resetState();
+					state.create.create(st.parent, st.children)
+							.withMainHandler()
+							.onFailure(fail -> {
+								ListView<VirtualResource> lv = p.getListView();
+								if (lv != null) lv.onFailure(fail);
+								p.restoreState(state);
+								f.getActivityDelegate().showFragment(R.id.file_picker);
+							})
+							.onSuccess(h -> {
+								if (h != null) {
+									state.parent = h.getValue1();
+									state.children = h.getValue2();
+								}
+
+								p.restoreState(state);
+								f.getActivityDelegate().showFragment(R.id.file_picker);
+							});
+					return;
+				}
+			}
+
+			FloatingButton.Mediator.Back.super.onClick(v);
 		}
 	}
 }

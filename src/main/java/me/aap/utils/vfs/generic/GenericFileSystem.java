@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualResource;
 
@@ -23,6 +24,17 @@ public class GenericFileSystem implements VirtualFileSystem {
 		return instance;
 	}
 
+	@Override
+	public boolean isSupportedResource(Uri uri) {
+		return true;
+	}
+
+	@NonNull
+	@Override
+	public FutureSupplier<VirtualResource> getResource(Uri uri) {
+		return completed(new GenericResource(uri));
+	}
+
 	@NonNull
 	@Override
 	public Provider getProvider() {
@@ -31,6 +43,9 @@ public class GenericFileSystem implements VirtualFileSystem {
 
 	public static final class Provider implements VirtualFileSystem.Provider {
 		private static final Provider instance = new Provider();
+
+		private Provider() {
+		}
 
 		public static Provider getInstance() {
 			return instance;
@@ -42,21 +57,10 @@ public class GenericFileSystem implements VirtualFileSystem {
 			return Collections.emptySet();
 		}
 
-		@Override
-		public boolean isSupportedResource(Uri uri) {
-			return true;
-		}
-
 		@NonNull
 		@Override
-		public FutureSupplier<VirtualFileSystem> getFileSystem() {
+		public FutureSupplier<VirtualFileSystem> createFileSystem(PreferenceStore ps) {
 			return completed(GenericFileSystem.getInstance());
-		}
-
-		@NonNull
-		@Override
-		public FutureSupplier<VirtualResource> getResource(Uri uri) {
-			return completed(new GenericResource(uri));
 		}
 	}
 }

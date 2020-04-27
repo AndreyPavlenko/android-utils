@@ -22,49 +22,64 @@ import static me.aap.utils.async.Completed.completedNull;
  */
 public class VfsManager {
 	@NonNull
-	private volatile Providers providers;
+	private volatile Mounts mounts;
 
-	public VfsManager(VirtualFileSystem.Provider... providers) {
-		this(Arrays.asList(providers));
+	public VfsManager(VirtualFileSystem... fileSystems) {
+		this(Arrays.asList(fileSystems));
 	}
 
-	public VfsManager(List<VirtualFileSystem.Provider> providers) {
-		this.providers = new Providers(providers);
+	public VfsManager(List<VirtualFileSystem> fileSystems) {
+		this.mounts = new Mounts(fileSystems);
 	}
 
-	public void addProviders(VirtualFileSystem.Provider... providers) {
-		addProviders(Arrays.asList(providers));
+	public void mount(VirtualFileSystem... fileSystems) {
+		mount(Arrays.asList(fileSystems));
 	}
 
-	public synchronized void addProviders(List<VirtualFileSystem.Provider> providers) {
-		Providers p = this.providers;
-		List<VirtualFileSystem.Provider> list = new ArrayList<>(providers.size() + p.all.size());
-		list.addAll(providers);
-		this.providers = new Providers(list);
+	public synchronized void mount(List<VirtualFileSystem> fileSystems) {
+		Mounts p = this.mounts;
+		List<VirtualFileSystem> list = new ArrayList<>(fileSystems.size() + p.all.size());
+		list.addAll(p.all);
+		list.addAll(fileSystems);
+		this.mounts = new Mounts(list);
 	}
 
-	public void removeProviders(VirtualFileSystem.Provider... providers) {
-		removeProviders(Arrays.asList(providers));
+	public void umount(VirtualFileSystem... fileSystems) {
+		umount(Arrays.asList(fileSystems));
 	}
 
-	public synchronized void removeProviders(List<VirtualFileSystem.Provider> providers) {
-		List<VirtualFileSystem.Provider> list = new ArrayList<>(this.providers.all);
-		if (!list.removeAll(providers)) return;
-		this.providers = new Providers(list);
+	public synchronized void umount(List<VirtualFileSystem> fileSystems) {
+		List<VirtualFileSystem> list = new ArrayList<>(this.mounts.all);
+		if (!list.removeAll(fileSystems)) return;
+		this.mounts = new Mounts(list);
 	}
 
-	public List<VirtualFileSystem.Provider> getProviders() {
-		return providers.all;
+	public List<VirtualFileSystem> getFileSystems() {
+		return mounts.all;
+	}
+
+	public List<VirtualFileSystem> getFileSystems(String scheme) {
+		List<VirtualFileSystem> fs = mounts.map.get(scheme);
+		return (fs == null) ? Collections.emptyList() : fs;
 	}
 
 	@NonNull
 	public FutureSupplier<VirtualResource> getResource(Uri uri) {
-		Providers providers = this.providers;
-		List<VirtualFileSystem.Provider> list = providers.map.get(uri.getScheme());
-		if ((list != null) && !list.isEmpty()) return list.get(0).getResource(uri);
-		for (VirtualFileSystem.Provider p : providers.any) {
+		Mounts mounts = this.mounts;
+		List<VirtualFileSystem> list = mounts.map.get(uri.getScheme());
+
+		if ((list != null) && !list.isEmpty()) {
+			for (VirtualFileSystem fs : list) {
+				if (fs.isSupportedResource(uri)) return fs.getResource(uri);
+			}
+
+			return completedNull();
+		}
+
+		for (VirtualFileSystem p : mounts.any) {
 			if (p.isSupportedResource(uri)) return p.getResource(uri);
 		}
+
 		return completedNull();
 	}
 
@@ -76,42 +91,37 @@ public class VfsManager {
 	}
 
 	public boolean isSupportedScheme(String scheme) {
-		return providers.map.containsKey(scheme);
+		return mounts.map.containsKey(scheme);
 	}
 
-	public List<VirtualFileSystem.Provider> getProviders(String scheme) {
-		List<VirtualFileSystem.Provider> p = providers.map.get(scheme);
-		return (p == null) ? Collections.emptyList() : p;
-	}
+	private static final class Mounts {
+		final List<VirtualFileSystem> all;
+		final List<VirtualFileSystem> any;
+		final Map<String, List<VirtualFileSystem>> map;
 
-	private static final class Providers {
-		final List<VirtualFileSystem.Provider> all;
-		final List<VirtualFileSystem.Provider> any;
-		final Map<String, List<VirtualFileSystem.Provider>> map;
+		Mounts(List<VirtualFileSystem> fileSystems) {
+			ArrayList<VirtualFileSystem> all = new ArrayList<>();
+			ArrayList<VirtualFileSystem> any = new ArrayList<>();
+			Map<String, List<VirtualFileSystem>> map = new HashMap<>((int) (fileSystems.size() * 1.5f));
 
-		Providers(List<VirtualFileSystem.Provider> providers) {
-			ArrayList<VirtualFileSystem.Provider> all = new ArrayList();
-			ArrayList<VirtualFileSystem.Provider> any = new ArrayList();
-			Map<String, List<VirtualFileSystem.Provider>> map = new HashMap<>((int) (providers.size() * 1.5f));
+			for (VirtualFileSystem fs : fileSystems) {
+				if (all.contains(fs)) continue;
 
-			for (VirtualFileSystem.Provider p : providers) {
-				if (all.contains(p)) continue;
-
-				all.add(p);
-				Set<String> schemes = p.getSupportedSchemes();
+				all.add(fs);
+				Set<String> schemes = fs.getProvider().getSupportedSchemes();
 
 				if (schemes.isEmpty()) {
-					any.add(p);
+					any.add(fs);
 				} else {
 					for (String s : schemes) {
-						List<VirtualFileSystem.Provider> l = map.get(s);
+						List<VirtualFileSystem> l = map.get(s);
 
 						if (l == null) {
-							map.put(s, Collections.singletonList(p));
+							map.put(s, Collections.singletonList(fs));
 						} else {
-							List<VirtualFileSystem.Provider> newList = new ArrayList<>(l.size() + 1);
+							List<VirtualFileSystem> newList = new ArrayList<>(l.size() + 1);
 							newList.addAll(l);
-							newList.add(p);
+							newList.add(fs);
 							map.put(s, newList);
 						}
 					}

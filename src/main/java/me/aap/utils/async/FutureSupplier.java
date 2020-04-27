@@ -213,6 +213,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return ProxySupplier.create(this, map);
 	}
 
+	@SuppressWarnings("unchecked")
 	default <R> FutureSupplier<R> then(CheckedFunction<? super T, FutureSupplier<R>, Throwable> then) {
 		if (isDone()) {
 			if (isFailed()) return (FutureSupplier<R>) this;

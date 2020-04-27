@@ -21,9 +21,9 @@ import java.util.List;
 import java.util.Set;
 
 import me.aap.utils.app.App;
-import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
@@ -47,6 +47,20 @@ public class LocalFileSystem implements VirtualFileSystem {
 	@Override
 	public Provider getProvider() {
 		return Provider.getInstance();
+	}
+
+	@NonNull
+	@Override
+	public FutureSupplier<VirtualResource> getResource(Uri uri) {
+		return completed(getResource(uri.getPath()));
+	}
+
+	public VirtualResource getResource(String path) {
+		if (path == null) return null;
+		File file = new File(path);
+		if (file.isDirectory()) return new LocalFolder(file);
+		if (file.isFile()) return new LocalFile(file);
+		return null;
 	}
 
 	@NonNull
@@ -123,8 +137,11 @@ public class LocalFileSystem implements VirtualFileSystem {
 	}
 
 	public static final class Provider implements VirtualFileSystem.Provider {
-		private static final Provider instance = new Provider();
 		private final Set<String> schemes = Collections.singleton("file");
+		private static final Provider instance = new Provider();
+
+		private Provider() {
+		}
 
 		public static Provider getInstance() {
 			return instance;
@@ -138,22 +155,8 @@ public class LocalFileSystem implements VirtualFileSystem {
 
 		@NonNull
 		@Override
-		public FutureSupplier<VirtualFileSystem> getFileSystem() {
+		public FutureSupplier<VirtualFileSystem> createFileSystem(PreferenceStore ps) {
 			return completed(LocalFileSystem.getInstance());
-		}
-
-		@NonNull
-		@Override
-		public FutureSupplier<VirtualResource> getResource(Uri uri) {
-			return getResource(uri.getPath());
-		}
-
-		public FutureSupplier<VirtualResource> getResource(String path) {
-			if (path == null) return Completed.completedNull();
-			File file = new File(path);
-			if (file.isDirectory()) return completed(new LocalFolder(file));
-			if (file.isFile()) return completed(new LocalFile(file));
-			return Completed.completedNull();
 		}
 	}
 }

@@ -77,7 +77,7 @@ public class App extends android.app.Application {
 
 	public <T> FutureSupplier<T> execute(CheckedRunnable<Throwable> task, T result) {
 		if (isMainThread()) {
-			return getExecutor().submit(task, result);
+			return getExecutor().submitTask(task, result);
 		} else {
 			try {
 				task.run();
@@ -90,7 +90,7 @@ public class App extends android.app.Application {
 
 	public <T> FutureSupplier<T> execute(CheckedSupplier<T, Throwable> task) {
 		if (isMainThread()) {
-			return getExecutor().submit(task);
+			return getExecutor().submitTask(task);
 		} else {
 			try {
 				return completed(task.get());

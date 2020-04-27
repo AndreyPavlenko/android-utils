@@ -170,6 +170,19 @@ public class TextUtils {
 		return sb;
 	}
 
+	public static byte[] hexToBytes(CharSequence hex) {
+		int len = hex.length();
+		byte[] bytes = new byte[len / 2];
+		int n = 0;
+
+		for (int i = 0; i < bytes.length; i++) {
+			bytes[i] = (byte) ((Character.digit(hex.charAt(n++), 16) << 4) +
+					Character.digit(hex.charAt(n++), 16));
+		}
+
+		return bytes;
+	}
+
 	private static class HexTable {
 		static char[] _table = {'0', '1', '2', '3', '4', '5', '6', '7',
 				'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};

@@ -213,6 +213,10 @@ public class ListView<I> extends RecyclerView {
 		setItems(item);
 	}
 
+	protected boolean onItemLongClick(I item) {
+		return (itemClickListener != null) && (itemClickListener.onListItemLongClick(item));
+	}
+
 	public void cleanUp() {
 		cancel();
 		loading = Completed.completedNull();
@@ -284,7 +288,7 @@ public class ListView<I> extends RecyclerView {
 		}
 	}
 
-	private void onFailure(Throwable err) {
+	public void onFailure(Throwable err) {
 		onCancel();
 		Log.w(getClass().getName(), "Failed to load items", err);
 		if (errorHandler != null) errorHandler.accept(err);
@@ -309,14 +313,17 @@ public class ListView<I> extends RecyclerView {
 	}
 
 	public interface ItemClickListener<I> {
+
 		boolean onListItemClick(I item);
+
+		boolean onListItemLongClick(I item);
 	}
 
 	public interface ItemsChangeListener<I> {
 		void onListItemsChange(@Nullable I parent, @NonNull List<? extends I> items);
 	}
 
-	protected class Holder extends ViewHolder implements OnClickListener {
+	protected class Holder extends ViewHolder implements OnClickListener, OnLongClickListener {
 		private I item;
 
 		public Holder() {
@@ -329,6 +336,7 @@ public class ListView<I> extends RecyclerView {
 			itemView.setFocusable(true);
 			itemView.setLayoutParams(lp);
 			itemView.setOnClickListener(this);
+			itemView.setOnLongClickListener(this);
 			itemView.setBackgroundResource(getItemBackground());
 
 			if (itemView instanceof TextView) {
@@ -362,6 +370,12 @@ public class ListView<I> extends RecyclerView {
 		public void onClick(View v) {
 			I i = getItem();
 			if (i != null) onItemClick(i);
+		}
+
+		@Override
+		public boolean onLongClick(View v) {
+			I i = getItem();
+			return (i != null) ? onItemLongClick(i) : false;
 		}
 	}
 }

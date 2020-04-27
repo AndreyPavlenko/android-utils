@@ -62,6 +62,14 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 		});
 	}
 
+	public void addFilePref(Consumer<PreferenceView.FileOpts> builder) {
+		preferences.add(() -> {
+			PreferenceView.FileOpts o = new PreferenceView.FileOpts();
+			builder.accept(o);
+			return o;
+		});
+	}
+
 	public void addIntPref(Consumer<PreferenceView.IntOpts> builder) {
 		preferences.add(() -> {
 			PreferenceView.IntOpts o = new PreferenceView.IntOpts();

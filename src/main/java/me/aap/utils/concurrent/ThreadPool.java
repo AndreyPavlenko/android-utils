@@ -43,7 +43,7 @@ public class ThreadPool extends ThreadPoolExecutor implements ThreadFactory, Thr
 
 	public ThreadPool(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
 										BlockingQueue<Runnable> workQueue) {
-		this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, new CallerRunsPolicy());
+		this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, new DefaultRejectPolicy());
 	}
 
 	public ThreadPool(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
@@ -76,19 +76,19 @@ public class ThreadPool extends ThreadPoolExecutor implements ThreadFactory, Thr
 	}
 
 	@NonNull
-	public FutureSupplier<?> submit(CheckedRunnable<Throwable> task) {
-		return submit(task, null);
+	public FutureSupplier<?> submitTask(CheckedRunnable<Throwable> task) {
+		return submitTask(task, null);
 	}
 
 	@NonNull
-	public <T> FutureSupplier<T> submit(CheckedRunnable<Throwable> task, T result) {
+	public <T> FutureSupplier<T> submitTask(CheckedRunnable<Throwable> task, T result) {
 		RunnablePromise<T> t = newTaskFor(requireNonNull(task), result);
 		execute(t);
 		return t;
 	}
 
 	@NonNull
-	public <T> FutureSupplier<T> submit(CheckedSupplier<T, Throwable> task) {
+	public <T> FutureSupplier<T> submitTask(CheckedSupplier<T, Throwable> task) {
 		RunnablePromise<T> t = newTaskFor(requireNonNull(task));
 		execute(t);
 		return t;
@@ -164,6 +164,16 @@ public class ThreadPool extends ThreadPoolExecutor implements ThreadFactory, Thr
 					return value;
 				}
 			};
+		}
+	}
+
+	private static final class DefaultRejectPolicy implements RejectedExecutionHandler {
+		@Override
+		public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
+			if (!e.isShutdown()) {
+				Log.w(getClass().getName(), "Task rejected, running in the same thread");
+				r.run();
+			}
 		}
 	}
 }

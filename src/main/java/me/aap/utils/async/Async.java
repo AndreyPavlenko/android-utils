@@ -1,5 +1,7 @@
 package me.aap.utils.async;
 
+import android.util.Log;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -118,5 +120,43 @@ public class Async {
 		} catch (Throwable ex) {
 			return failed(ex);
 		}
+	}
+
+	public static <T> FutureSupplier<T> retry(CheckedSupplier<FutureSupplier<T>, Throwable> task) {
+		FutureSupplier<T> s;
+
+		for (int i = 0; ; i++) {
+			try {
+				s = task.get();
+			} catch (Throwable ex) {
+				if (i == 1) return failed(ex);
+				Log.d(Async.class.getName(), "Task failed, retrying ...", ex);
+				continue;
+			}
+
+			if (i == 1) return s;
+
+			if (s.isDone()) {
+				if (!s.isFailed() || s.isCancelled()) return s;
+			} else {
+				break;
+			}
+		}
+
+		Promise<T> p = new Promise<>();
+
+		s.onCompletion((result, fail) -> {
+			if (fail == null) {
+				p.complete(result);
+			} else {
+				try {
+					task.get().onCompletion(p::complete);
+				} catch (Throwable ex) {
+					p.completeExceptionally(ex);
+				}
+			}
+		});
+
+		return p;
 	}
 }

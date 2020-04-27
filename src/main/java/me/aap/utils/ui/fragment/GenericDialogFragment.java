@@ -3,21 +3,26 @@ package me.aap.utils.ui.fragment;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import me.aap.utils.R;
+import me.aap.utils.function.BooleanConsumer;
+import me.aap.utils.function.BooleanSupplier;
 import me.aap.utils.ui.activity.ActivityDelegate;
+import me.aap.utils.ui.view.FloatingButton;
 import me.aap.utils.ui.view.ImageButton;
 import me.aap.utils.ui.view.ToolBarView;
 
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
-import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEFT;
 import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
 
 /**
  * @author Andrey Pavlenko
  */
 public class GenericDialogFragment extends GenericFragment {
+	private BooleanConsumer consumer;
+	private BooleanSupplier validator;
 
 	public GenericDialogFragment() {
 		this(ToolBarMediator.instance);
@@ -25,6 +30,20 @@ public class GenericDialogFragment extends GenericFragment {
 
 	public GenericDialogFragment(ToolBarView.Mediator toolBarMediator) {
 		setToolBarMediator(toolBarMediator);
+	}
+
+	public GenericDialogFragment(ToolBarView.Mediator toolBarMediator,
+															 FloatingButton.Mediator floatingButtonMediator) {
+		setToolBarMediator(toolBarMediator);
+		setFloatingButtonMediator(floatingButtonMediator);
+	}
+
+	public void setDialogConsumer(BooleanConsumer consumer) {
+		this.consumer = consumer;
+	}
+
+	public void setDialogValidator(BooleanSupplier validator) {
+		this.validator = validator;
 	}
 
 	@Override
@@ -38,28 +57,39 @@ public class GenericDialogFragment extends GenericFragment {
 	}
 
 	protected void onOkButtonClick() {
+		complete(true);
 	}
 
 	protected void onCloseButtonClick() {
+		complete(false);
+	}
+
+	protected void complete(boolean ok) {
+		BooleanConsumer c = consumer;
+		consumer = null;
+		validator = null;
+		if (c != null) c.accept(ok);
 	}
 
 	protected int getOkButtonVisibility() {
-		return VISIBLE;
+		return ((validator == null) || validator.getAsBoolean()) ? VISIBLE : GONE;
 	}
 
-	interface ToolBarMediator extends ToolBarView.Mediator {
+	@Override
+	public void switchingFrom(@Nullable ActivityFragment currentFragment) {
+		super.switchingFrom(currentFragment);
+	}
+
+	interface ToolBarMediator extends ToolBarView.Mediator.BackTitle {
 		GenericDialogFragment.ToolBarMediator instance = new GenericDialogFragment.ToolBarMediator() {
 		};
 
 		@Override
 		default void enable(ToolBarView tb, ActivityFragment f) {
+			ToolBarView.Mediator.BackTitle.super.enable(tb, f);
 			GenericDialogFragment p = (GenericDialogFragment) f;
 
-			ImageButton b = createBackButton(tb, p);
-			addView(tb, b, getBackButtonId(), LEFT);
-			b.setVisibility(getBackButtonVisibility(p));
-
-			b = createOkButton(tb, p);
+			ImageButton b = createOkButton(tb, p);
 			addView(tb, b, getOkButtonId());
 			b.setVisibility(getOkButtonVisibility(p));
 
@@ -81,36 +111,12 @@ public class GenericDialogFragment extends GenericFragment {
 			}
 		}
 
-		default void onBackButtonClick(GenericDialogFragment f) {
-			f.getActivityDelegate().onBackPressed();
-		}
-
 		default void onOkButtonClick(GenericDialogFragment f) {
 			f.onOkButtonClick();
 		}
 
 		default void onCloseButtonClick(GenericDialogFragment f) {
 			f.onCloseButtonClick();
-		}
-
-		@IdRes
-		default int getBackButtonId() {
-			return R.id.tool_bar_back_button;
-		}
-
-		@DrawableRes
-		default int getBackButtonIcon() {
-			return R.drawable.back;
-		}
-
-		default ImageButton createBackButton(ToolBarView tb, GenericDialogFragment f) {
-			ImageButton b = new ImageButton(tb.getContext(), null, R.attr.toolbarStyle);
-			initButton(b, getBackButtonIcon(), v -> onBackButtonClick(f));
-			return b;
-		}
-
-		default int getBackButtonVisibility(GenericDialogFragment f) {
-			return f.getActivityDelegate().isRootPage() ? GONE : VISIBLE;
 		}
 
 		@IdRes

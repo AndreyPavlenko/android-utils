@@ -19,7 +19,13 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
+import java.util.regex.Pattern;
+
 import me.aap.utils.R;
+import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.collection.CollectionUtils;
 import me.aap.utils.function.BiConsumer;
 import me.aap.utils.function.BooleanSupplier;
@@ -29,15 +35,22 @@ import me.aap.utils.function.IntFunction;
 import me.aap.utils.function.IntSupplier;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.function.ToIntFunction;
+import me.aap.utils.holder.BiHolder;
 import me.aap.utils.misc.ChangeableCondition;
 import me.aap.utils.text.TextUtils;
 import me.aap.utils.ui.UiUtils;
 import me.aap.utils.ui.activity.ActivityDelegate;
+import me.aap.utils.ui.fragment.FilePickerFragment;
 import me.aap.utils.ui.menu.OverlayMenu;
 import me.aap.utils.ui.menu.OverlayMenuItem;
+import me.aap.utils.vfs.VirtualFolder;
+import me.aap.utils.vfs.VirtualResource;
+import me.aap.utils.vfs.local.LocalFileSystem;
 
+import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.UiUtils.toPx;
+import static me.aap.utils.ui.fragment.FilePickerFragment.FILE_OR_FOLDER;
 
 /**
  * @author Andrey Pavlenko
@@ -78,6 +91,8 @@ public class PreferenceView extends ConstraintLayout {
 			setPreferenceSet(adapter, (PreferenceSet) supplier, opts);
 		} else if (opts instanceof BooleanOpts) {
 			setBooleanPreference((BooleanOpts) opts);
+		} else if (opts instanceof FileOpts) {
+			setFilePreference((FileOpts) opts);
 		} else if (opts instanceof StringOpts) {
 			setStringPreference((StringOpts) opts);
 		} else if (opts instanceof IntOpts) {
@@ -115,7 +130,11 @@ public class PreferenceView extends ConstraintLayout {
 	}
 
 	private void setStringPreference(StringOpts o) {
-		setPreference(R.layout.string_pref_layout, o);
+		setStringPreference(o, R.layout.string_pref_layout);
+	}
+
+	private void setStringPreference(StringOpts o, @LayoutRes int layout) {
+		setPreference(layout, o);
 		EditText t = findViewById(R.id.pref_footer);
 		boolean[] ignoreChange = new boolean[1];
 		t.setOnKeyListener(UiUtils::dpadFocusHelper);
@@ -149,6 +168,33 @@ public class PreferenceView extends ConstraintLayout {
 
 		setPrefListener((s, p) -> {
 			if (!ignoreChange[0] && p.contains(o.pref)) t.setText(o.store.getStringPref(o.pref));
+		});
+	}
+
+	private void setFilePreference(FileOpts o) {
+		setStringPreference(o, R.layout.file_pref_layout);
+		EditText t = findViewById(R.id.pref_footer);
+		ImageView img = findViewById(R.id.pref_value);
+		img.setImageResource(o.browseIcon);
+
+		setOnClickListener(v -> {
+			ActivityDelegate a = ActivityDelegate.get(getContext());
+			int current = a.getActiveFragmentId();
+			FilePickerFragment picker = a.showFragment(R.id.file_picker);
+			Object state = picker.resetState();
+			picker.setMode(o.mode);
+			picker.setPattern(o.pattern);
+			picker.setSupplier((o.supplier != null) ? o.supplier : completed(fileSupplier(t.getText())));
+
+			picker.setFileConsumer(file -> {
+				if (file != null) {
+					File local = file.getLocalFile();
+					t.setText((local != null) ? local.getAbsolutePath() : file.getUri().toString());
+				}
+
+				picker.restoreState(state);
+				a.showFragment(current);
+			});
 		});
 	}
 
@@ -219,29 +265,34 @@ public class PreferenceView extends ConstraintLayout {
 			}
 		});
 
-		sb.setMax((o.seekMax - o.seekMin) / o.seekScale);
-		sb.setProgress(Math.max(0, toInt.applyAsInt(initValue) - o.seekMin) / o.seekScale);
+		if (o.showProgress) {
+			sb.setVisibility(VISIBLE);
+			sb.setMax((o.seekMax - o.seekMin) / o.seekScale);
+			sb.setProgress(Math.max(0, toInt.applyAsInt(initValue) - o.seekMin) / o.seekScale);
 
-		sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-			@Override
-			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-				if (fromUser) {
-					t.setText(fromInt.apply(progress * o.seekScale + o.seekMin));
+			sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+				@Override
+				public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+					if (fromUser) {
+						t.setText(fromInt.apply(progress * o.seekScale + o.seekMin));
+					}
 				}
-			}
 
-			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {
-			}
+				@Override
+				public void onStartTrackingTouch(SeekBar seekBar) {
+				}
 
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {
-			}
-		});
+				@Override
+				public void onStopTrackingTouch(SeekBar seekBar) {
+				}
+			});
 
-		setOnFocusChangeListener((v, has) -> {
-			if (has) sb.requestFocus();
-		});
+			setOnFocusChangeListener((v, has) -> {
+				if (has) sb.requestFocus();
+			});
+		} else {
+			sb.setVisibility(GONE);
+		}
 
 		setPrefListener((s, p) -> {
 			if (!ignoreChange[0] && p.contains(o.pref)) t.setText(get.get());
@@ -405,6 +456,26 @@ public class PreferenceView extends ConstraintLayout {
 		return (TextView) getChildAt(2);
 	}
 
+	private static BiHolder<? extends VirtualResource, List<? extends VirtualResource>> fileSupplier(CharSequence text) {
+		String path = text.toString().trim();
+		LocalFileSystem fs = LocalFileSystem.getInstance();
+
+		if (!path.isEmpty()) {
+			VirtualResource res = fs.getResource(path);
+
+			if (res != null) {
+				if (res.isFile()) res = res.getParent().get(null);
+
+				if (res != null) {
+					VirtualFolder f = (VirtualFolder) res;
+					return new BiHolder<>(f, f.getChildren().get(Collections::emptyList));
+				}
+			}
+		}
+
+		return new BiHolder<>(null, fs.getRoots().get(Collections::emptyList));
+	}
+
 	public static class Opts {
 		@SuppressLint("InlinedApi")
 		@DrawableRes
@@ -438,6 +509,7 @@ public class PreferenceView extends ConstraintLayout {
 		public int seekMax = 100;
 		public int seekScale = 1;
 		public int ems = 2;
+		public boolean showProgress = true;
 	}
 
 	public static class IntOpts extends NumberOpts<IntSupplier> {
@@ -449,6 +521,14 @@ public class PreferenceView extends ConstraintLayout {
 
 	public static class TimeOpts extends NumberOpts<IntSupplier> {
 		public boolean editable;
+	}
+
+	public static class FileOpts extends StringOpts {
+		@DrawableRes
+		public int browseIcon = R.drawable.browse;
+		public byte mode = FILE_OR_FOLDER;
+		public Pattern pattern;
+		public FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>> supplier;
 	}
 
 	public static class ListOpts extends PrefOpts<IntSupplier> {
