@@ -29,7 +29,6 @@ import static me.aap.utils.function.ResultConsumer.Cancel.isCancellation;
  */
 public class PromiseTest extends Assertions {
 	private static ExecutorService exec;
-	private static final AtomicBoolean exceptionCaught = new AtomicBoolean();
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	private static final AtomicReferenceFieldUpdater<PromiseTest, FutureSupplier<Integer>> updater =
 			(AtomicReferenceFieldUpdater) AtomicReferenceFieldUpdater.newUpdater(PromiseTest.class, FutureSupplier.class, "supplier");
@@ -45,7 +44,6 @@ public class PromiseTest extends Assertions {
 	@AfterAll
 	public static void tearDownClass() {
 		exec.shutdown();
-		assertFalse(exceptionCaught.get());
 	}
 
 	@RepeatedTest(10)
