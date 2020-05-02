@@ -27,7 +27,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * @author Andrey Pavlenko
  */
 public class ThreadPool extends ThreadPoolExecutor implements ThreadFactory, Thread.UncaughtExceptionHandler {
-	private final AtomicInteger counter = new AtomicInteger();
+	final AtomicInteger counter = new AtomicInteger();
 
 	public ThreadPool(int corePoolSize) {
 		this(corePoolSize, corePoolSize);

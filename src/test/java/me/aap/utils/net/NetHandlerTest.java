@@ -15,7 +15,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import me.aap.utils.async.FutureSupplier;
-import me.aap.utils.concurrent.ThreadPool;
+import me.aap.utils.concurrent.NetThreadPool;
 import me.aap.utils.misc.MiscUtils;
 
 import static me.aap.utils.security.SecurityUtils.sha1;
@@ -34,7 +34,7 @@ public class NetHandlerTest extends Assertions {
 	public static void setUpClass() throws IOException {
 		MiscUtils.enableTestMode();
 		Random rnd = ThreadLocalRandom.current();
-		exec = new ThreadPool(Runtime.getRuntime().availableProcessors());
+		exec = new NetThreadPool(Runtime.getRuntime().availableProcessors());
 		handler = NetHandler.create(exec);
 		data = new byte[1024 * 1024 * rnd.nextInt(10)];
 		rnd.nextBytes(data);

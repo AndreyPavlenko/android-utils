@@ -4,12 +4,15 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.Keep;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -21,14 +24,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import me.aap.utils.async.Completable;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.async.RunnablePromise;
-import me.aap.utils.function.CheckedConsumer;
-import me.aap.utils.function.Supplier;
+import me.aap.utils.concurrent.ConcurrentQueueBase;
+import me.aap.utils.concurrent.ConcurrentQueueBase.Node;
+import me.aap.utils.function.ProgressiveResultConsumer.Completion;
 import me.aap.utils.io.IoUtils;
 
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
@@ -38,7 +43,6 @@ import static java.nio.channels.SelectionKey.OP_WRITE;
 import static java.util.Objects.requireNonNull;
 import static me.aap.utils.async.Completed.failed;
 import static me.aap.utils.misc.Assert.assertEquals;
-import static me.aap.utils.misc.Assert.assertNull;
 
 /**
  * @author Andrey Pavlenko
@@ -78,9 +82,16 @@ class SelectorHandler implements NetHandler, Runnable {
 
 				for (Iterator<SelectionKey> it = keys.iterator(); it.hasNext(); ) {
 					SelectionKey k = it.next();
-					it.remove();
-					Selectable select = (Selectable) k.attachment();
-					if (select != null) select.select();
+
+					if (k.isValid()) {
+						Selectable select = (Selectable) k.attachment();
+
+						if (select != null) {
+							if (!select.select()) it.remove();
+						}
+					} else {
+						it.remove();
+					}
 				}
 			} catch (Throwable ex) {
 				if (!selector.isOpen()) break;
@@ -160,13 +171,17 @@ class SelectorHandler implements NetHandler, Runnable {
 					key.attach((Selectable) () -> {
 						try {
 							assertEquals(OP_CONNECT, key.interestOps());
-							if (!key.isConnectable() || !ch.finishConnect()) return;
+							if (!key.isConnectable() || !ch.finishConnect()) return true;
 							key.attach(nc);
 							key.interestOps(0);
 							execute(() -> p.complete(nc), p);
+							return true;
+						} catch (CancelledKeyException ignore) {
 						} catch (Throwable ex) {
 							execute(() -> p.completeExceptionally(ex), p);
 						}
+
+						return false;
 					});
 				} catch (Throwable ex) {
 					execute(() -> p.completeExceptionally(ex), p);
@@ -178,6 +193,16 @@ class SelectorHandler implements NetHandler, Runnable {
 		} catch (Throwable ex) {
 			return failed(ex);
 		}
+	}
+
+	@Override
+	public Executor getExecutor() {
+		return executor;
+	}
+
+	@Override
+	public boolean isOpen() {
+		return selector.isOpen();
 	}
 
 	@Override
@@ -203,12 +228,21 @@ class SelectorHandler implements NetHandler, Runnable {
 		}
 	}
 
+	private static int getBufferOffset(ByteBuffer[] buf) {
+		for (int i = 0; i < buf.length; i++) {
+			if (buf[i].hasRemaining()) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
 	private void selectorRun(Runnable run) {
 		queue.add(run);
 		selector.wakeup();
 	}
 
-	private void execute(Runnable run, Completable<?> c) {
+	private void execute(Runnable run, me.aap.utils.async.Completable<?> c) {
 		try {
 			executor.execute(run);
 		} catch (Throwable ex) {
@@ -217,13 +251,13 @@ class SelectorHandler implements NetHandler, Runnable {
 	}
 
 	private interface Selectable {
-		void select();
+		boolean select();
 	}
 
 	private final class SelectableNetServer implements NetServer, Selectable {
 		private final ServerSocketChannel channel;
 		private final Map<SocketOption<?>, ?> opts;
-		private final CheckedConsumer<NetChannel, Throwable> handler;
+		private final ConnectionHandler handler;
 
 		public SelectableNetServer(ServerSocketChannel channel, BindOpts o) {
 			this.channel = channel;
@@ -232,18 +266,23 @@ class SelectorHandler implements NetHandler, Runnable {
 		}
 
 		@Override
+		public NetHandler getHandler() {
+			return SelectorHandler.this;
+		}
+
+		@Override
 		public SocketAddress getBindAddress() {
 			return channel.socket().getLocalSocketAddress();
 		}
 
 		@Override
-		public void select() {
+		public boolean select() {
 			SelectableNetChannel nc;
 			SocketChannel ch = null;
 
 			try {
 				ch = channel.accept();
-				if (ch == null) return;
+				if (ch == null) return true;
 
 				ch.configureBlocking(false);
 				setOpts(ch, opts);
@@ -251,16 +290,18 @@ class SelectorHandler implements NetHandler, Runnable {
 				SelectionKey key = ch.register(selector, 0);
 				nc = new SelectableNetChannel(key);
 				key.attach(nc);
+			} catch (CancelledKeyException ignore) {
+				return true;
 			} catch (Throwable ex) {
 				IoUtils.close(ch);
-				Log.e(getClass().getName(), "Failed to accept a  connection", ex);
-				return;
+				Log.e(getClass().getName(), "Failed to accept a connection", ex);
+				return true;
 			}
 
 			try {
 				executor.execute(() -> {
 					try {
-						handler.accept(nc);
+						handler.acceptConnection(nc);
 					} catch (Throwable ex) {
 						Log.e(getClass().getName(), "Connection handler failed", ex);
 						nc.close();
@@ -270,6 +311,13 @@ class SelectorHandler implements NetHandler, Runnable {
 				Log.e(getClass().getName(), "Failed to execute connection handler", ex);
 				nc.close();
 			}
+
+			return true;
+		}
+
+		@Override
+		public boolean isOpen() {
+			return channel.isOpen();
 		}
 
 		@Override
@@ -280,229 +328,326 @@ class SelectorHandler implements NetHandler, Runnable {
 				Log.e(getClass().getName(), "Failed to close server channel", ex);
 			}
 		}
+
+		@Override
+		public String toString() {
+			return channel.toString();
+		}
 	}
 
-	private static final AtomicReferenceFieldUpdater<SelectableNetChannel, SelectableNetChannel.ReadPromise> reader =
-			AtomicReferenceFieldUpdater.newUpdater(SelectableNetChannel.class, SelectableNetChannel.ReadPromise.class, "readerHolder");
-	private static final AtomicReferenceFieldUpdater<SelectableNetChannel, SelectableNetChannel.WritePromise> writer =
-			AtomicReferenceFieldUpdater.newUpdater(SelectableNetChannel.class, SelectableNetChannel.WritePromise.class, "writerHolder");
+	private static final AtomicReferenceFieldUpdater<SelectableNetChannel, ReadPromise> READER =
+			AtomicReferenceFieldUpdater.newUpdater(SelectableNetChannel.class, ReadPromise.class, "reader");
+	private static final AtomicIntegerFieldUpdater<SelectableNetChannel> WRITING =
+			AtomicIntegerFieldUpdater.newUpdater(SelectableNetChannel.class, "writing");
 
-	private final class SelectableNetChannel implements NetChannel, Selectable {
+	private final class SelectableNetChannel
+			extends ConcurrentQueueBase<ByteBufferArraySupplier, WritePromise>
+			implements NetChannel, Selectable {
 		private final SelectionKey key;
-
 		@Keep
 		@SuppressWarnings("unused")
-		volatile ReadPromise readerHolder;
+		volatile ReadPromise reader;
 		@Keep
 		@SuppressWarnings("unused")
-		volatile WritePromise writerHolder;
+		volatile int writing;
 
 		public SelectableNetChannel(SelectionKey key) {
 			this.key = key;
 		}
 
 		@Override
-		public void select() {
+		public boolean select() {
 			try {
 				assertEquals(0, key.interestOps() & (OP_ACCEPT | OP_CONNECT));
 				int ready = key.readyOps();
+				int interest = key.interestOps();
 
-				if ((ready & OP_READ) != 0) {
-					ReadPromise p = reader.get(this);
-
-					if (p != null) {
-						ByteBuffer b = p.getBuf();
-
-						if (b != null) {
-							key.interestOps(key.interestOps() & ~OP_READ);
-							execute(() -> read(p, b), p);
-						}
-					}
+				if (((ready & OP_READ) != 0) && ((interest & OP_READ) != 0)) {
+					key.interestOps(interest &= ~OP_READ);
+					executor.execute(this::doRead);
 				}
 
-				if ((ready & OP_WRITE) != 0) {
-					WritePromise p = writer.get(this);
-
-					if (p != null) {
-						ByteBuffer b = p.getBuf();
-
-						if (b != null) {
-							key.interestOps(key.interestOps() & ~OP_WRITE);
-							execute(() -> write(p, b), p);
-						}
-					}
+				if (((ready & OP_WRITE) != 0) && ((interest & OP_WRITE) != 0)) {
+					key.interestOps(interest & ~OP_WRITE);
+					if (WRITING.compareAndSet(this, 0, 1)) executor.execute(this::doWrite);
 				}
+
+				return true;
+			} catch (CancelledKeyException ignore) {
 			} catch (Throwable ex) {
-				Log.e(getClass().getName(), ex.getMessage(), ex);
+				Log.d(getClass().getName(), ex.getMessage(), ex);
 				close();
 			}
+
+			return false;
 		}
 
 		@Override
-		public FutureSupplier<ByteBuffer> read(Supplier<ByteBuffer> buf) {
-			assertEquals(0, (key.interestOps() & OP_READ));
+		public FutureSupplier<ByteBuffer> read(ByteBufferSupplier buf, @Nullable Completion<ByteBuffer> consumer) {
 			ReadPromise p = new ReadPromise(buf);
+			if (consumer != null) p.onCompletion(consumer);
 
-			if (!reader.compareAndSet(this, null, p)) {
-				p.completeExceptionally(new IOException("Read pending"));
-			} else if (!key.isValid()) {
-				p.completeExceptionally(new ClosedChannelException());
-				reader.compareAndSet(this, p, null);
-			} else {
-				try {
-					if (key.isReadable()) {
-						ByteBuffer b = p.getBuf();
-						if (b != null) read(p, b);
-					} else {
-						selectorRun(() -> {
-							if (reader.get(this) == p) key.interestOps(key.interestOps() | OP_READ);
-						});
+			if (!READER.compareAndSet(this, null, p)) {
+				for (ReadPromise r = reader; ; r = reader) {
+					if (!r.isDone()) {
+						p.completeExceptionally(new IOException("Read pending"));
+						return p;
+					} else if (READER.compareAndSet(this, r, p)) {
+						break;
 					}
-				} catch (Throwable ex) {
-					reader.compareAndSet(this, p, null);
-					p.completeExceptionally(ex);
 				}
+			}
+
+			if (!isOpen()) {
+				p.completeExceptionally(ChannelClosed.instance);
+				READER.compareAndSet(this, p, null);
+			} else {
+				assertEquals(0, (key.interestOps() & OP_READ));
+				setInterest(p, OP_READ);
 			}
 
 			return p;
 		}
 
-		private void read(ReadPromise p, ByteBuffer b) {
+		private void doRead() {
+			ReadPromise p = reader;
+			if (p == null) return;
+
+			ByteBufferSupplier bs = p.buf;
+
+			if (bs == null) {
+				READER.compareAndSet(this, p, null);
+				return;
+			}
+
+			ByteBuffer buf = bs.getByteBuffer();
+
 			try {
-				assertEquals(0, (key.interestOps() & OP_READ));
+				int i = channel().read(buf);
 
-				int i = channel().read(b);
-
-				if ((i != 0) || !b.hasRemaining()) {
-					if (i == -1) b.limit(b.position()); // End of stream
-					else b.flip();
-					reader.compareAndSet(this, p, null);
-					p.complete(b);
+				if ((i != 0) || !buf.hasRemaining()) {
+					if (i == -1) buf.limit(buf.position()); // End of stream
+					else buf.flip();
+					READER.compareAndSet(this, p, null);
+					p.complete(buf);
 				} else {
-					p.setBuf(b);
-					selectorRun(() -> {
-						if (reader.get(this) == p) key.interestOps(key.interestOps() | OP_READ);
-					});
+					bs.retainByteBuffer(buf);
+					setInterest(p, OP_READ);
 				}
 			} catch (Throwable ex) {
-				reader.compareAndSet(this, p, null);
+				bs.releaseByteBuffer(buf);
+				READER.compareAndSet(this, p, null);
 				p.completeExceptionally(ex);
 			}
 		}
 
 		@Override
-		public FutureSupplier<Void> write(Supplier<ByteBuffer> buf) {
-			assertEquals(0, (key.interestOps() & OP_WRITE));
+		public FutureSupplier<Void> write(ByteBufferArraySupplier buf) {
+			if (!isOpen()) return failed(ChannelClosed.instance);
+
 			WritePromise p = new WritePromise(buf);
-
-			if (!writer.compareAndSet(this, null, p)) {
-				p.completeExceptionally(new IOException("Write pending"));
-			} else if (!key.isValid()) {
-				p.completeExceptionally(new ClosedChannelException());
-				writer.compareAndSet(this, p, null);
-			} else {
-				try {
-					if (key.isWritable()) {
-						ByteBuffer b = p.getBuf();
-						if (b != null) write(p, b);
-					} else {
-						selectorRun(() -> {
-							if (writer.get(this) == p) key.interestOps(key.interestOps() | OP_WRITE);
-						});
-					}
-				} catch (Throwable ex) {
-					writer.compareAndSet(this, p, null);
-					p.completeExceptionally(ex);
-				}
-			}
-
+			offerNode(p);
+			if (peekNode() == p) setInterest(p, OP_WRITE);
 			return p;
 		}
 
-		private void write(WritePromise p, ByteBuffer b) {
+		private void doWrite() {
+			ByteBufferArraySupplier bs = null;
+			ByteBuffer[] buf = null;
+
 			try {
-				assertEquals(0, (key.interestOps() & OP_WRITE));
+				for (SocketChannel ch = channel(); ; ) {
+					WritePromise p = peekNode();
 
-				for (SocketChannel ch = channel(); b.hasRemaining(); ) {
-					int i = ch.write(b);
+					for (; p == null; p = peekNode()) {
+						assertEquals(1, writing);
+						writing = 0;
+						if (isEmpty() || !WRITING.compareAndSet(this, 0, 1)) return;
+					}
 
-					if (i == 0) {
-						p.setBuf(b);
-						selectorRun(() -> {
-							if (writer.get(this) == p) key.interestOps(key.interestOps() | OP_WRITE);
-						});
-						return;
+					bs = p.buf;
+
+					if (bs == null) {
+						poll();
+						continue;
+					}
+
+					buf = bs.getByteBufferArray();
+					int off = getBufferOffset(buf);
+
+					if (off == -1) {
+						bs.releaseByteBufferArray(buf);
+						p.releaseBuf();
+						poll();
+						continue;
+					}
+
+					for (; ; ) {
+						long i = ch.write(buf, off, buf.length - off);
+
+						if (i == 0) {
+							bs.retainByteBufferArray(buf, off);
+							writing = 0;
+							setInterest(p, OP_WRITE);
+							return;
+						}
+
+						off = getBufferOffset(buf);
+
+						if (off == -1) {
+							bs.releaseByteBufferArray(buf);
+							poll();
+							p.complete(null);
+							break;
+						}
 					}
 				}
-
-				writer.compareAndSet(this, p, null);
-				p.complete(null);
 			} catch (Throwable ex) {
-				writer.compareAndSet(this, p, null);
-				p.completeExceptionally(ex);
+				if ((bs != null) && (buf != null)) bs.releaseByteBufferArray(buf);
+				close(ex);
+				writing = 0;
 			}
+		}
+
+		private void setInterest(Completable<?> p, int interest) {
+			selectorRun(() -> {
+				try {
+					if (key.isValid()) key.interestOps(key.interestOps() | interest);
+				} catch (Throwable ex) {
+					p.completeExceptionally(ex);
+				}
+			});
+		}
+
+		@Override
+		public NetHandler getHandler() {
+			return SelectorHandler.this;
+		}
+
+		@Override
+		public boolean isOpen() {
+			return channel().isOpen();
 		}
 
 		@Override
 		public void close() {
+			close(ChannelClosed.instance);
+		}
+
+		private void close(Throwable err) {
 			key.cancel();
 			IoUtils.close(channel());
 
-			ReadPromise r = reader.getAndSet(this, null);
-			WritePromise w = writer.getAndSet(this, null);
-			if (r != null) r.completeExceptionally(new ClosedChannelException());
-			if (w != null) w.completeExceptionally(new ClosedChannelException());
+			ReadPromise r = READER.getAndSet(this, null);
+			if (r != null) r.completeExceptionally(err);
+
+			WritePromise w = peekNode();
+			clear();
+
+			for (; w != null; w = w.getNext()) {
+				w.completeExceptionally(err);
+			}
+		}
+
+		@Override
+		public String toString() {
+			return channel().toString();
+		}
+
+		@Override
+		protected WritePromise newNode(ByteBufferArraySupplier o) {
+			return null;
 		}
 
 		private SocketChannel channel() {
 			return (SocketChannel) key.channel();
 		}
+	}
 
-		private final class ReadPromise extends ChannelPromise<ByteBuffer> {
-			public ReadPromise(Supplier<ByteBuffer> bufSupplier) {
-				super(bufSupplier);
-			}
+	private static abstract class ChannelPromise<T> extends Promise<T> {
 
-			@Override
-			public boolean cancel(boolean mayInterruptIfRunning) {
-				reader.compareAndSet(SelectableNetChannel.this, this, null);
-				return super.cancel(mayInterruptIfRunning);
-			}
+		abstract void releaseBuf();
+
+		@Override
+		public boolean cancel(boolean mayInterruptIfRunning) {
+			if (!super.cancel(mayInterruptIfRunning)) return false;
+			releaseBuf();
+			return true;
 		}
 
-		private final class WritePromise extends ChannelPromise<Void> {
-			public WritePromise(Supplier<ByteBuffer> bufSupplier) {
-				super(bufSupplier);
-			}
+		@Override
+		public boolean complete(@Nullable T value) {
+			if (!super.complete(value)) return false;
+			releaseBuf();
+			return true;
+		}
 
-			@Override
-			public boolean cancel(boolean mayInterruptIfRunning) {
-				writer.compareAndSet(SelectableNetChannel.this, this, null);
-				return super.cancel(mayInterruptIfRunning);
+		@Override
+		public synchronized boolean completeExceptionally(@NonNull Throwable ex) {
+			if (!super.completeExceptionally(ex)) return false;
+			releaseBuf();
+			return true;
+		}
+	}
+
+	private static final class ReadPromise extends ChannelPromise<ByteBuffer> {
+		volatile ByteBufferSupplier buf;
+
+		ReadPromise(ByteBufferSupplier buf) {
+			this.buf = buf;
+		}
+
+		void releaseBuf() {
+			ByteBufferSupplier buf = this.buf;
+
+			if (buf != null) {
+				this.buf = null;
+				buf.release();
 			}
 		}
 	}
 
-	private static class ChannelPromise<T> extends Promise<T> {
-		@SuppressWarnings({"unchecked", "rawtypes"})
-		private static final AtomicReferenceFieldUpdater<ChannelPromise, Supplier<ByteBuffer>> buf =
-				(AtomicReferenceFieldUpdater) AtomicReferenceFieldUpdater.newUpdater(ChannelPromise.class, Supplier.class, "bufHolder");
-		@Keep
-		@SuppressWarnings({"unused", "FieldCanBeLocal"})
-		private volatile Supplier<ByteBuffer> bufHolder;
+	private static final class WritePromise extends ChannelPromise<Void> implements Node<ByteBufferArraySupplier> {
+		@SuppressWarnings("rawtypes")
+		private static final AtomicReferenceFieldUpdater NEXT = AtomicReferenceFieldUpdater.newUpdater(WritePromise.class, WritePromise.class, "next");
+		private volatile WritePromise next;
+		volatile ByteBufferArraySupplier buf;
 
-		ChannelPromise(Supplier<ByteBuffer> bufSupplier) {
-			this.bufHolder = bufSupplier;
+		WritePromise(ByteBufferArraySupplier buf) {
+			this.buf = buf;
 		}
 
-		ByteBuffer getBuf() {
-			Supplier<ByteBuffer> b = buf.getAndSet(this, null);
-			return (b != null) ? b.get() : null;
+		@Override
+		public ByteBufferArraySupplier getValue() {
+			return buf;
 		}
 
-		void setBuf(ByteBuffer b) {
-			assertNull(buf.get(this));
-			buf.set(this, () -> b);
+		@Override
+		public WritePromise getNext() {
+			return next;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public boolean compareAndSetNext(Node<ByteBufferArraySupplier> expect, Node<ByteBufferArraySupplier> update) {
+			return NEXT.compareAndSet(this, expect, update);
+		}
+
+		void releaseBuf() {
+			ByteBufferArraySupplier buf = this.buf;
+
+			if (buf != null) {
+				this.buf = null;
+				buf.release();
+			}
+		}
+	}
+
+	private static final class ChannelClosed extends ClosedChannelException {
+		static final ChannelClosed instance = new ChannelClosed();
+
+		@Override
+		public void printStackTrace() {
 		}
 	}
 }

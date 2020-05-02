@@ -11,6 +11,10 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 
+import static java.lang.Character.isLowerCase;
+import static java.lang.Character.toLowerCase;
+import static java.lang.Character.toUpperCase;
+
 /**
  * @author Andrey Pavlenko
  */
@@ -24,6 +28,88 @@ public class TextUtils {
 			}
 		}
 		return -1;
+	}
+
+	public static int indexOf(CharSequence text, CharSequence seq) {
+		return indexOf(text, seq, false);
+	}
+
+	public static int indexOf(CharSequence text, CharSequence seq, boolean ignoreCase) {
+		return indexOf(text, seq, 0, text.length(), ignoreCase);
+	}
+
+	public static int indexOf(CharSequence text, CharSequence seq, int fromIndex, int toIndex,
+														boolean ignoreCase) {
+		if ((fromIndex < 0) || (fromIndex >= toIndex)) return -1;
+
+		int seqLen = seq.length();
+		if (seqLen == 0) return fromIndex;
+
+		int max = toIndex - seqLen;
+		char first = seq.charAt(0);
+
+		if (ignoreCase) {
+			boolean low = isLowerCase(first);
+
+			for (int i = fromIndex; i <= max; i++) {
+				char c = text.charAt(i);
+
+				if (((c == first) || ((low ? toLowerCase(c) : toUpperCase(c)) != c)) &&
+						regionMatches(text, i, seq, 0, seqLen, true)) {
+					return i;
+				}
+			}
+		} else {
+			for (int i = fromIndex; i <= max; i++) {
+				if ((text.charAt(i) == first) && regionMatches(text, i, seq, 0, seqLen, false)) {
+					return i;
+				}
+			}
+		}
+
+		return -1;
+	}
+
+	public static boolean regionMatches(CharSequence text, int textOffset,
+																			CharSequence seq, int seqOffset, int len, boolean ignoreCase) {
+		int textLen = text.length();
+		int seqLen = seq.length();
+
+		if ((seqOffset < 0) || (textOffset < 0) ||
+				(textOffset > (textLen - len)) ||
+				(seqOffset > (seqLen - len))) {
+			return false;
+		} else {
+			return matches(text, seq, textOffset, seqOffset, len, ignoreCase);
+		}
+	}
+
+	private static boolean matches(CharSequence s1, CharSequence s2, int off1, int off2, int len,
+																 boolean ignoreCase) {
+		if (!ignoreCase) {
+			for (int i = 0; i < len; i++) {
+				if (s1.charAt(off1 + i) != s2.charAt(off2 + i)) return false;
+			}
+			return true;
+		}
+
+		for (int i = 0; i < len; i++) {
+			char c1 = s1.charAt(off1 + i);
+			char c2 = s2.charAt(off2 + i);
+
+			if (c1 != c2) {
+				c1 = toUpperCase(c1);
+				c2 = toUpperCase(c2);
+
+				if (c1 != c2) {
+					c1 = toLowerCase(c1);
+					c2 = toLowerCase(c2);
+					if (c1 != c2) return false;
+				}
+			}
+		}
+
+		return true;
 	}
 
 	public static long toLong(CharSequence seq, int from, int to, long defaultValue) {

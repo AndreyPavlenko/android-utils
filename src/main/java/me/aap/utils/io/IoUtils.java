@@ -2,6 +2,8 @@ package me.aap.utils.io;
 
 import android.util.Log;
 
+import java.nio.ByteBuffer;
+
 /**
  * @author Andrey Pavlenko
  */
@@ -23,5 +25,13 @@ public class IoUtils {
 				close(c);
 			}
 		}
+	}
+
+	public static ByteBuffer emptyByteBuffer() {
+		return EmptyByteBuf.instance;
+	}
+
+	private interface EmptyByteBuf {
+		ByteBuffer instance = ByteBuffer.allocate(0);
 	}
 }

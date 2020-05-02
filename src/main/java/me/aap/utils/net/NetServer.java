@@ -8,8 +8,16 @@ import java.net.SocketAddress;
  */
 public interface NetServer extends Closeable {
 
+	NetHandler getHandler();
+
 	SocketAddress getBindAddress();
+
+	boolean isOpen();
 
 	@Override
 	void close();
+
+	interface ConnectionHandler {
+		void acceptConnection(NetChannel channel);
+	}
 }

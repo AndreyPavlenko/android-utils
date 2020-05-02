@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 import me.aap.utils.async.FutureSupplier;
-import me.aap.utils.function.CheckedConsumer;
 import me.aap.utils.function.Consumer;
+import me.aap.utils.net.NetServer.ConnectionHandler;
 
 /**
  * @author Andrey Pavlenko
@@ -23,6 +23,10 @@ public interface NetHandler extends Closeable {
 		h.start();
 		return h;
 	}
+
+	Executor getExecutor();
+
+	boolean isOpen();
 
 	@Override
 	void close();
@@ -44,7 +48,7 @@ public interface NetHandler extends Closeable {
 	}
 
 	class Opts {
-		public Map<SocketOption<?>, ?> opt = new HashMap<>();
+		public Map<SocketOption<?>, Object> opt = new HashMap<>();
 		public SocketAddress address;
 		public String host;
 		public int port;
@@ -59,7 +63,7 @@ public interface NetHandler extends Closeable {
 	}
 
 	class BindOpts extends Opts {
-		public CheckedConsumer<NetChannel, Throwable> handler;
+		public ConnectionHandler handler;
 		public int backlog;
 	}
 
