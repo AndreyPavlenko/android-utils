@@ -99,7 +99,7 @@ public class AsyncIterator<T> extends Promise<T> implements ProgressiveResultCon
 	}
 
 	@Override
-	public synchronized boolean completeExceptionally(@NonNull Throwable ex) {
+	public boolean completeExceptionally(@NonNull Throwable ex) {
 		if (!super.completeExceptionally(ex)) return false;
 		current = null;
 		return true;

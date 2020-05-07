@@ -64,10 +64,10 @@ public class ConcurrentLinkedQueueTest extends Assertions {
 		}
 	}
 
-	static final class TestQueue extends ConcurrentQueueBase<Integer, ConcurrentQueueBase.BasicNode<Integer>> {
+	static final class TestQueue extends ConcurrentQueueBase<Integer, ConcurrentQueueBase.GenericNode<Integer>> {
 		@Override
-		protected BasicNode<Integer> newNode(Integer value) {
-			return new BasicNode<>(value);
+		protected GenericNode<Integer> newNode(Integer value) {
+			return new GenericNode<>(value);
 		}
 	}
 }

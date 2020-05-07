@@ -10,6 +10,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import me.aap.utils.function.Consumer;
+
 /**
  * @author Andrey Pavlenko
  */
@@ -25,13 +27,15 @@ public abstract class ConcurrentQueueBase<E, N extends ConcurrentQueueBase.Node<
 	private volatile Node tail;
 
 	protected ConcurrentQueueBase() {
-		head = tail = newInitNode();
+		head = tail = newDummyNode();
 	}
 
-	protected abstract N newNode(E e);
+	protected N newNode(E e) {
+		throw new UnsupportedOperationException();
+	}
 
-	protected Node<?> newInitNode() {
-		return new BasicNode<E>(null);
+	protected Node<?> newDummyNode() {
+		return new NodeBase<>();
 	}
 
 	@Override
@@ -90,7 +94,7 @@ public abstract class ConcurrentQueueBase<E, N extends ConcurrentQueueBase.Node<
 	@SuppressWarnings("unchecked")
 	protected N peekNode() {
 		for (Node h = head, t = tail, n = h.getNext(); ; h = head, t = tail, n = h.getNext()) {
-			if (head == tail) {
+			if (h == t) {
 				if (n == null) {
 					return null;
 				} else {
@@ -170,9 +174,10 @@ public abstract class ConcurrentQueueBase<E, N extends ConcurrentQueueBase.Node<
 		return peekNode() == null;
 	}
 
-	@Override
-	public void clear() {
-		head = tail = newInitNode();
+	protected void clear(Consumer<N> c) {
+		for (N n = pollNode(); n != null; n = pollNode()) {
+			c.accept(n);
+		}
 	}
 
 	public interface Node<E> {
@@ -181,23 +186,20 @@ public abstract class ConcurrentQueueBase<E, N extends ConcurrentQueueBase.Node<
 
 		boolean compareAndSetNext(Node<E> expect, Node<E> update);
 
-		E getValue();
+		default E getValue() {
+			return null;
+		}
 
 		default void clearValue() {
 		}
 	}
 
-	public static class BasicNode<E> implements Node<E> {
-		private static final AtomicReferenceFieldUpdater<BasicNode, Node> NEXT =
-				AtomicReferenceFieldUpdater.newUpdater(BasicNode.class, Node.class, "next");
+	public static class NodeBase<E> implements Node<E> {
+		private static final AtomicReferenceFieldUpdater<NodeBase, Node> NEXT =
+				AtomicReferenceFieldUpdater.newUpdater(NodeBase.class, Node.class, "next");
 		@Keep
 		@SuppressWarnings("unused")
 		private volatile Node<E> next;
-		private final E value;
-
-		public BasicNode(E value) {
-			this.value = value;
-		}
 
 		@Override
 		public Node<E> getNext() {
@@ -207,6 +209,14 @@ public abstract class ConcurrentQueueBase<E, N extends ConcurrentQueueBase.Node<
 		@Override
 		public boolean compareAndSetNext(Node<E> expect, Node<E> update) {
 			return NEXT.compareAndSet(this, expect, update);
+		}
+	}
+
+	public static class GenericNode<E> extends NodeBase<E> {
+		private final E value;
+
+		public GenericNode(E value) {
+			this.value = value;
 		}
 
 		@Override

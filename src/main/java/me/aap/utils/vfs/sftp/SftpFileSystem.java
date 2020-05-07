@@ -81,10 +81,11 @@ public class SftpFileSystem implements VirtualFileSystem {
 		for (VirtualResource root : roots) {
 			SftpRoot r = (SftpRoot) root;
 
-			if (host.equals(r.host) && user.equals(r.user) && (port == r.port)) {
+			if (host.equals(r.getHost()) && user.equals(r.getUser()) && (port == r.getPort())) {
 				String p = r.getPath();
 				if (path.startsWith(p) && ((p.length() == path.length()) || path.charAt(p.length()) == '/')) {
-					return r.lstat(path).map(s -> {
+					return r.lstat(path).ifFail(fail -> null).map(s -> {
+						if (s == null) return null;
 						if (s.isDir()) return new SftpFolder(r, path);
 						else return new SftpFile(r, path);
 					});
@@ -116,7 +117,6 @@ public class SftpFileSystem implements VirtualFileSystem {
 				List<VirtualFolder> newRoots = new ArrayList<>(roots.size() + 1);
 				newRoots.addAll(roots);
 				newRoots.add(r);
-				r.save(getPreferenceStore(), password, keyFile, keyPass);
 				setRoots(newRoots);
 				return r;
 			}

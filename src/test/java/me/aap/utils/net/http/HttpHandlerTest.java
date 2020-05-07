@@ -26,6 +26,9 @@ import me.aap.utils.misc.MiscUtils;
 import me.aap.utils.net.NetChannel;
 import me.aap.utils.net.NetHandler;
 import me.aap.utils.net.NetServer;
+import me.aap.utils.vfs.VfsHttpHandler;
+import me.aap.utils.vfs.VfsManager;
+import me.aap.utils.vfs.local.LocalFileSystem;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.Objects.requireNonNull;
@@ -243,12 +246,27 @@ public class HttpHandlerTest extends Assertions {
 				"Accept-Ranges: bytes\n\n").getBytes(US_ASCII);
 		ByteBuffer mapped = new FileInputStream(index).getChannel().map(FileChannel.MapMode.READ_ONLY, 0, len);
 		HttpConnectionHandler http = new HttpConnectionHandler();
-		http.addHandler("/", (path, method, version) -> (channel, req, payload) ->
-				{
+		http.addHandler("/", (path, method, version) -> (channel, req, payload) -> {
 					req.getRange();
 					channel.write(() -> new ByteBuffer[]{ByteBuffer.wrap(resp), mapped.duplicate()});
 				}
 		);
+
+		handler.bind(o -> {
+			o.port = 8080;
+			o.handler = http;
+		}).getOrThrow();
+
+		Thread.sleep(600000);
+	}
+
+	@Test
+	@Disabled
+	public void vfsHttpServer() throws Exception {
+		VfsManager mgr = new VfsManager(LocalFileSystem.getInstance());
+		VfsHttpHandler vfsHandler = new VfsHttpHandler(mgr);
+		HttpConnectionHandler http = new HttpConnectionHandler();
+		http.addHandler(VfsHttpHandler.HTTP_PATH, (path, method, version) -> vfsHandler);
 
 		handler.bind(o -> {
 			o.port = 8080;

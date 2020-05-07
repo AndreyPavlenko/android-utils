@@ -10,6 +10,7 @@ import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Cancellable;
 import me.aap.utils.io.IoUtils;
+import me.aap.utils.net.ByteBufferSupplier;
 
 import static me.aap.utils.async.Completed.failed;
 
@@ -18,7 +19,7 @@ import static me.aap.utils.async.Completed.failed;
  */
 public interface VirtualInputStream extends Cancellable {
 
-	FutureSupplier<Integer> read(ByteBuffer dst);
+	FutureSupplier<ByteBuffer> read(ByteBufferSupplier dst);
 
 	default FutureSupplier<Long> available() {
 		return Completed.completed(0L);
@@ -28,44 +29,13 @@ public interface VirtualInputStream extends Cancellable {
 		return Completed.completed(0L);
 	}
 
-	@Override
-	default void close() {
-		cancel();
-	}
-
 	static VirtualInputStream wrapInputStream(InputStream in, int bufferLen) {
 		return new VirtualInputStream() {
 			boolean canceled;
 
 			@Override
-			public FutureSupplier<Integer> read(ByteBuffer dst) {
-				try {
-					byte[] a;
-					int off;
-					int len;
-					boolean hasArray = dst.hasArray();
-
-					if (hasArray) {
-						a = dst.array();
-						off = dst.arrayOffset();
-						len = dst.remaining();
-					} else {
-						a = new byte[Math.min(dst.remaining(), bufferLen)];
-						off = 0;
-						len = a.length;
-					}
-
-					int i = in.read(a, off, len);
-
-					if (i > 0) {
-						if (hasArray) dst.position(dst.position() + i);
-						else dst.put(a, 0, i);
-					}
-
-					return Completed.completed(i);
-				} catch (IOException ex) {
-					return failed(ex);
-				}
+			public FutureSupplier<ByteBuffer> read(ByteBufferSupplier dst) {
+				return readInputStream(in, dst.getByteBuffer(), bufferLen);
 			}
 
 			@Override
@@ -95,6 +65,42 @@ public interface VirtualInputStream extends Cancellable {
 		};
 	}
 
+	static FutureSupplier<ByteBuffer> readInputStream(InputStream in, ByteBuffer dst, int bufferLen) {
+		try {
+			byte[] a;
+			int off;
+			int len;
+			boolean hasArray = dst.hasArray();
+
+			if (hasArray) {
+				a = dst.array();
+				off = dst.arrayOffset();
+				len = dst.remaining();
+			} else {
+				a = new byte[Math.min(dst.remaining(), bufferLen)];
+				off = 0;
+				len = a.length;
+			}
+
+			int i = in.read(a, off, len);
+
+			if (i > 0) {
+				if (hasArray) {
+					dst.limit(dst.position() + i);
+				} else {
+					int pos = dst.position();
+					dst.put(a, 0, i).position(pos);
+				}
+			} else {
+				dst.limit(dst.position());
+			}
+
+			return Completed.completed(dst);
+		} catch (Throwable ex) {
+			return failed(ex);
+		}
+	}
+
 	default InputStream asInputStream() {
 		return new InputStream() {
 
@@ -108,7 +114,9 @@ public interface VirtualInputStream extends Cancellable {
 			@Override
 			public int read(@NonNull byte[] b, int off, int len) throws IOException {
 				try {
-					return VirtualInputStream.this.read(ByteBuffer.wrap(b, off, len)).get();
+					ByteBuffer buf = VirtualInputStream.this.read(() -> ByteBuffer.wrap(b, off, len)).get();
+					int remain = buf.remaining();
+					return (remain == 0) ? -1 : remain;
 				} catch (Exception ex) {
 					throw new IOException(ex);
 				}

@@ -1,17 +1,18 @@
 package me.aap.utils.async;
 
-import android.os.Handler;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.Iterator;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import me.aap.utils.app.App;
+import me.aap.utils.concurrent.HandlerExecutor;
 import me.aap.utils.function.Cancellable;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.CheckedSupplier;
@@ -21,8 +22,8 @@ import me.aap.utils.function.Supplier;
 
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
 import static me.aap.utils.function.ResultConsumer.Cancel.isCancellation;
-import static me.aap.utils.function.ResultConsumer.Cancel.newCancellation;
 
 /**
  * @author Andrey Pavlenko
@@ -62,19 +63,49 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	}
 
 	@Nullable
-	default Handler getHandler() {
+	default Executor getExecutor() {
 		return null;
 	}
 
-	default FutureSupplier<T> withHandler(@Nullable Handler handler) {
-		return withHandler(handler, true);
+	default FutureSupplier<T> withExecutor(Executor executor) {
+		return withExecutor(executor, true);
 	}
 
-	default FutureSupplier<T> withHandler(@Nullable Handler handler, boolean ignoreIfDone) {
-		if ((handler == getHandler()) || (ignoreIfDone && isDone())) return this;
+	default FutureSupplier<T> withExecutor(Executor executor, boolean ignoreIfDone) {
+		if ((executor == getExecutor()) || (ignoreIfDone && isDone())) return this;
 
 		ProxySupplier<T, T> p = new ProxySupplier<T, T>() {
+			private final Executor exec;
 			private volatile boolean cancelled;
+
+			{
+				if (executor instanceof HandlerExecutor) {
+					HandlerExecutor handler = (HandlerExecutor) executor;
+					exec = task -> {
+						if (handler.getLooper().isCurrentThread()) {
+							task.run();
+						} else {
+							boolean canceled = isCancelled();
+							handler.post(() -> {
+								if (canceled || !isCancelled()) task.run();
+							});
+						}
+					};
+				} else {
+					exec = task -> {
+						boolean canceled = isCancelled();
+						executor.execute(() -> {
+							if (canceled || !isCancelled()) task.run();
+						});
+					};
+				}
+			}
+
+			@Nullable
+			@Override
+			public Executor getExecutor() {
+				return exec;
+			}
 
 			@Override
 			public boolean cancel(boolean mayInterruptIfRunning) {
@@ -86,44 +117,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 
 			@Override
 			public boolean isCancelled() {
-				return cancelled || super.isCancelled();
-			}
-
-			@Override
-			protected void supply(ProgressiveResultConsumer<? super T> consumer, T result,
-														Throwable fail, int progress, int total) {
-				if ((handler == null) || handler.getLooper().isCurrentThread()) {
-					consumer.accept(result, fail, progress, total);
-				} else {
-					handler.post(() -> {
-						if (isCancelled()) consumer.accept(null, newCancellation());
-						else consumer.accept(result, fail, progress, total);
-					});
-				}
-			}
-
-			@Override
-			protected void supply(Iterable<ProgressiveResultConsumer<? super T>> consumers, T result,
-														Throwable fail, int progress, int total) {
-				if ((handler == null) || handler.getLooper().isCurrentThread()) {
-					for (ProgressiveResultConsumer<? super T> c : consumers) {
-						c.accept(result, fail, progress, total);
-					}
-				} else {
-					handler.post(() -> {
-						if (isCancelled()) {
-							Throwable cancel = newCancellation();
-
-							for (ProgressiveResultConsumer<? super T> c : consumers) {
-								c.accept(null, cancel);
-							}
-						} else {
-							for (ProgressiveResultConsumer<? super T> c : consumers) {
-								c.accept(result, fail, progress, total);
-							}
-						}
-					});
-				}
+				return cancelled;
 			}
 
 			@Override
@@ -137,12 +131,8 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	}
 
 	default FutureSupplier<T> withMainHandler() {
-		return withMainHandler(true);
-	}
-
-	default FutureSupplier<T> withMainHandler(boolean ignoreIfDone) {
-		if (ignoreIfDone && isDone()) return this;
-		return withHandler(App.get().getHandler(), ignoreIfDone);
+		if (isDone() && isMainThread()) return this;
+		return withExecutor(App.get().getHandler(), false);
 	}
 
 	default T get(@Nullable Supplier<? extends T> onError) {
@@ -213,6 +203,15 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return ProxySupplier.create(this, map);
 	}
 
+	default FutureSupplier<T> ifFail(Function<Throwable, ? extends T> onFail) {
+		if (isDone()) {
+			if (isFailed()) return completed(onFail.apply(getFailure()));
+			else return this;
+		}
+
+		return ProxySupplier.create(this, t -> t, onFail);
+	}
+
 	@SuppressWarnings("unchecked")
 	default <R> FutureSupplier<R> then(CheckedFunction<? super T, FutureSupplier<R>, Throwable> then) {
 		if (isDone()) {
@@ -231,6 +230,58 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		onCompletion((result, fail) -> {
 			if (fail == null) {
 				try {
+					then.apply(result).onCompletion(p::complete);
+				} catch (Throwable ex) {
+					p.completeExceptionally(ex);
+				}
+			} else if (isCancellation(fail)) {
+				p.cancel();
+			} else {
+				p.completeExceptionally(fail);
+			}
+		});
+
+		return p;
+	}
+
+	@SuppressWarnings("unchecked")
+	default <R> FutureSupplier<R> closeableMap(CheckedFunction<? super T, ? extends R, Throwable> map) {
+		if (isDone()) {
+			if (isFailed()) return (FutureSupplier<R>) this;
+
+			try (AutoCloseable closeable = (AutoCloseable) get()) {
+				return completed(map.apply((T) closeable));
+			} catch (Throwable ex) {
+				Log.e(getClass().getName(), ex.getMessage(), ex);
+				return failed(ex);
+			}
+		}
+
+		return ProxySupplier.create(this, result -> {
+			try (@SuppressWarnings("unused") AutoCloseable closeable = (AutoCloseable) result) {
+				return map.apply(result);
+			}
+		});
+	}
+
+	@SuppressWarnings("unchecked")
+	default <R> FutureSupplier<R> closeableThen(CheckedFunction<? super T, FutureSupplier<R>, Throwable> then) {
+		if (isDone()) {
+			if (isFailed()) return (FutureSupplier<R>) this;
+
+			try (AutoCloseable closeable = (AutoCloseable) get()) {
+				return then.apply((T) closeable);
+			} catch (Throwable ex) {
+				Log.e(getClass().getName(), ex.getMessage(), ex);
+				return failed(ex);
+			}
+		}
+
+		Promise<R> p = new Promise<>();
+
+		onCompletion((result, fail) -> {
+			if (fail == null) {
+				try (@SuppressWarnings("unused") AutoCloseable closeable = (AutoCloseable) result) {
 					then.apply(result).onCompletion(p::complete);
 				} catch (Throwable ex) {
 					p.completeExceptionally(ex);

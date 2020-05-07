@@ -13,16 +13,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import me.aap.utils.app.App;
+import me.aap.utils.app.NetApp;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.net.NetHandler;
+import me.aap.utils.net.NetServer;
+import me.aap.utils.net.http.HttpConnectionHandler;
 
 import static me.aap.utils.async.Completed.completedNull;
+import static me.aap.utils.vfs.VfsHttpHandler.HTTP_PATH;
+import static me.aap.utils.vfs.VfsHttpHandler.HTTP_QUERY;
 
 /**
  * @author Andrey Pavlenko
  */
 public class VfsManager {
+
 	@NonNull
 	private volatile Mounts mounts;
+	private volatile NetServer netServer;
 
 	public VfsManager(VirtualFileSystem... fileSystems) {
 		this(Arrays.asList(fileSystems));
@@ -92,6 +101,39 @@ public class VfsManager {
 
 	public boolean isSupportedScheme(String scheme) {
 		return mounts.map.containsKey(scheme);
+	}
+
+	public Uri getHttpUri(VirtualResource resource) {
+		return getHttpUri(resource.getUri());
+	}
+
+	public Uri getHttpUri(Uri resourceUri) {
+		int port = getNetServer().getPort();
+		String uri = Uri.encode(resourceUri.toString());
+		return Uri.parse("http://localhost:" + port + HTTP_PATH + "?" + HTTP_QUERY + uri);
+	}
+
+	private NetServer getNetServer() {
+		NetServer net = netServer;
+		if (net == null) {
+			synchronized (this) {
+				if ((net = netServer) == null) {
+					netServer = net = App.get().execute(this::createHttpServer).getOrThrow();
+				}
+			}
+		}
+		return net;
+	}
+
+	protected NetServer createHttpServer() {
+		NetHandler handler = NetApp.get().getNetHandler();
+		HttpConnectionHandler httpHandler = new HttpConnectionHandler();
+		VfsHttpHandler vfsHandler = new VfsHttpHandler(this);
+		httpHandler.addHandler(HTTP_PATH, (path, method, version) -> vfsHandler);
+		return handler.bind(o -> {
+			o.host = "localhost";
+			o.handler = httpHandler;
+		}).getOrThrow();
 	}
 
 	private static final class Mounts {

@@ -15,12 +15,12 @@ import me.aap.utils.concurrent.NetThread;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.net.NetChannel;
 import me.aap.utils.net.NetServer;
-import me.aap.utils.net.http.HttpResponse.BadRequest;
-import me.aap.utils.net.http.HttpResponse.MethodNotAllowed;
-import me.aap.utils.net.http.HttpResponse.NotFound;
-import me.aap.utils.net.http.HttpResponse.PayloadTooLarge;
-import me.aap.utils.net.http.HttpResponse.UriTooLong;
-import me.aap.utils.net.http.HttpResponse.VersionNotSupported;
+import me.aap.utils.net.http.HttpError.BadRequest;
+import me.aap.utils.net.http.HttpError.MethodNotAllowed;
+import me.aap.utils.net.http.HttpError.NotFound;
+import me.aap.utils.net.http.HttpError.PayloadTooLarge;
+import me.aap.utils.net.http.HttpError.UriTooLong;
+import me.aap.utils.net.http.HttpError.VersionNotSupported;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static me.aap.utils.io.IoUtils.emptyByteBuffer;
@@ -62,7 +62,7 @@ public class HttpConnectionHandler implements NetServer.ConnectionHandler, ByteB
 	}
 
 	private void assertLocalBuffer(ByteBuffer bb) {
-		if (BuildConfig.DEBUG) {
+		if (BuildConfig.DEBUG && (bb != null)) {
 			Thread t = Thread.currentThread();
 			if (t instanceof NetThread) ((NetThread) t).assertRequestBuffer(bb);
 		}
@@ -89,8 +89,10 @@ public class HttpConnectionHandler implements NetServer.ConnectionHandler, ByteB
 
 	private boolean readReq(NetChannel channel, ByteBuffer bb, Throwable fail) {
 		if (fail != null) {
-			channel.close();
-			Log.d(getClass().getName(), "Failed to read HTTP request", fail);
+			if (channel.isOpen()) {
+				channel.close();
+				Log.d(getClass().getName(), "Failed to read HTTP request", fail);
+			}
 			return false;
 		}
 
@@ -209,8 +211,10 @@ public class HttpConnectionHandler implements NetServer.ConnectionHandler, ByteB
 	private boolean readHeaders(NetChannel channel, ByteBuffer bb, Throwable fail,
 															HttpRequestHandler handler, Req req, int off, boolean read) {
 		if (fail != null) {
-			channel.close();
-			Log.d(getClass().getName(), "Failed to read HTTP request", fail);
+			if (channel.isOpen()) {
+				channel.close();
+				Log.d(getClass().getName(), "Failed to read HTTP request", fail);
+			}
 			return false;
 		}
 
@@ -513,7 +517,7 @@ public class HttpConnectionHandler implements NetServer.ConnectionHandler, ByteB
 
 		@Override
 		public String toString() {
-			return new StringBuilder(this).toString();
+			return new String(buf, uriStart - method.length() - 1, headerEnd);
 		}
 	}
 
@@ -546,7 +550,7 @@ public class HttpConnectionHandler implements NetServer.ConnectionHandler, ByteB
 
 		@Override
 		public String toString() {
-			return new StringBuilder(this).toString();
+			return new String(chars, off, len);
 		}
 	}
 }

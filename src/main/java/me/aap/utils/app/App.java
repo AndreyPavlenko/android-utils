@@ -1,12 +1,12 @@
 package me.aap.utils.app;
 
 import android.annotation.SuppressLint;
-import android.os.Handler;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.concurrent.HandlerExecutor;
 import me.aap.utils.concurrent.ThreadPool;
 import me.aap.utils.function.CheckedRunnable;
 import me.aap.utils.function.CheckedSupplier;
@@ -21,7 +21,7 @@ import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
 public class App extends android.app.Application {
 	@SuppressLint("StaticFieldLeak")
 	private static App instance;
-	private volatile Handler handler;
+	private volatile HandlerExecutor handler;
 	private volatile ThreadPool executor;
 
 	@SuppressWarnings("unchecked")
@@ -43,13 +43,13 @@ public class App extends android.app.Application {
 		if (e != null) e.shutdown();
 	}
 
-	public Handler getHandler() {
-		Handler h = handler;
+	public HandlerExecutor getHandler() {
+		HandlerExecutor h = handler;
 
 		if (h == null) {
 			synchronized (this) {
 				if ((h = handler) == null) {
-					handler = h = new Handler(getApplicationContext().getMainLooper());
+					handler = h = new HandlerExecutor(getApplicationContext().getMainLooper());
 				}
 			}
 		}
@@ -71,7 +71,7 @@ public class App extends android.app.Application {
 		return e;
 	}
 
-	public FutureSupplier<?> execute(CheckedRunnable task) {
+	public FutureSupplier<?> execute(CheckedRunnable<Throwable> task) {
 		return execute(task, null);
 	}
 

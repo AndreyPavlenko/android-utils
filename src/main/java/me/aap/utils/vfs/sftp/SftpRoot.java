@@ -1,6 +1,7 @@
 package me.aap.utils.vfs.sftp;
 
 import android.net.Uri;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -13,14 +14,16 @@ import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.UserInfo;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 import me.aap.utils.app.App;
 import me.aap.utils.async.Async;
-import me.aap.utils.async.FutureRef;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.async.ObjectPool;
+import me.aap.utils.async.ObjectPool.PooledObject;
 import me.aap.utils.function.CheckedFunction;
+import me.aap.utils.function.IntSupplier;
 import me.aap.utils.pref.PreferenceStore;
+import me.aap.utils.pref.PreferenceStore.Pref;
 import me.aap.utils.text.SharedTextBuilder;
 import me.aap.utils.vfs.VfsException;
 import me.aap.utils.vfs.VirtualFileSystem;
@@ -29,6 +32,7 @@ import me.aap.utils.vfs.VirtualFolder;
 import static java.nio.charset.StandardCharsets.UTF_16BE;
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.completedNull;
+import static me.aap.utils.async.Completed.failed;
 import static me.aap.utils.text.TextUtils.appendHexString;
 import static me.aap.utils.text.TextUtils.hexToBytes;
 
@@ -36,38 +40,11 @@ import static me.aap.utils.text.TextUtils.hexToBytes;
  * @author Andrey Pavlenko
  */
 class SftpRoot extends SftpFolder {
-	private final AtomicReference<ChannelSftp> channel = new AtomicReference<>();
-	@NonNull
-	final SftpFileSystem fs;
-	@NonNull
-	final String user;
-	@NonNull
-	final String host;
-	final int port;
+	private final SessionPool pool;
 
-	private final FutureRef<Session> session = new FutureRef<Session>() {
-		@Override
-		protected FutureSupplier<Session> create() {
-			return createSession();
-		}
-
-		@Override
-		protected boolean isValid(FutureSupplier<Session> ref) {
-			try {
-				return ref.get().isConnected();
-			} catch (Exception ex) {
-				return false;
-			}
-		}
-	};
-
-	public SftpRoot(@NonNull SftpFileSystem fs, @NonNull String user, @NonNull String host, int port,
-									@NonNull String path) {
+	public SftpRoot(@NonNull SessionPool pool, @NonNull String path) {
 		super(null, path);
-		this.fs = fs;
-		this.user = user;
-		this.host = host;
-		this.port = port;
+		this.pool = pool;
 	}
 
 	@NonNull
@@ -79,70 +56,13 @@ class SftpRoot extends SftpFolder {
 	@NonNull
 	@Override
 	public VirtualFileSystem getVirtualFileSystem() {
-		return fs;
+		return pool.fs;
 	}
 
 	@NonNull
 	@Override
 	public FutureSupplier<VirtualFolder> getParent() {
 		return completedNull();
-	}
-
-	private FutureSupplier<Session> createSession() {
-		PreferenceStore ps = fs.getPreferenceStore();
-		String password;
-		String keyFile;
-		String keyPass;
-
-		try (SharedTextBuilder tb = SharedTextBuilder.get()) {
-			SftpFileSystem.appendUri(tb, user, host, port, null);
-			tb.append('#');
-			int len = tb.length();
-
-			tb.append('P');
-			password = ps.getStringPref(PreferenceStore.Pref.s(tb.toString(), () -> null));
-			tb.setLength(len);
-			tb.append('F');
-			keyFile = ps.getStringPref(PreferenceStore.Pref.s(tb.toString(), () -> null));
-			tb.setLength(len);
-			tb.append('K');
-			keyPass = ps.getStringPref(PreferenceStore.Pref.s(tb.toString(), () -> null));
-		}
-
-		return App.get().execute(() -> createSession(user, host, port, decrypt(password),
-				keyFile, decrypt(keyPass)));
-	}
-
-	void save(PreferenceStore ps, @Nullable String password, @Nullable String keyFile, @Nullable String keyPass) {
-		try (SharedTextBuilder tb = SharedTextBuilder.get();
-				 PreferenceStore.Edit e = ps.editPreferenceStore()) {
-			SftpFileSystem.appendUri(tb, user, host, port, null);
-			tb.append('#');
-			int len = tb.length();
-
-			if (password != null) {
-				encrypt(password, tb);
-				password = tb.substring(len);
-				tb.setLength(len);
-				tb.append('P');
-				e.setStringPref(PreferenceStore.Pref.s(tb.toString(), () -> null), password);
-			}
-
-			if (keyFile != null) {
-				tb.setLength(len);
-				tb.append('F');
-				e.setStringPref(PreferenceStore.Pref.s(tb.toString(), () -> null), keyFile);
-			}
-
-			if (keyPass != null) {
-				tb.setLength(len);
-				encrypt(keyPass, tb);
-				keyPass = tb.substring(len);
-				tb.setLength(len);
-				tb.append('K');
-				e.setStringPref(PreferenceStore.Pref.s(tb.toString(), () -> null), keyPass);
-			}
-		}
 	}
 
 	@Nullable
@@ -177,33 +97,47 @@ class SftpRoot extends SftpFolder {
 		}
 
 		String path = uri.substring(s);
-		return new SftpRoot(fs, user, host, port, path);
+		return new SftpRoot(new SessionPool(fs, user, host, port), path);
 	}
 
 	static FutureSupplier<SftpRoot> create(
 			@NonNull SftpFileSystem fs, @NonNull String user, @NonNull String host, int port,
 			@Nullable String path, @Nullable String password,
 			@Nullable String keyFile, @Nullable String keyPass) {
-		return App.get().execute(() -> {
-			Session s = createSession(user, host, port, password, keyFile, keyPass);
-			ChannelSftp ch = (ChannelSftp) s.openChannel("sftp");
-			ch.connect();
+		SessionPool pool = new SessionPool(fs, user, host, port, password, keyFile, keyPass);
 
-			String p = path;
-			if (p == null) p = ch.getHome();
+		return pool.getObject().closeableThen(session -> {
+			try {
+				ChannelSftp ch = session.get().channel;
+				String p = path;
+				if (p == null) p = ch.getHome();
 
-			SftpATTRS a = ch.lstat(p);
-			if (!a.isDir()) throw new VfsException("Path is not a directory: " + p);
+				SftpATTRS a = ch.lstat(p);
+				if (!a.isDir()) throw new VfsException("Path is not a directory: " + p);
 
-			SftpRoot r = new SftpRoot(fs, user, host, port, p);
-			r.session.set(completed(s));
-			r.channel.set(ch);
-			return r;
+				pool.saveCredentials();
+				return completed(new SftpRoot(pool, p));
+			} catch (Throwable ex) {
+				pool.close();
+				return failed(ex);
+			}
 		});
 	}
 
+	String getUser() {
+		return pool.user;
+	}
+
+	String getHost() {
+		return pool.host;
+	}
+
+	int getPort() {
+		return pool.port;
+	}
+
 	Uri buildUri(@NonNull String path) {
-		return SftpFileSystem.buildUri(user, host, port, path);
+		return SftpFileSystem.buildUri(pool.user, pool.host, pool.port, path);
 	}
 
 	@Override
@@ -218,82 +152,228 @@ class SftpRoot extends SftpFolder {
 		return Objects.hash(getUri());
 	}
 
-	private FutureSupplier<ChannelSftp> getChannel() {
-		return session.get().then(s -> {
-			ChannelSftp ch = channel.getAndSet(null);
-			if ((ch != null) && !ch.isClosed()) return completed(ch);
-
-			return App.get().execute(() -> {
-				ChannelSftp c = (ChannelSftp) s.openChannel("sftp");
-				c.connect();
-				return c;
-			});
-		});
+	FutureSupplier<PooledObject<SftpSession>> getSession() {
+		return pool.getObject();
 	}
 
 	<T> FutureSupplier<T> useChannel(CheckedFunction<ChannelSftp, T, Throwable> task) {
-		return Async.retry(() -> getChannel().then(ch -> App.get().execute(() -> {
+		return Async.retry(() -> getSession().then(session -> App.get().execute(() -> {
 			try {
-				return task.apply(ch);
+				return task.apply(session.get().getChannel());
 			} finally {
-				if (!channel.compareAndSet(null, ch)) {
-					ch.disconnect();
-				}
+				session.release();
 			}
 		})));
 	}
 
-	private static Session createSession(
-			@NonNull String user, @NonNull String host, int port, @Nullable String password,
-			@Nullable String keyFile, @Nullable String keyPass) throws JSchException {
-		JSch jsch = new JSch();
-		if (keyFile != null) jsch.addIdentity(keyFile, keyPass);
+	private static class SessionPool extends ObjectPool<SftpSession> {
+		private static final Pref<IntSupplier> MAX_SESSIONS = Pref.i("SFTP_MAX_SESSIONS", 3);
+		final SftpFileSystem fs;
+		@NonNull
+		final String user;
+		@NonNull
+		final String host;
+		final int port;
+		@Nullable
+		private final String password;
+		@Nullable
+		private final String keyFile;
+		@Nullable
+		private final String keyPass;
 
-		Session s = jsch.getSession(user, host, port);
-		if (password != null) s.setPassword(password);
+		public SessionPool(SftpFileSystem fs, @NonNull String user, @NonNull String host,
+											 int port, @Nullable String password, @Nullable String keyFile,
+											 @Nullable String keyPass) {
+			super(fs.getPreferenceStore().getIntPref(MAX_SESSIONS));
+			this.fs = fs;
+			this.user = user;
+			this.host = host;
+			this.port = port;
+			this.password = password;
+			this.keyFile = keyFile;
+			this.keyPass = keyPass;
+		}
 
-		s.setUserInfo(new UserInfo() {
-			@Override
-			public String getPassphrase() {
-				return keyPass;
+		public SessionPool(SftpFileSystem fs, @NonNull String user, @NonNull String host, int port) {
+			super(fs.getPreferenceStore().getIntPref(MAX_SESSIONS));
+			PreferenceStore ps = fs.getPreferenceStore();
+			String password;
+			String keyFile;
+			String keyPass;
+
+			try (SharedTextBuilder tb = SharedTextBuilder.get()) {
+				SftpFileSystem.appendUri(tb, user, host, port, null);
+				tb.append('#');
+				int len = tb.length();
+
+				tb.append('P');
+				password = ps.getStringPref(Pref.s(tb.toString(), () -> null));
+				tb.setLength(len);
+				tb.append('F');
+				keyFile = ps.getStringPref(Pref.s(tb.toString(), () -> null));
+				tb.setLength(len);
+				tb.append('K');
+				keyPass = ps.getStringPref(Pref.s(tb.toString(), () -> null));
 			}
 
-			@Override
-			public String getPassword() {
-				return password;
-			}
 
-			@Override
-			public boolean promptPassword(String message) {
-				return true;
-			}
+			this.fs = fs;
+			this.user = user;
+			this.host = host;
+			this.port = port;
+			this.keyFile = keyFile;
+			this.password = decrypt(password);
+			this.keyPass = decrypt(keyPass);
+		}
 
-			@Override
-			public boolean promptPassphrase(String message) {
-				return true;
-			}
+		void saveCredentials() {
+			try (SharedTextBuilder tb = SharedTextBuilder.get();
+					 PreferenceStore.Edit e = fs.getPreferenceStore().editPreferenceStore()) {
+				SftpFileSystem.appendUri(tb, user, host, port, null);
+				tb.append('#');
+				int len = tb.length();
 
-			@Override
-			public boolean promptYesNo(String message) {
-				return true;
-			}
+				if (password != null) {
+					encrypt(password, tb);
+					String password = tb.substring(len);
+					tb.setLength(len);
+					tb.append('P');
+					e.setStringPref(Pref.s(tb.toString(), () -> null), password);
+				}
 
-			@Override
-			public void showMessage(String message) {
-			}
-		});
+				if (keyFile != null) {
+					tb.setLength(len);
+					tb.append('F');
+					e.setStringPref(Pref.s(tb.toString(), () -> null), keyFile);
+				}
 
-		s.connect();
-		return s;
+				if (keyPass != null) {
+					tb.setLength(len);
+					encrypt(keyPass, tb);
+					String keyPass = tb.substring(len);
+					tb.setLength(len);
+					tb.append('K');
+					e.setStringPref(Pref.s(tb.toString(), () -> null), keyPass);
+				}
+			}
+		}
+
+		@Override
+		protected FutureSupplier<SftpSession> createObject() {
+			return App.get().execute(this::createSession);
+		}
+
+		private SftpSession createSession() throws JSchException {
+			Session s = null;
+			SftpSession session = null;
+
+			try {
+				JSch jsch = new JSch();
+				if (keyFile != null) jsch.addIdentity(keyFile, keyPass);
+
+				s = jsch.getSession(user, host, port);
+				if (password != null) s.setPassword(password);
+
+				s.setUserInfo(new UserInfo() {
+					@Override
+					public String getPassphrase() {
+						return keyPass;
+					}
+
+					@Override
+					public String getPassword() {
+						return password;
+					}
+
+					@Override
+					public boolean promptPassword(String message) {
+						return true;
+					}
+
+					@Override
+					public boolean promptPassphrase(String message) {
+						return true;
+					}
+
+					@Override
+					public boolean promptYesNo(String message) {
+						return true;
+					}
+
+					@Override
+					public void showMessage(String message) {
+					}
+				});
+
+				s.connect();
+				ChannelSftp ch = (ChannelSftp) s.openChannel("sftp");
+				ch.connect();
+				return session = new SftpSession(s, ch);
+			} finally {
+				if ((session == null) && (s != null)) s.disconnect();
+			}
+		}
+
+		@Override
+		protected boolean validateObject(SftpSession session, boolean releasing) {
+			try {
+				return session.isValid();
+			} catch (Throwable ex) {
+				Log.d(getClass().getName(), "Session is not valid", ex);
+				return false;
+			}
+		}
+
+		@Override
+		protected void destroyObject(SftpSession session) {
+			session.close();
+		}
+
+		// Weak encryption
+		private static void encrypt(@NonNull String v, SharedTextBuilder tb) {
+			appendHexString(tb, v.getBytes(UTF_16BE));
+		}
+
+		private static String decrypt(@Nullable String v) {
+			if (v == null) return v;
+			return new String(hexToBytes(v), UTF_16BE);
+		}
+
 	}
 
-	// Weak encryption
-	private void encrypt(@NonNull String v, SharedTextBuilder tb) {
-		appendHexString(tb, v.getBytes(UTF_16BE));
-	}
+	static final class SftpSession implements AutoCloseable {
+		private final Session session;
+		private final ChannelSftp channel;
 
-	private String decrypt(@Nullable String v) {
-		if (v == null) return v;
-		return new String(hexToBytes(v), UTF_16BE);
+		SftpSession(Session session, ChannelSftp channel) {
+			this.session = session;
+			this.channel = channel;
+		}
+
+		ChannelSftp getChannel() {
+			return channel;
+		}
+
+		boolean isValid() {
+			try {
+				if (!channel.isConnected()) return false;
+				session.sendKeepAliveMsg();
+				return true;
+			} catch (Throwable ignore) {
+				return false;
+			}
+		}
+
+		@Override
+		public void close() {
+			try {
+				session.disconnect();
+			} catch (Throwable ignore) {
+			}
+			try {
+				channel.disconnect();
+			} catch (Throwable ignore) {
+			}
+		}
 	}
 }

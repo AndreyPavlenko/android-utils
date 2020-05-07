@@ -64,8 +64,8 @@ public class Range {
 
 	public void align(long length) {
 		if (end < 0) {
-			end = length + end - 1;
-		} else if (end >= length) {
+			end = length + end;
+		} else if ((end == 0) || (end >= length)) {
 			end = length - 1;
 		}
 	}

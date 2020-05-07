@@ -2,6 +2,8 @@ package me.aap.utils.async;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -143,20 +145,40 @@ public class Async {
 			}
 		}
 
-		Promise<T> p = new Promise<>();
+		ProxySupplier<T, T> proxy = new ProxySupplier<T, T>() {
+			boolean retry;
 
-		s.onCompletion((result, fail) -> {
-			if (fail == null) {
-				p.complete(result);
-			} else {
+			@Override
+			public T map(T value) {
+				return value;
+			}
+
+			@Override
+			public boolean completeExceptionally(@NonNull Throwable ex) {
+				if (retry) return super.completeExceptionally(ex);
+				if (isDone()) return false;
+
+				Log.d(Async.class.getName(), "Task failed, retrying ...", ex);
+				retry = true;
+
 				try {
-					task.get().onCompletion(p::complete);
-				} catch (Throwable ex) {
-					p.completeExceptionally(ex);
+					FutureSupplier<T> f = task.get();
+
+					if (f.isDone()) {
+						if (f.isFailed()) return super.completeExceptionally(f.getFailure());
+						else return complete(f.peek());
+					}
+
+					f.addConsumer(this);
+					return true;
+				} catch (Throwable fail) {
+					return super.completeExceptionally(fail);
 				}
 			}
-		});
+		};
 
-		return p;
+
+		s.addConsumer(proxy);
+		return proxy;
 	}
 }

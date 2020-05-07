@@ -82,15 +82,11 @@ class SelectorHandler implements NetHandler, Runnable {
 
 				for (Iterator<SelectionKey> it = keys.iterator(); it.hasNext(); ) {
 					SelectionKey k = it.next();
+					it.remove();
 
 					if (k.isValid()) {
 						Selectable select = (Selectable) k.attachment();
-
-						if (select != null) {
-							if (!select.select()) it.remove();
-						}
-					} else {
-						it.remove();
+						if (select != null) select.select();
 					}
 				}
 			} catch (Throwable ex) {
@@ -115,20 +111,19 @@ class SelectorHandler implements NetHandler, Runnable {
 
 			RunnablePromise<NetServer> p = new RunnablePromise<NetServer>() {
 				@Override
-				protected NetServer runTask() {
+				protected NetServer runTask() throws ClosedChannelException {
+					channel.register(selector, OP_ACCEPT, server);
 					return server;
+				}
+
+				@Nullable
+				@Override
+				public Executor getExecutor() {
+					return executor;
 				}
 			};
 
-			queue.add(() -> {
-				try {
-					channel.register(selector, OP_ACCEPT, server);
-					execute(p, p);
-				} catch (Throwable ex) {
-					execute(() -> p.completeExceptionally(ex), p);
-				}
-			});
-
+			queue.add(p);
 			selector.wakeup();
 			return p;
 		} catch (Throwable ex) {
@@ -160,6 +155,12 @@ class SelectorHandler implements NetHandler, Runnable {
 					IoUtils.close(ch);
 					return true;
 				}
+
+				@Nullable
+				@Override
+				public Executor getExecutor() {
+					return executor;
+				}
 			};
 
 			ch.connect(addr);
@@ -171,20 +172,17 @@ class SelectorHandler implements NetHandler, Runnable {
 					key.attach((Selectable) () -> {
 						try {
 							assertEquals(OP_CONNECT, key.interestOps());
-							if (!key.isConnectable() || !ch.finishConnect()) return true;
+							if (!key.isConnectable() || !ch.finishConnect()) return;
 							key.attach(nc);
 							key.interestOps(0);
-							execute(() -> p.complete(nc), p);
-							return true;
+							p.complete(nc);
 						} catch (CancelledKeyException ignore) {
 						} catch (Throwable ex) {
-							execute(() -> p.completeExceptionally(ex), p);
+							p.completeExceptionally(ex);
 						}
-
-						return false;
 					});
 				} catch (Throwable ex) {
-					execute(() -> p.completeExceptionally(ex), p);
+					p.completeExceptionally(ex);
 				}
 			});
 
@@ -242,16 +240,8 @@ class SelectorHandler implements NetHandler, Runnable {
 		selector.wakeup();
 	}
 
-	private void execute(Runnable run, me.aap.utils.async.Completable<?> c) {
-		try {
-			executor.execute(run);
-		} catch (Throwable ex) {
-			c.completeExceptionally(ex);
-		}
-	}
-
 	private interface Selectable {
-		boolean select();
+		void select();
 	}
 
 	private final class SelectableNetServer implements NetServer, Selectable {
@@ -271,18 +261,23 @@ class SelectorHandler implements NetHandler, Runnable {
 		}
 
 		@Override
+		public int getPort() {
+			return channel.socket().getLocalPort();
+		}
+
+		@Override
 		public SocketAddress getBindAddress() {
 			return channel.socket().getLocalSocketAddress();
 		}
 
 		@Override
-		public boolean select() {
+		public void select() {
 			SelectableNetChannel nc;
 			SocketChannel ch = null;
 
 			try {
 				ch = channel.accept();
-				if (ch == null) return true;
+				if (ch == null) return;
 
 				ch.configureBlocking(false);
 				setOpts(ch, opts);
@@ -291,11 +286,11 @@ class SelectorHandler implements NetHandler, Runnable {
 				nc = new SelectableNetChannel(key);
 				key.attach(nc);
 			} catch (CancelledKeyException ignore) {
-				return true;
+				return;
 			} catch (Throwable ex) {
 				IoUtils.close(ch);
 				Log.e(getClass().getName(), "Failed to accept a connection", ex);
-				return true;
+				return;
 			}
 
 			try {
@@ -311,8 +306,6 @@ class SelectorHandler implements NetHandler, Runnable {
 				Log.e(getClass().getName(), "Failed to execute connection handler", ex);
 				nc.close();
 			}
-
-			return true;
 		}
 
 		@Override
@@ -356,7 +349,7 @@ class SelectorHandler implements NetHandler, Runnable {
 		}
 
 		@Override
-		public boolean select() {
+		public void select() {
 			try {
 				assertEquals(0, key.interestOps() & (OP_ACCEPT | OP_CONNECT));
 				int ready = key.readyOps();
@@ -371,15 +364,11 @@ class SelectorHandler implements NetHandler, Runnable {
 					key.interestOps(interest & ~OP_WRITE);
 					if (WRITING.compareAndSet(this, 0, 1)) executor.execute(this::doWrite);
 				}
-
-				return true;
 			} catch (CancelledKeyException ignore) {
 			} catch (Throwable ex) {
 				Log.d(getClass().getName(), ex.getMessage(), ex);
 				close();
 			}
-
-			return false;
 		}
 
 		@Override
@@ -538,25 +527,14 @@ class SelectorHandler implements NetHandler, Runnable {
 			key.cancel();
 			IoUtils.close(channel());
 
+			clear(w -> w.completeExceptionally(err));
 			ReadPromise r = READER.getAndSet(this, null);
 			if (r != null) r.completeExceptionally(err);
-
-			WritePromise w = peekNode();
-			clear();
-
-			for (; w != null; w = w.getNext()) {
-				w.completeExceptionally(err);
-			}
 		}
 
 		@Override
 		public String toString() {
 			return channel().toString();
-		}
-
-		@Override
-		protected WritePromise newNode(ByteBufferArraySupplier o) {
-			return null;
 		}
 
 		private SocketChannel channel() {
@@ -583,7 +561,7 @@ class SelectorHandler implements NetHandler, Runnable {
 		}
 
 		@Override
-		public synchronized boolean completeExceptionally(@NonNull Throwable ex) {
+		public boolean completeExceptionally(@NonNull Throwable ex) {
 			if (!super.completeExceptionally(ex)) return false;
 			releaseBuf();
 			return true;
@@ -645,6 +623,13 @@ class SelectorHandler implements NetHandler, Runnable {
 
 	private static final class ChannelClosed extends ClosedChannelException {
 		static final ChannelClosed instance = new ChannelClosed();
+
+
+		@NonNull
+		@Override
+		public String getMessage() {
+			return "Channel closed";
+		}
 
 		@Override
 		public void printStackTrace() {

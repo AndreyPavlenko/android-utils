@@ -10,6 +10,8 @@ public interface NetServer extends Closeable {
 
 	NetHandler getHandler();
 
+	int getPort();
+
 	SocketAddress getBindAddress();
 
 	boolean isOpen();

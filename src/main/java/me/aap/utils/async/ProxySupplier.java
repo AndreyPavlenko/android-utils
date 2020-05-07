@@ -4,6 +4,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import me.aap.utils.function.CheckedFunction;
+import me.aap.utils.function.Function;
+
+import static me.aap.utils.async.CompletableSupplier.Cancelled.CANCELLED;
 
 /**
  * @author Andrey Pavlenko
@@ -20,7 +23,11 @@ public abstract class ProxySupplier<C, S> extends CompletableSupplier<C, S> impl
 	public abstract S map(C value) throws Throwable;
 
 	public static <T> ProxySupplier<T, T> create() {
-		return new ProxySupplier<T, T>() {
+		return create((FutureSupplier<? extends T>) null);
+	}
+
+	public static <T> ProxySupplier<T, T> create(FutureSupplier<? extends T> supplier) {
+		return new ProxySupplier<T, T>(supplier) {
 			@Override
 			public T map(T t) {
 				return t;
@@ -38,6 +45,27 @@ public abstract class ProxySupplier<C, S> extends CompletableSupplier<C, S> impl
 			@Override
 			public R map(T t) throws Throwable {
 				return map.apply(t);
+			}
+		};
+	}
+
+	public static <T, R> ProxySupplier<T, R> create(@Nullable FutureSupplier<? extends T> supplier,
+																									@NonNull CheckedFunction<? super T, ? extends R, Throwable> map,
+																									@NonNull Function<Throwable, ? extends T> onFail) {
+		return new ProxySupplier<T, R>(supplier) {
+			@Override
+			public R map(T t) throws Throwable {
+				return map.apply(t);
+			}
+
+			@Override
+			public boolean completeExceptionally(@NonNull Throwable fail) {
+				return complete(onFail.apply(fail));
+			}
+
+			@Override
+			public boolean cancel(boolean mayInterruptIfRunning) {
+				return complete(onFail.apply(CANCELLED.fail));
 			}
 		};
 	}
