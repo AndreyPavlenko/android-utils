@@ -5,7 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.os.Build;
-import android.util.Log;
+import me.aap.utils.log.Log;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -157,7 +157,7 @@ public class DynamicModuleInstaller {
 					try {
 						sm.startConfirmationDialogForResult(st, activity, 123);
 					} catch (Exception ex) {
-						Log.e(getClass().getName(), "Failed to request user confirmation", ex);
+						Log.e(ex, "Failed to request user confirmation");
 						completeExceptionally(ex);
 					}
 

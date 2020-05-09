@@ -1,7 +1,5 @@
 package me.aap.utils.concurrent;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 
 import java.util.concurrent.BlockingQueue;
@@ -13,11 +11,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.RunnablePromise;
 import me.aap.utils.function.CheckedRunnable;
 import me.aap.utils.function.CheckedSupplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.misc.MiscUtils;
 
 import static java.util.Objects.requireNonNull;
@@ -123,7 +121,7 @@ public class ThreadPool extends ThreadPoolExecutor implements ThreadFactory, Thr
 	@Override
 	public void uncaughtException(@NonNull Thread t, @NonNull Throwable ex) {
 		if (MiscUtils.isTestMode()) ex.printStackTrace();
-		else Log.e(App.get().getPackageName(), "Uncaught exception in thread " + t, ex);
+		else Log.e(ex, "Uncaught exception in thread ", t);
 	}
 
 	static abstract class Task<T> extends RunnablePromise<T> {

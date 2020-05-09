@@ -2,7 +2,6 @@ package me.aap.utils.vfs.gdrive;
 
 import android.content.Intent;
 import android.net.Uri;
-import android.util.Log;
 
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
@@ -32,6 +31,7 @@ import me.aap.utils.async.FutureRef;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.ui.activity.AppActivity;
 import me.aap.utils.vfs.VirtualFileSystem;
@@ -89,13 +89,13 @@ public class GdriveFileSystem implements VirtualFileSystem {
 				.addOnSuccessListener(new OnSuccessListener<GoogleSignInAccount>() {
 					@Override
 					public void onSuccess(GoogleSignInAccount account) {
-						Log.d(getClass().getName(), "Signed in as " + account.getEmail());
+						Log.d("Signed in as ", account.getEmail());
 						p.complete(createDrive(account));
 					}
 				}).addOnFailureListener(new OnFailureListener() {
 			@Override
 			public void onFailure(@NonNull Exception ex) {
-				Log.e(getClass().getName(), "Google sign in failed", ex);
+				Log.e(ex, "Google sign in failed");
 				p.completeExceptionally(ex);
 			}
 		});

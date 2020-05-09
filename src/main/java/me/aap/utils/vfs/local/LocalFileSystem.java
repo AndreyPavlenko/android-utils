@@ -7,7 +7,6 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -23,6 +22,7 @@ import java.util.Set;
 import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
@@ -96,8 +96,8 @@ public class LocalFileSystem implements VirtualFileSystem {
 					Method m = c.getDeclaredMethod("getPathFile");
 					m.setAccessible(true);
 					for (StorageVolume v : sm.getStorageVolumes()) files.add((File) m.invoke(v));
-				} catch (Exception ex) {
-					Log.e(LocalFileSystem.class.getName(), "StorageVolume.getPathFile() failed", ex);
+				} catch (Throwable ex) {
+					Log.e(ex, "StorageVolume.getPathFile() failed");
 				}
 			}
 		}

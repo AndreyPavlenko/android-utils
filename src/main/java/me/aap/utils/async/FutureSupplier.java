@@ -1,7 +1,5 @@
 package me.aap.utils.async;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -19,6 +17,7 @@ import me.aap.utils.function.CheckedSupplier;
 import me.aap.utils.function.Function;
 import me.aap.utils.function.ProgressiveResultConsumer;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.log.Log;
 
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.failed;
@@ -139,7 +138,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		try {
 			return get();
 		} catch (Throwable ex) {
-			Log.e(getClass().getName(), ex.getMessage(), ex);
+			Log.e(ex);
 			return (onError != null) ? onError.get() : null;
 		}
 	}
@@ -148,7 +147,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		try {
 			return get(timeout, unit);
 		} catch (Throwable ex) {
-			Log.e(getClass().getName(), ex.getMessage(), ex);
+			Log.e(ex);
 			return (onError != null) ? onError.get() : null;
 		}
 	}
@@ -195,7 +194,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			try {
 				return completed(map.apply(get()));
 			} catch (Throwable ex) {
-				Log.e(getClass().getName(), ex.getMessage(), ex);
+				Log.e(ex);
 				return failed(ex);
 			}
 		}
@@ -220,7 +219,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			try {
 				return then.apply(get());
 			} catch (Throwable ex) {
-				Log.e(getClass().getName(), ex.getMessage(), ex);
+				Log.e(ex);
 				return failed(ex);
 			}
 		}
@@ -252,7 +251,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			try (AutoCloseable closeable = (AutoCloseable) get()) {
 				return completed(map.apply((T) closeable));
 			} catch (Throwable ex) {
-				Log.e(getClass().getName(), ex.getMessage(), ex);
+				Log.e(ex);
 				return failed(ex);
 			}
 		}
@@ -272,7 +271,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			try (AutoCloseable closeable = (AutoCloseable) get()) {
 				return then.apply((T) closeable);
 			} catch (Throwable ex) {
-				Log.e(getClass().getName(), ex.getMessage(), ex);
+				Log.e(ex);
 				return failed(ex);
 			}
 		}

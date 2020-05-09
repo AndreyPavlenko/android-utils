@@ -1,7 +1,5 @@
 package me.aap.utils.async;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 
 import java.util.Arrays;
@@ -10,6 +8,7 @@ import java.util.Iterator;
 
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.CheckedSupplier;
+import me.aap.utils.log.Log;
 
 import static me.aap.utils.async.Completed.completedVoid;
 import static me.aap.utils.async.Completed.failed;
@@ -132,7 +131,7 @@ public class Async {
 				s = task.get();
 			} catch (Throwable ex) {
 				if (i == 1) return failed(ex);
-				Log.d(Async.class.getName(), "Task failed, retrying ...", ex);
+				Log.d(ex, "Task failed, retrying ...");
 				continue;
 			}
 
@@ -158,7 +157,7 @@ public class Async {
 				if (retry) return super.completeExceptionally(ex);
 				if (isDone()) return false;
 
-				Log.d(Async.class.getName(), "Task failed, retrying ...", ex);
+				Log.d(ex, "Task failed, retrying ...");
 				retry = true;
 
 				try {

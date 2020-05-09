@@ -1,14 +1,11 @@
 package me.aap.utils.async;
 
-import android.util.Log;
-
 import java.util.concurrent.RunnableFuture;
 
-import me.aap.utils.BuildConfig;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.CheckedRunnable;
 import me.aap.utils.function.CheckedSupplier;
-import me.aap.utils.misc.MiscUtils;
+import me.aap.utils.log.Log;
 
 /**
  * @author Andrey Pavlenko
@@ -26,10 +23,7 @@ public abstract class RunnablePromise<T> extends Promise<T> implements RunnableF
 			try {
 				complete(runTask());
 			} catch (Throwable ex) {
-				if (BuildConfig.DEBUG) {
-					if (MiscUtils.isTestMode()) ex.printStackTrace();
-					else Log.d(getClass().getName(), ex.getMessage(), ex);
-				}
+				Log.d(ex, "Runnable promise failed");
 				completeExceptionally(ex);
 			}
 		}

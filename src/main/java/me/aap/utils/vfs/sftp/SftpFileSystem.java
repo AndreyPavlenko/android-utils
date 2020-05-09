@@ -1,7 +1,6 @@
 package me.aap.utils.vfs.sftp;
 
 import android.net.Uri;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -13,6 +12,7 @@ import java.util.Set;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.pref.PreferenceStore.Pref;
 import me.aap.utils.text.SharedTextBuilder;
@@ -49,10 +49,10 @@ public class SftpFileSystem implements VirtualFileSystem {
 		for (String p : pref) {
 			try {
 				VirtualFolder r = SftpRoot.create(this, p);
-				if (r == null) Log.e(getClass().getName(), "Invalid URI: " + p);
+				if (r == null) Log.e("Invalid URI: ", p);
 				roots.add(r);
 			} catch (NumberFormatException ex) {
-				Log.e(getClass().getName(), "Invalid URI: " + p);
+				Log.e("Invalid URI: ", p);
 			}
 		}
 

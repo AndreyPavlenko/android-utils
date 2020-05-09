@@ -80,7 +80,6 @@ public class PromiseTest extends Assertions {
 	}
 
 	public FutureSupplier<Integer> progress(int iters) throws ExecutionException, InterruptedException, TimeoutException {
-//		System.out.println(iters);
 		Promise<Integer> p = new Promise<>();
 		supplier = p.thenReplace(updater, this);
 		AtomicInteger counter = new AtomicInteger();

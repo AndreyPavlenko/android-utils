@@ -1,7 +1,5 @@
 package me.aap.utils.net.http;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -12,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import me.aap.utils.BuildConfig;
 import me.aap.utils.concurrent.NetThread;
+import me.aap.utils.log.Log;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.net.NetChannel;
 import me.aap.utils.net.NetServer;
@@ -91,7 +90,7 @@ public class HttpConnectionHandler implements NetServer.ConnectionHandler, ByteB
 		if (fail != null) {
 			if (channel.isOpen()) {
 				channel.close();
-				Log.d(getClass().getName(), "Failed to read HTTP request", fail);
+				Log.d(fail, "Failed to read HTTP request");
 			}
 			return false;
 		}
@@ -100,7 +99,7 @@ public class HttpConnectionHandler implements NetServer.ConnectionHandler, ByteB
 		int end = bb.limit();
 
 		if (start == end) { // End of stream
-			Log.d(getClass().getName(), "HTTP Stream closed");
+			Log.d("HTTP Stream closed");
 			channel.close();
 			return false;
 		}
@@ -213,7 +212,7 @@ public class HttpConnectionHandler implements NetServer.ConnectionHandler, ByteB
 		if (fail != null) {
 			if (channel.isOpen()) {
 				channel.close();
-				Log.d(getClass().getName(), "Failed to read HTTP request", fail);
+				Log.d(fail, "Failed to read HTTP request");
 			}
 			return false;
 		}
@@ -222,7 +221,7 @@ public class HttpConnectionHandler implements NetServer.ConnectionHandler, ByteB
 		int end = bb.limit();
 
 		if (start == end) { // End of stream
-			Log.d(getClass().getName(), "HTTP Stream closed");
+			Log.d("HTTP Stream closed");
 			channel.close();
 			return false;
 		}

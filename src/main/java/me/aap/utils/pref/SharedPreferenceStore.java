@@ -2,7 +2,6 @@ package me.aap.utils.pref;
 
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -24,6 +23,7 @@ import me.aap.utils.function.IntFunction;
 import me.aap.utils.function.IntSupplier;
 import me.aap.utils.function.LongSupplier;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.text.SharedTextBuilder;
 import me.aap.utils.text.TextBuilder;
 
@@ -186,8 +186,7 @@ public interface SharedPreferenceStore extends PreferenceStore {
 					int n = Integer.parseInt(s.substring(0, i));
 					v[n] = s.substring(i + 1);
 				} catch (Exception ex) {
-					Log.e(getClass().getName(), "Preference key " + pref.getName() +
-							" has invalid value: " + s, ex);
+					Log.e(ex, "Preference key ", pref.getName(), " has invalid value: ", s);
 				}
 			}
 

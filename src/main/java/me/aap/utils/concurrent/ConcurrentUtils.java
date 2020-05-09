@@ -1,7 +1,7 @@
 package me.aap.utils.concurrent;
 
 import android.os.Looper;
-import android.util.Log;
+import me.aap.utils.log.Log;
 
 import androidx.annotation.Nullable;
 

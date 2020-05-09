@@ -1,7 +1,6 @@
 package me.aap.utils.net;
 
 import android.os.Build;
-import android.util.Log;
 
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
@@ -35,6 +34,7 @@ import me.aap.utils.concurrent.ConcurrentQueueBase;
 import me.aap.utils.concurrent.ConcurrentQueueBase.Node;
 import me.aap.utils.function.ProgressiveResultConsumer.Completion;
 import me.aap.utils.io.IoUtils;
+import me.aap.utils.log.Log;
 
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
 import static java.nio.channels.SelectionKey.OP_CONNECT;
@@ -91,7 +91,7 @@ class SelectorHandler implements NetHandler, Runnable {
 				}
 			} catch (Throwable ex) {
 				if (!selector.isOpen()) break;
-				Log.e(getClass().getName(), "Selector failed", ex);
+				Log.e(ex, "Selector failed");
 			}
 		}
 	}
@@ -289,7 +289,7 @@ class SelectorHandler implements NetHandler, Runnable {
 				return;
 			} catch (Throwable ex) {
 				IoUtils.close(ch);
-				Log.e(getClass().getName(), "Failed to accept a connection", ex);
+				Log.e(ex, "Failed to accept a connection");
 				return;
 			}
 
@@ -298,12 +298,12 @@ class SelectorHandler implements NetHandler, Runnable {
 					try {
 						handler.acceptConnection(nc);
 					} catch (Throwable ex) {
-						Log.e(getClass().getName(), "Connection handler failed", ex);
+						Log.e(ex, "Connection handler failed");
 						nc.close();
 					}
 				});
 			} catch (Throwable ex) {
-				Log.e(getClass().getName(), "Failed to execute connection handler", ex);
+				Log.e(ex, "Failed to execute connection handler");
 				nc.close();
 			}
 		}
@@ -318,7 +318,7 @@ class SelectorHandler implements NetHandler, Runnable {
 			try {
 				channel.close();
 			} catch (Throwable ex) {
-				Log.e(getClass().getName(), "Failed to close server channel", ex);
+				Log.e(ex, "Failed to close server channel");
 			}
 		}
 
@@ -366,7 +366,7 @@ class SelectorHandler implements NetHandler, Runnable {
 				}
 			} catch (CancelledKeyException ignore) {
 			} catch (Throwable ex) {
-				Log.d(getClass().getName(), ex.getMessage(), ex);
+				Log.d(ex, "Selected operation failed - closing channel ", this);
 				close();
 			}
 		}

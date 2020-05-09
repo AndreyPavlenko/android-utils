@@ -1,6 +1,6 @@
 package me.aap.utils.text;
 
-import android.util.Log;
+import me.aap.utils.log.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;

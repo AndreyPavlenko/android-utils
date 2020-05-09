@@ -1,7 +1,5 @@
 package me.aap.utils.async;
 
-import android.util.Log;
-
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,13 +15,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.concurrent.locks.LockSupport;
 
-import me.aap.utils.BuildConfig;
 import me.aap.utils.concurrent.ConcurrentUtils;
 import me.aap.utils.function.CheckedBiFunction;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.ProgressiveResultConsumer;
 import me.aap.utils.function.Supplier;
-import me.aap.utils.misc.MiscUtils;
+import me.aap.utils.log.Log;
 
 import static java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater;
 import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_DONE;
@@ -103,10 +100,7 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 	@Override
 	public boolean completeExceptionally(@NonNull Throwable ex) {
-		if (BuildConfig.DEBUG) {
-			if (MiscUtils.isTestMode()) ex.printStackTrace();
-			else Log.d(getClass().getName(), ex.getMessage(), ex);
-		}
+		Log.d(ex, "Completed exceptionally");
 		return supply(null, ex, PROGRESS_DONE, PROGRESS_DONE);
 	}
 

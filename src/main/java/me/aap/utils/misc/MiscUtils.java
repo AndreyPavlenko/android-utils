@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 
 import me.aap.utils.BuildConfig;
+import me.aap.utils.app.App;
 import me.aap.utils.function.Supplier;
 
 /**
@@ -28,6 +29,10 @@ public class MiscUtils {
 		}
 	}
 
+	public static boolean isAndroid() {
+		return Android.isAndroid;
+	}
+
 	public static boolean isTestMode() {
 		return BuildConfig.DEBUG && TestMode.isTestMode;
 	}
@@ -38,5 +43,19 @@ public class MiscUtils {
 
 	private static final class TestMode {
 		static volatile boolean isTestMode;
+	}
+
+	private static final class Android {
+		static final boolean isAndroid;
+
+		static {
+			boolean android;
+			try {
+				android = App.get() != null;
+			} catch (Throwable ex) {
+				android = false;
+			}
+			isAndroid = android;
+		}
 	}
 }

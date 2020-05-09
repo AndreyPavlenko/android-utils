@@ -4,7 +4,6 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.system.Os;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import java.io.File;
@@ -18,6 +17,7 @@ import java.nio.channels.FileChannel;
 import java.util.Arrays;
 
 import me.aap.utils.app.App;
+import me.aap.utils.log.Log;
 
 /**
  * @author Andrey Pavlenko
@@ -33,7 +33,7 @@ public class FileUtils {
 		try (ParcelFileDescriptor pfd = ctx.getContentResolver().openFileDescriptor(fileUri, "r")) {
 			return (pfd != null) ? getFileFromDescriptor(pfd) : null;
 		} catch (Exception ex) {
-			Log.d("Utils", "Failed to resolve real path: " + fileUri, ex);
+			Log.d(ex, "Failed to resolve real path: ", fileUri);
 		}
 
 		return null;

@@ -43,6 +43,10 @@ public class App extends android.app.Application {
 		if (e != null) e.shutdown();
 	}
 
+	public String getLogTag() {
+		return getApplicationInfo().loadLabel(getPackageManager()).toString();
+	}
+
 	public HandlerExecutor getHandler() {
 		HandlerExecutor h = handler;
 

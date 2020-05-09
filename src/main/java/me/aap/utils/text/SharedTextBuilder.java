@@ -1,13 +1,13 @@
 package me.aap.utils.text;
 
 import android.os.Looper;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import me.aap.utils.BuildConfig;
 import me.aap.utils.concurrent.PooledThread;
+import me.aap.utils.log.Log;
 
 import static me.aap.utils.misc.Assert.assertSame;
 import static me.aap.utils.misc.Assert.assertTrue;
@@ -44,13 +44,13 @@ public class SharedTextBuilder implements TextBuilder, AutoCloseable {
 		if (t instanceof PooledThread) {
 			sb = ((PooledThread) t).getSharedTextBuilder();
 		} else {
-			assertSame(t, Looper.getMainLooper().getThread());
+			assertTrue((Looper.getMainLooper() == null) || (t == Looper.getMainLooper().getThread()));
 			sb = MainThreadBuilder.instance;
 		}
 
 		if (sb.inUse) {
 			if (BuildConfig.DEBUG) {
-				Log.e(SharedTextBuilder.class.getName(), "SharedStringBuilder is in use", new AssertionError(sb.usedBy));
+				Log.e(new AssertionError(sb.usedBy), "SharedStringBuilder is in use");
 			}
 
 			sb = create(t);

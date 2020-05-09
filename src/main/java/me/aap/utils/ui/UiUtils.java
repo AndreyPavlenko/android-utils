@@ -14,12 +14,10 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.VectorDrawable;
 import android.os.Build.VERSION_CODES;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.IdRes;
@@ -27,7 +25,6 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 
 import me.aap.utils.R;
-import me.aap.utils.app.App;
 import me.aap.utils.concurrent.ConcurrentUtils;
 import me.aap.utils.function.Consumer;
 
@@ -48,15 +45,6 @@ public class UiUtils {
 
 	public static int toIntPx(Context ctx, int dp) {
 		return (int) toPx(ctx, dp);
-	}
-
-	public static void showError(String msg) {
-		Toast.makeText(App.get(), msg, Toast.LENGTH_LONG).show();
-	}
-
-	public static void showError(String msg, Throwable err) {
-		Log.e("Utils", "Error ocurred", err);
-		showError(msg);
 	}
 
 	public static void queryText(Context ctx, @StringRes int title, Consumer<CharSequence> result) {

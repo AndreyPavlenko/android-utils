@@ -1,7 +1,5 @@
 package me.aap.utils.async;
 
-import android.util.Log;
-
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,6 +8,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import me.aap.utils.concurrent.ConcurrentQueueBase;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.holder.Holder;
+import me.aap.utils.log.Log;
 
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.failed;
@@ -66,7 +65,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 					createObject().onCompletion((result, fail) -> {
 						if (fail != null) {
 							counter.decrementAndGet();
-							Log.d(getClass().getName(), "Failed to create object", fail);
+							Log.d(fail, "Failed to create object");
 							promise.completeExceptionally(fail);
 							processQueue();
 						} else if (!promise.complete(new PooledObject<>(this, result))) {
@@ -76,7 +75,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 					});
 					return promise;
 				} catch (Throwable ex) {
-					Log.d(getClass().getName(), "Failed to create object", ex);
+					Log.d(ex, "Failed to create object");
 					counter.decrementAndGet();
 					processQueue();
 					return failed(ex);
@@ -228,7 +227,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 						createObject().onCompletion((result, fail) -> {
 							if (fail != null) {
 								counter.decrementAndGet();
-								Log.d(getClass().getName(), "Failed to create object", fail);
+								Log.d(fail, "Failed to create object");
 								ObjectPromise<T> p = promiseQueue.pollNode();
 								if (p != null) p.completeExceptionally(fail);
 							} else {
@@ -240,7 +239,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 						h.value = null;
 					} catch (Throwable ex) {
 						counter.decrementAndGet();
-						Log.d(getClass().getName(), "Failed to create object", ex);
+						Log.d(ex, "Failed to create object");
 						ObjectPromise<T> p = promiseQueue.pollNode();
 						if (p != null) p.completeExceptionally(ex);
 					}

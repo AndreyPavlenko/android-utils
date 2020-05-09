@@ -1,7 +1,5 @@
 package me.aap.utils.async;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -12,10 +10,10 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import me.aap.utils.BuildConfig;
 import me.aap.utils.function.Function;
 import me.aap.utils.function.ProgressiveResultConsumer;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.log.Log;
 
 import static me.aap.utils.async.CompletableSupplier.Cancelled.CANCELLED;
 import static me.aap.utils.function.ResultConsumer.Cancel.isCancellation;
@@ -175,7 +173,7 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 		private final Throwable fail;
 
 		Failed(Throwable fail) {
-			if (BuildConfig.DEBUG) Log.d(getClass().getName(), fail.getMessage(), fail);
+			Log.d(fail, "Completed failure");
 			this.fail = fail;
 		}
 

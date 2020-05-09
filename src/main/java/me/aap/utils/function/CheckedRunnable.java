@@ -1,9 +1,9 @@
 package me.aap.utils.function;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import me.aap.utils.log.Log;
 
 /**
  * @author Andrey Pavlenko
@@ -27,7 +27,7 @@ public interface CheckedRunnable<T extends Throwable> {
 		try {
 			run.run();
 		} catch (Throwable ex) {
-			Log.d(CheckedRunnable.class.getName(), ((msg != null) ? msg : ex.getMessage()) + ". Retrying...", ex);
+			Log.d(ex, ((msg != null) ? msg : ex.getMessage()) + ". Retrying...");
 
 			try {
 				run.run();
@@ -35,7 +35,7 @@ public interface CheckedRunnable<T extends Throwable> {
 				if (onFailure != null) {
 					onFailure.accept(ex1);
 				} else {
-					Log.e(CheckedRunnable.class.getName(), (msg != null) ? msg : ex.getMessage(), ex1);
+					Log.e(ex1, (msg != null) ? msg : ex.getMessage());
 				}
 			}
 		}

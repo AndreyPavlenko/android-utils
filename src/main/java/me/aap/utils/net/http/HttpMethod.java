@@ -1,6 +1,6 @@
 package me.aap.utils.net.http;
 
-import android.util.Log;
+import me.aap.utils.log.Log;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 

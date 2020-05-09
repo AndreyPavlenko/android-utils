@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.concurrent.NetThreadPool;
+import me.aap.utils.log.Log;
 import me.aap.utils.misc.MiscUtils;
 
 import static me.aap.utils.security.SecurityUtils.sha1;
@@ -71,7 +72,7 @@ public class NetHandlerTest extends Assertions {
 					if (!bb.hasRemaining()) {
 						assertArrayEquals(checksum, md.digest());
 						ch.close();
-						System.out.println("Completed: " + id);
+						Log.d("Completed: ", id);
 						return null;
 					}
 

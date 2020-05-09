@@ -1,8 +1,8 @@
 package me.aap.utils.io;
 
-import android.util.Log;
-
 import java.nio.ByteBuffer;
+
+import me.aap.utils.log.Log;
 
 /**
  * @author Andrey Pavlenko
@@ -14,7 +14,7 @@ public class IoUtils {
 			try {
 				c.close();
 			} catch (Exception ex) {
-				Log.d(IoUtils.class.getName(), "Failed to close " + c, ex);
+				Log.d(ex, "Failed to close ", c);
 			}
 		}
 	}

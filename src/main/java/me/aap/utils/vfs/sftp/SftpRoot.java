@@ -1,7 +1,6 @@
 package me.aap.utils.vfs.sftp;
 
 import android.net.Uri;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,6 +21,7 @@ import me.aap.utils.async.ObjectPool;
 import me.aap.utils.async.ObjectPool.PooledObject;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.IntSupplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.pref.PreferenceStore.Pref;
 import me.aap.utils.text.SharedTextBuilder;
@@ -319,7 +319,7 @@ class SftpRoot extends SftpFolder {
 			try {
 				return session.isValid();
 			} catch (Throwable ex) {
-				Log.d(getClass().getName(), "Session is not valid", ex);
+				Log.d(ex, "Session is not valid");
 				return false;
 			}
 		}
