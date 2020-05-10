@@ -1,7 +1,5 @@
 package me.aap.utils.vfs;
 
-import android.net.Uri;
-
 import java.nio.ByteBuffer;
 
 import me.aap.utils.async.FutureSupplier;
@@ -16,6 +14,7 @@ import me.aap.utils.net.http.HttpRequest;
 import me.aap.utils.net.http.HttpRequestHandler;
 import me.aap.utils.net.http.HttpVersion;
 import me.aap.utils.net.http.Range;
+import me.aap.utils.resource.Rid;
 
 /**
  * @author Andrey Pavlenko
@@ -31,9 +30,9 @@ public class VfsHttpHandler implements HttpRequestHandler {
 
 	@Override
 	public void handleRequest(NetChannel channel, HttpRequest req, ByteBuffer payload) {
-		Uri uri = getUri(req);
+		Rid rid = getRid(req);
 
-		if (uri == null) {
+		if (rid == null) {
 			NotFound.instance.write(channel);
 			return;
 		}
@@ -43,7 +42,7 @@ public class VfsHttpHandler implements HttpRequestHandler {
 		HttpVersion version = req.getVersion();
 		boolean close = req.closeConnection();
 
-		mgr.getResource(uri).onCompletion((result, fail) -> {
+		mgr.getResource(rid).onCompletion((result, fail) -> {
 			if (fail != null) {
 				NotFound.instance.write(channel);
 				return;
@@ -90,12 +89,12 @@ public class VfsHttpHandler implements HttpRequestHandler {
 		});
 	}
 
-	protected Uri getUri(HttpRequest req) {
+	protected Rid getRid(HttpRequest req) {
 		CharSequence q = req.getQuery();
 		if ((q == null) || (q.length() <= HTTP_QUERY.length())) {
 			return null;
 		}
-		return Uri.parse(Uri.decode(q.subSequence(HTTP_QUERY.length(), q.length()).toString()));
+		return Rid.create(Rid.decode(q.subSequence(HTTP_QUERY.length(), q.length())));
 	}
 
 	protected ByteBuffer buildResponse(HttpVersion version, long len, Range range, boolean close) {

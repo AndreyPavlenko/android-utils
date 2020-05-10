@@ -1,6 +1,5 @@
 package me.aap.utils.vfs;
 
-import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,6 +18,7 @@ import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.net.NetHandler;
 import me.aap.utils.net.NetServer;
 import me.aap.utils.net.http.HttpConnectionHandler;
+import me.aap.utils.resource.Rid;
 
 import static me.aap.utils.async.Completed.completedNull;
 import static me.aap.utils.vfs.VfsHttpHandler.HTTP_PATH;
@@ -73,44 +73,48 @@ public class VfsManager {
 	}
 
 	@NonNull
-	public FutureSupplier<VirtualResource> getResource(Uri uri) {
+	public FutureSupplier<VirtualResource> getResource(CharSequence rid) {
+		return getResource(Rid.create(rid));
+	}
+
+	public FutureSupplier<VirtualResource> getResource(Rid rid) {
 		Mounts mounts = this.mounts;
-		List<VirtualFileSystem> list = mounts.map.get(uri.getScheme());
+		List<VirtualFileSystem> list = mounts.map.get(rid.getScheme().toString());
 
 		if ((list != null) && !list.isEmpty()) {
 			for (VirtualFileSystem fs : list) {
-				if (fs.isSupportedResource(uri)) return fs.getResource(uri);
+				if (fs.isSupportedResource(rid)) return fs.getResource(rid);
 			}
 
 			return completedNull();
 		}
 
 		for (VirtualFileSystem p : mounts.any) {
-			if (p.isSupportedResource(uri)) return p.getResource(uri);
+			if (p.isSupportedResource(rid)) return p.getResource(rid);
 		}
 
 		return completedNull();
 	}
 
 	@NonNull
-	public FutureSupplier<VirtualResource> resolve(@NonNull String pathOrUri, @Nullable VirtualResource relativeTo) {
-		Uri u = pathOrUri.contains(":/") || (relativeTo == null) ? Uri.parse(pathOrUri)
-				: Uri.parse(relativeTo.getUri().toString() + '/' + pathOrUri);
-		return getResource(u);
+	public FutureSupplier<VirtualResource> resolve(@NonNull String pathOrRid, @Nullable VirtualResource relativeTo) {
+		Rid rid = pathOrRid.contains(":/") || (relativeTo == null) ? Rid.create(pathOrRid)
+				: Rid.create(relativeTo.getRid().toString() + '/' + pathOrRid);
+		return getResource(rid);
 	}
 
 	public boolean isSupportedScheme(String scheme) {
 		return mounts.map.containsKey(scheme);
 	}
 
-	public Uri getHttpUri(VirtualResource resource) {
-		return getHttpUri(resource.getUri());
+	public Rid getHttpRid(VirtualResource resource) {
+		return getHttpRid(resource.getRid());
 	}
 
-	public Uri getHttpUri(Uri resourceUri) {
+	public Rid getHttpRid(Rid rid) {
 		int port = getNetServer().getPort();
-		String uri = Uri.encode(resourceUri.toString());
-		return Uri.parse("http://localhost:" + port + HTTP_PATH + "?" + HTTP_QUERY + uri);
+		CharSequence encoded = Rid.encode(rid.toString());
+		return Rid.create("http://localhost:" + port + HTTP_PATH + "?" + HTTP_QUERY + encoded);
 	}
 
 	private NetServer getNetServer() {

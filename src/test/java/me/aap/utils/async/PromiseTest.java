@@ -17,6 +17,7 @@ import java.util.concurrent.locks.LockSupport;
 import me.aap.utils.concurrent.ThreadPool;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.misc.MiscUtils;
+import me.aap.utils.misc.TestUtils;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static me.aap.utils.async.RunnablePromise.create;
@@ -37,7 +38,7 @@ public class PromiseTest extends Assertions {
 
 	@BeforeAll
 	public static void setUpClass() {
-		MiscUtils.enableTestMode();
+		TestUtils.enableTestMode();
 		exec = new ThreadPool(Runtime.getRuntime().availableProcessors());
 	}
 

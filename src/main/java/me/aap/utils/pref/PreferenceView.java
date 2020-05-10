@@ -189,7 +189,7 @@ public class PreferenceView extends ConstraintLayout {
 			picker.setFileConsumer(file -> {
 				if (file != null) {
 					File local = file.getLocalFile();
-					t.setText((local != null) ? local.getAbsolutePath() : file.getUri().toString());
+					t.setText((local != null) ? local.getAbsolutePath() : file.getRid().toString());
 				}
 
 				picker.restoreState(state);

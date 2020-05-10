@@ -1,7 +1,5 @@
 package me.aap.utils.vfs.sftp;
 
-import android.net.Uri;
-
 import androidx.annotation.NonNull;
 
 import com.jcraft.jsch.SftpATTRS;
@@ -9,6 +7,7 @@ import com.jcraft.jsch.SftpATTRS;
 import java.util.Objects;
 
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
@@ -23,7 +22,7 @@ class SftpResource implements VirtualResource {
 	private final SftpRoot root;
 	@NonNull
 	private final String path;
-	private Uri uri;
+	private Rid rid;
 	private FutureSupplier<VirtualFolder> parent;
 
 	SftpResource(@NonNull SftpRoot root, @NonNull String path) {
@@ -47,9 +46,9 @@ class SftpResource implements VirtualResource {
 
 	@NonNull
 	@Override
-	public Uri getUri() {
-		if (uri == null) uri = getRoot().buildUri(path);
-		return uri;
+	public Rid getRid() {
+		if (rid == null) rid = getRoot().buildRid(path);
+		return rid;
 	}
 
 	@NonNull
@@ -89,7 +88,7 @@ class SftpResource implements VirtualResource {
 	@NonNull
 	@Override
 	public String toString() {
-		return getUri().toString();
+		return getRid().toString();
 	}
 
 	@NonNull

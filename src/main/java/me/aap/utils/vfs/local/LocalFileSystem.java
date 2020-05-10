@@ -2,7 +2,6 @@ package me.aap.utils.vfs.local;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.storage.StorageManager;
@@ -24,6 +23,7 @@ import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
+import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
@@ -51,8 +51,8 @@ public class LocalFileSystem implements VirtualFileSystem {
 
 	@NonNull
 	@Override
-	public FutureSupplier<VirtualResource> getResource(Uri uri) {
-		return completed(getResource(uri.getPath()));
+	public FutureSupplier<VirtualResource> getResource(Rid rid) {
+		return completed(getResource(rid.getPath().toString()));
 	}
 
 	public VirtualResource getResource(String path) {

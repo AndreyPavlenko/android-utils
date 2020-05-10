@@ -1,11 +1,10 @@
 package me.aap.utils.vfs.generic;
 
-import android.net.Uri;
-
 import androidx.annotation.NonNull;
 
 import java.util.Objects;
 
+import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualResource;
 
@@ -13,10 +12,10 @@ import me.aap.utils.vfs.VirtualResource;
  * @author Andrey Pavlenko
  */
 public class GenericResource implements VirtualResource {
-	private final Uri uri;
+	private final Rid rid;
 
-	public GenericResource(Uri uri) {
-		this.uri = uri;
+	public GenericResource(Rid rid) {
+		this.rid = rid;
 	}
 
 	@NonNull
@@ -28,13 +27,13 @@ public class GenericResource implements VirtualResource {
 	@NonNull
 	@Override
 	public String getName() {
-		return getUri().toString();
+		return getRid().toString();
 	}
 
 	@NonNull
 	@Override
-	public Uri getUri() {
-		return uri;
+	public Rid getRid() {
+		return rid;
 	}
 
 	@Override
@@ -42,11 +41,11 @@ public class GenericResource implements VirtualResource {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 		GenericResource that = (GenericResource) o;
-		return Objects.equals(uri, that.uri);
+		return Objects.equals(rid, that.rid);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(uri);
+		return Objects.hash(rid);
 	}
 }

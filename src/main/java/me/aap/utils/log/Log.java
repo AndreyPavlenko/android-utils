@@ -6,7 +6,7 @@ import static me.aap.utils.log.Log.Level.DEBUG;
 import static me.aap.utils.log.Log.Level.ERROR;
 import static me.aap.utils.log.Log.Level.INFO;
 import static me.aap.utils.log.Log.Level.WARN;
-import static me.aap.utils.misc.MiscUtils.isAndroid;
+import static me.aap.utils.os.OsUtils.isAndroid;
 
 /**
  * @author Andrey Pavlenko

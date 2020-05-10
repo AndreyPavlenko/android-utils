@@ -17,6 +17,7 @@ import me.aap.utils.function.BooleanSupplier;
 import me.aap.utils.io.FileUtils;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.pref.PreferenceStore.Pref;
+import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualResource;
 import me.aap.utils.vfs.local.LocalFileSystem;
@@ -48,7 +49,9 @@ public class ContentFileSystem implements VirtualFileSystem {
 
 	@NonNull
 	@Override
-	public FutureSupplier<VirtualResource> getResource(Uri rootUri) {
+	public FutureSupplier<VirtualResource> getResource(Rid rid) {
+		Uri rootUri = rid.toAndroidUri();
+
 		if (preferFiles) {
 			String path = uriToPathMap.getString(rootUri.toString(), null);
 
@@ -65,7 +68,7 @@ public class ContentFileSystem implements VirtualFileSystem {
 				.then(contentFile -> {
 					if (contentFile == null) return contentDir;
 
-					File f = FileUtils.getFileFromUri(contentFile.getUri());
+					File f = FileUtils.getFileFromUri(contentFile.getRid().toAndroidUri());
 					if (f == null) return contentDir;
 
 					VirtualResource dir = contentDir.get(null);
@@ -101,8 +104,8 @@ public class ContentFileSystem implements VirtualFileSystem {
 		return new ContentFolder(null, (name == null) ? uri.getLastPathSegment() : name, id) {
 			@NonNull
 			@Override
-			public Uri getUri() {
-				return rootUri;
+			public Rid getRid() {
+				return Rid.create(rootUri);
 			}
 
 			@NonNull

@@ -1,7 +1,5 @@
 package me.aap.utils.vfs.local;
 
-import android.net.Uri;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -11,6 +9,7 @@ import java.io.IOException;
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.io.FileUtils;
+import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
 
@@ -48,8 +47,8 @@ abstract class LocalResource implements VirtualResource {
 
 	@NonNull
 	@Override
-	public Uri getUri() {
-		return Uri.fromFile(file);
+	public Rid getRid() {
+		return Rid.create(file);
 	}
 
 	@Override

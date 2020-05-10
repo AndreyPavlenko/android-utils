@@ -9,7 +9,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 
-import me.aap.utils.misc.MiscUtils;
+import me.aap.utils.misc.TestUtils;
 
 /**
  * @author Andrey Pavlenko
@@ -19,7 +19,7 @@ public class ConcurrentLinkedQueueTest extends Assertions {
 
 	@BeforeAll
 	public static void setUpClass() {
-		MiscUtils.enableTestMode();
+		TestUtils.enableTestMode();
 		exec = new ThreadPool(Runtime.getRuntime().availableProcessors());
 	}
 

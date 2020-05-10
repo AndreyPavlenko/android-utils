@@ -7,10 +7,10 @@ import androidx.annotation.Nullable;
 
 import me.aap.utils.BuildConfig;
 import me.aap.utils.concurrent.PooledThread;
-import me.aap.utils.log.Log;
 
 import static me.aap.utils.misc.Assert.assertSame;
 import static me.aap.utils.misc.Assert.assertTrue;
+import static me.aap.utils.os.OsUtils.isAndroid;
 
 /**
  * @author Andrey Pavlenko
@@ -44,13 +44,13 @@ public class SharedTextBuilder implements TextBuilder, AutoCloseable {
 		if (t instanceof PooledThread) {
 			sb = ((PooledThread) t).getSharedTextBuilder();
 		} else {
-			assertTrue((Looper.getMainLooper() == null) || (t == Looper.getMainLooper().getThread()));
+			assertTrue(!isAndroid() || (t == Looper.getMainLooper().getThread()));
 			sb = MainThreadBuilder.instance;
 		}
 
 		if (sb.inUse) {
 			if (BuildConfig.DEBUG) {
-				Log.e(new AssertionError(sb.usedBy), "SharedStringBuilder is in use");
+				new AssertionError("SharedStringBuilder is in use", sb.usedBy).printStackTrace();
 			}
 
 			sb = create(t);

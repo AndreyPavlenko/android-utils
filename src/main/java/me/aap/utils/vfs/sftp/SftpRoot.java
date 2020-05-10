@@ -1,7 +1,5 @@
 package me.aap.utils.vfs.sftp;
 
-import android.net.Uri;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -24,6 +22,7 @@ import me.aap.utils.function.IntSupplier;
 import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.pref.PreferenceStore.Pref;
+import me.aap.utils.resource.Rid;
 import me.aap.utils.text.SharedTextBuilder;
 import me.aap.utils.vfs.VfsException;
 import me.aap.utils.vfs.VirtualFileSystem;
@@ -136,20 +135,20 @@ class SftpRoot extends SftpFolder {
 		return pool.port;
 	}
 
-	Uri buildUri(@NonNull String path) {
-		return SftpFileSystem.buildUri(pool.user, pool.host, pool.port, path);
+	Rid buildRid(@NonNull String path) {
+		return SftpFileSystem.buildRid(pool.user, pool.host, pool.port, path);
 	}
 
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
-		return getUri().equals(((SftpRoot) o).getUri());
+		return getRid().equals(((SftpRoot) o).getRid());
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(getUri());
+		return Objects.hash(getRid());
 	}
 
 	FutureSupplier<PooledObject<SftpSession>> getSession() {

@@ -3,7 +3,6 @@ package me.aap.utils.ui.view;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.util.AttributeSet;
 
 import androidx.annotation.AttrRes;
@@ -16,6 +15,7 @@ import java.util.List;
 import me.aap.utils.R;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.holder.BiHolder;
+import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
 
@@ -84,7 +84,7 @@ public class VirtualResourceAdapter implements ListView.ItemAdapter<VirtualResou
 
 	@Override
 	public FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>> findParent(VirtualResource current, String find) {
-		return current.getVirtualFileSystem().getResource(Uri.parse(find)).then(p -> {
+		return current.getVirtualFileSystem().getResource(Rid.create(find)).then(p -> {
 			if (!(p instanceof VirtualFolder)) return completedNull();
 			return ((VirtualFolder) p).getChildren().map(children -> new BiHolder<>(p, children));
 		});

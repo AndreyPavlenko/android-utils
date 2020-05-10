@@ -1,7 +1,6 @@
 package me.aap.utils.concurrent;
 
 import android.os.Looper;
-import me.aap.utils.log.Log;
 
 import androidx.annotation.Nullable;
 
@@ -10,7 +9,7 @@ import java.util.concurrent.locks.LockSupport;
 import me.aap.utils.BuildConfig;
 import me.aap.utils.app.App;
 import me.aap.utils.function.Consumer;
-import me.aap.utils.misc.MiscUtils;
+import me.aap.utils.misc.TestUtils;
 
 /**
  * @author Andrey Pavlenko
@@ -18,7 +17,7 @@ import me.aap.utils.misc.MiscUtils;
 public class ConcurrentUtils {
 
 	public static boolean isMainThread() {
-		return !MiscUtils.isTestMode() && Looper.getMainLooper().isCurrentThread();
+		return !TestUtils.isTestMode() && Looper.getMainLooper().isCurrentThread();
 	}
 
 	public static void ensureMainThread(boolean debug) {
@@ -40,21 +39,21 @@ public class ConcurrentUtils {
 
 	public static void wait(Object monitor) throws InterruptedException {
 		if (BuildConfig.DEBUG && isMainThread()) {
-			Log.w(ConcurrentUtils.class.getName(), "Waiting on the main thread!", new Throwable());
+			new IllegalStateException("Waiting on the main thread!").printStackTrace();
 		}
 		monitor.wait();
 	}
 
 	public static void wait(Object monitor, long timeout) throws InterruptedException {
 		if (BuildConfig.DEBUG && isMainThread()) {
-			Log.w(ConcurrentUtils.class.getName(), "Waiting on the main thread!", new Throwable());
+			new IllegalStateException("Waiting on the main thread!").printStackTrace();
 		}
 		monitor.wait(timeout);
 	}
 
 	public static void park() {
 		if (BuildConfig.DEBUG && isMainThread()) {
-			Log.w(ConcurrentUtils.class.getName(), "Parking the main thread!", new Throwable());
+			new IllegalStateException("Parking on the main thread!").printStackTrace();
 		}
 
 		LockSupport.park();
@@ -62,7 +61,7 @@ public class ConcurrentUtils {
 
 	public static void parkNanos(long nanos) {
 		if (BuildConfig.DEBUG && isMainThread()) {
-			Log.w(ConcurrentUtils.class.getName(), "Parking the main thread!", new Throwable());
+			new IllegalStateException("Parking on the main thread!").printStackTrace();
 		}
 
 		LockSupport.parkNanos(nanos);

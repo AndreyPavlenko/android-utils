@@ -1,13 +1,12 @@
 package me.aap.utils.vfs;
 
-import android.net.Uri;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.io.File;
 
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.resource.Rid;
 
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.completedNull;
@@ -26,7 +25,7 @@ public interface VirtualResource extends Comparable<VirtualResource> {
 	String getName();
 
 	@NonNull
-	Uri getUri();
+	Rid getRid();
 
 	default boolean isFile() {
 		return false;

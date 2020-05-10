@@ -12,12 +12,13 @@ import java.security.MessageDigest;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.concurrent.NetThreadPool;
 import me.aap.utils.log.Log;
-import me.aap.utils.misc.MiscUtils;
+import me.aap.utils.misc.TestUtils;
 
 import static me.aap.utils.security.SecurityUtils.sha1;
 import static me.aap.utils.security.SecurityUtils.sha1Digest;
@@ -33,7 +34,7 @@ public class NetHandlerTest extends Assertions {
 
 	@BeforeAll
 	public static void setUpClass() throws IOException {
-		MiscUtils.enableTestMode();
+		TestUtils.enableTestMode();
 		Random rnd = ThreadLocalRandom.current();
 		exec = new NetThreadPool(Runtime.getRuntime().availableProcessors());
 		handler = NetHandler.create(exec);
@@ -86,7 +87,7 @@ public class NetHandlerTest extends Assertions {
 		}
 
 		for (FutureSupplier<?> t : tasks) {
-			t.get();
+			t.get(20, TimeUnit.SECONDS);
 		}
 
 		server.close();

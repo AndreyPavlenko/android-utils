@@ -10,6 +10,7 @@ import java.util.Objects;
 
 import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
@@ -45,13 +46,13 @@ class ContentResource implements VirtualResource {
 
 	@NonNull
 	@Override
-	public Uri getUri() {
-		return DocumentsContract.buildDocumentUriUsingTree(getRootUri(), getId());
+	public Rid getRid() {
+		return Rid.create(DocumentsContract.buildDocumentUriUsingTree(getRootUri(), getId()));
 	}
 
 	@Override
 	public FutureSupplier<Long> getLastModified() {
-		return getLong(getUri(), DocumentsContract.Document.COLUMN_LAST_MODIFIED, 0);
+		return getLong(getRid().toAndroidUri(), DocumentsContract.Document.COLUMN_LAST_MODIFIED, 0);
 	}
 
 	@NonNull
@@ -71,7 +72,7 @@ class ContentResource implements VirtualResource {
 
 	@NonNull
 	Uri getRootUri() {
-		return getRoot().getUri();
+		return getRoot().getRid().toAndroidUri();
 	}
 
 	@NonNull

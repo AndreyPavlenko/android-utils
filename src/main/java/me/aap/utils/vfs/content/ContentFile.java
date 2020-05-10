@@ -16,6 +16,6 @@ class ContentFile extends ContentResource implements VirtualFile {
 
 	@Override
 	public FutureSupplier<Long> getLength() {
-		return getLong(getUri(), DocumentsContract.Document.COLUMN_SIZE, 0);
+		return getLong(getRid().toAndroidUri(), DocumentsContract.Document.COLUMN_SIZE, 0);
 	}
 }

@@ -1,6 +1,7 @@
 package me.aap.utils.async;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
@@ -10,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 import me.aap.utils.concurrent.ThreadPool;
-import me.aap.utils.misc.MiscUtils;
+import me.aap.utils.misc.TestUtils;
 
 import static me.aap.utils.async.Completed.completed;
 
@@ -25,9 +26,14 @@ public class ObjectPoolTest extends Assertions {
 
 	@BeforeAll
 	public static void setUpClass() {
-		MiscUtils.enableTestMode();
+		TestUtils.enableTestMode();
 		nthreads = Math.max(Runtime.getRuntime().availableProcessors(), 2);
 		exec = new ThreadPool(nthreads);
+	}
+
+	@AfterEach
+	public void tearDown() {
+		TestUtils.enableExceptionLogging(true);
 	}
 
 	@AfterAll
@@ -68,6 +74,7 @@ public class ObjectPoolTest extends Assertions {
 
 	@RepeatedTest(100)
 	public void testClose() throws Exception {
+		TestUtils.enableExceptionLogging(false);
 		TestPool pool = new TestPool(nthreads / 2);
 		Semaphore sem = new Semaphore(0);
 		int iters = 1000;

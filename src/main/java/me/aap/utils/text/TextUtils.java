@@ -1,7 +1,5 @@
 package me.aap.utils.text;
 
-import me.aap.utils.log.Log;
-
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -10,6 +8,8 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
+
+import me.aap.utils.log.Log;
 
 import static java.lang.Character.isLowerCase;
 import static java.lang.Character.toLowerCase;
@@ -110,6 +110,42 @@ public class TextUtils {
 		}
 
 		return true;
+	}
+
+	public static boolean equals(CharSequence text1, CharSequence text2) {
+		if (text1 == text2) {
+			return true;
+		} else if ((text1 != null) && (text2 != null)) {
+			int len1 = text1.length();
+			int len2 = text2.length();
+			return (len1 == len2) && matches(text1, text2, 0, 0, len1, false);
+		}
+
+		return false;
+	}
+
+	public static boolean equals(CharSequence text1, CharSequence text2, int off1, int off2,
+															 int endOff1, int endOff2) {
+		int len1 = endOff1 - off1;
+		int len2 = endOff2 - off2;
+		return (len1 == len2) && matches(text1, text2, off1, off2, len1, false);
+	}
+
+	public static boolean startsWith(CharSequence text, CharSequence seq) {
+		return startsWith(text, seq, false);
+	}
+
+	public static boolean endsWith(CharSequence text, CharSequence seq) {
+		return endsWith(text, seq, false);
+	}
+
+	public static boolean startsWith(CharSequence text, CharSequence seq, boolean ignoreCase) {
+		return regionMatches(text, 0, seq, 0, seq.length(), ignoreCase);
+	}
+
+	public static boolean endsWith(CharSequence text, CharSequence seq, boolean ignoreCase) {
+		final int len = seq.length();
+		return regionMatches(text, text.length() - len, seq, 0, len, ignoreCase);
 	}
 
 	public static long toLong(CharSequence seq, int from, int to, long defaultValue) {

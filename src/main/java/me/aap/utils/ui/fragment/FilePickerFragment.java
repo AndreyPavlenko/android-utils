@@ -196,7 +196,7 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		ListView<VirtualResource> v = getListView();
 		if (v == null) return "";
 		VirtualResource p = v.getParentItem();
-		return (p == null) ? "" : p.getUri().toString();
+		return (p == null) ? "" : p.getRid().toString();
 	}
 
 	protected void onOkButtonClick() {

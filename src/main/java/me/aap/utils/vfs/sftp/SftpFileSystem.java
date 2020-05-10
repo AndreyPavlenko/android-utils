@@ -1,7 +1,5 @@
 package me.aap.utils.vfs.sftp;
 
-import android.net.Uri;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -15,8 +13,10 @@ import me.aap.utils.function.Supplier;
 import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.pref.PreferenceStore.Pref;
+import me.aap.utils.resource.Rid;
 import me.aap.utils.text.SharedTextBuilder;
 import me.aap.utils.text.TextBuilder;
+import me.aap.utils.text.TextUtils;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
@@ -49,10 +49,10 @@ public class SftpFileSystem implements VirtualFileSystem {
 		for (String p : pref) {
 			try {
 				VirtualFolder r = SftpRoot.create(this, p);
-				if (r == null) Log.e("Invalid URI: ", p);
+				if (r == null) Log.e("Invalid resource id: ", p);
 				roots.add(r);
 			} catch (NumberFormatException ex) {
-				Log.e("Invalid URI: ", p);
+				Log.e("Invalid resource id: ", p);
 			}
 		}
 
@@ -68,26 +68,27 @@ public class SftpFileSystem implements VirtualFileSystem {
 
 	@NonNull
 	@Override
-	public FutureSupplier<VirtualResource> getResource(Uri uri) {
-		String user = uri.getUserInfo();
+	public FutureSupplier<VirtualResource> getResource(Rid rid) {
+		CharSequence user = rid.getUserInfo();
 		if (user == null) return completedNull();
-		String host = uri.getHost();
+		CharSequence host = rid.getHost();
 		if (host == null) return completedNull();
-		String path = uri.getPath();
+		CharSequence path = rid.getPath();
 		if (path == null) return completedNull();
-		int port = uri.getPort();
+		int port = rid.getPort();
 		if (port == -1) port = 22;
 
 		for (VirtualResource root : roots) {
 			SftpRoot r = (SftpRoot) root;
 
-			if (host.equals(r.getHost()) && user.equals(r.getUser()) && (port == r.getPort())) {
+			if (TextUtils.equals(host, r.getHost()) && TextUtils.equals(user, r.getUser()) && (port == r.getPort())) {
 				String p = r.getPath();
-				if (path.startsWith(p) && ((p.length() == path.length()) || path.charAt(p.length()) == '/')) {
-					return r.lstat(path).ifFail(fail -> null).map(s -> {
+				if (TextUtils.startsWith(path, p) && ((p.length() == path.length()) || path.charAt(p.length()) == '/')) {
+					String spath = path.toString();
+					return r.lstat(spath).ifFail(fail -> null).map(s -> {
 						if (s == null) return null;
-						if (s.isDir()) return new SftpFolder(r, path);
-						else return new SftpFile(r, path);
+						if (s.isDir()) return new SftpFolder(r, spath);
+						else return new SftpFile(r, spath);
 					});
 				}
 			}
@@ -108,10 +109,10 @@ public class SftpFileSystem implements VirtualFileSystem {
 		return SftpRoot.create(this, user, host, port, path, password, keyFile, keyPass).map(r -> {
 			synchronized (this) {
 				List<VirtualFolder> roots = this.roots;
-				Uri uri = r.getUri();
+				Rid rid = r.getRid();
 
 				for (VirtualFolder root : roots) {
-					if (uri.equals(root.getUri())) return root;
+					if (rid.equals(root.getRid())) return root;
 				}
 
 				List<VirtualFolder> newRoots = new ArrayList<>(roots.size() + 1);
@@ -129,10 +130,10 @@ public class SftpFileSystem implements VirtualFileSystem {
 
 		boolean removed = false;
 		List<VirtualFolder> newRoots = new ArrayList<>(roots.size() - 1);
-		Uri uri = root.getUri();
+		Rid rid = root.getRid();
 
 		for (VirtualFolder r : roots) {
-			if (r.getUri().equals(uri)) removed = true;
+			if (r.getRid().equals(rid)) removed = true;
 			else newRoots.add(r);
 		}
 
@@ -147,16 +148,16 @@ public class SftpFileSystem implements VirtualFileSystem {
 		String[] pref = new String[roots.size()];
 
 		for (int i = 0, s = roots.size(); i < s; i++) {
-			pref[i] = roots.get(i).getUri().toString();
+			pref[i] = roots.get(i).getRid().toString();
 		}
 
 		getPreferenceStore().applyStringArrayPref(SFTP_ROOTS, pref);
 	}
 
-	static Uri buildUri(@NonNull String user, @NonNull String host, int port, @Nullable String path) {
+	static Rid buildRid(@NonNull String user, @NonNull String host, int port, @Nullable String path) {
 		try (SharedTextBuilder tb = SharedTextBuilder.get()) {
 			appendUri(tb, user, host, port, path);
-			return Uri.parse(tb.toString());
+			return Rid.create(tb);
 		}
 	}
 

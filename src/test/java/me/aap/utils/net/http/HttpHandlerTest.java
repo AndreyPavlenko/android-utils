@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.concurrent.NetThreadPool;
 import me.aap.utils.holder.IntHolder;
-import me.aap.utils.misc.MiscUtils;
+import me.aap.utils.misc.TestUtils;
 import me.aap.utils.net.NetChannel;
 import me.aap.utils.net.NetHandler;
 import me.aap.utils.net.NetServer;
@@ -50,7 +50,7 @@ public class HttpHandlerTest extends Assertions {
 
 	@BeforeAll
 	public static void setUpClass() throws IOException {
-		MiscUtils.enableTestMode();
+		TestUtils.enableTestMode();
 		exec = new NetThreadPool(Runtime.getRuntime().availableProcessors() - 1);
 		handler = NetHandler.create(exec);
 

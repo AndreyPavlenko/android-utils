@@ -1,7 +1,5 @@
 package me.aap.utils.vfs.generic;
 
-import android.net.Uri;
-
 import androidx.annotation.NonNull;
 
 import java.util.Collections;
@@ -9,6 +7,7 @@ import java.util.Set;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.pref.PreferenceStore;
+import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualResource;
 
@@ -25,14 +24,14 @@ public class GenericFileSystem implements VirtualFileSystem {
 	}
 
 	@Override
-	public boolean isSupportedResource(Uri uri) {
+	public boolean isSupportedResource(Rid rid) {
 		return true;
 	}
 
 	@NonNull
 	@Override
-	public FutureSupplier<VirtualResource> getResource(Uri uri) {
-		return completed(new GenericResource(uri));
+	public FutureSupplier<VirtualResource> getResource(Rid rid) {
+		return completed(new GenericResource(rid));
 	}
 
 	@NonNull
