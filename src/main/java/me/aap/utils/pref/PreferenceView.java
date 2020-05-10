@@ -121,7 +121,7 @@ public class PreferenceView extends ConstraintLayout {
 		setPreference(R.layout.boolean_pref_layout, o);
 		CheckBox b = findViewById(R.id.pref_value);
 		b.setChecked(o.store.getBooleanPref(o.pref));
-		b.setOnCheckedChangeListener((v, checked) -> o.store.applyBooleanPref(o.pref, checked));
+		b.setOnCheckedChangeListener((v, checked) -> o.store.applyBooleanPref(o.removeDefault, o.pref, checked));
 		setOnClickListener(v -> b.setChecked(!b.isChecked()));
 
 		setPrefListener((s, p) -> {
@@ -144,7 +144,7 @@ public class PreferenceView extends ConstraintLayout {
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
 				if (!ignoreChange[0]) {
 					ignoreChange[0] = true;
-					o.store.applyStringPref(o.pref, s.toString());
+					o.store.applyStringPref(o.removeDefault, o.pref, s.toString());
 					ignoreChange[0] = false;
 				}
 			}
@@ -200,14 +200,14 @@ public class PreferenceView extends ConstraintLayout {
 
 	private void setIntPreference(IntOpts o) {
 		setNumberPreference(o, () -> String.valueOf(o.store.getIntPref(o.pref)),
-				v -> o.store.applyIntPref(o.pref, Integer.parseInt(v)), String::valueOf,
+				v -> o.store.applyIntPref(o.removeDefault, o.pref, Integer.parseInt(v)), String::valueOf,
 				Integer::parseInt,
 				null);
 	}
 
 	private void setFloatPreference(FloatOpts o) {
 		setNumberPreference(o, () -> String.valueOf(o.store.getFloatPref(o.pref)),
-				v -> o.store.applyFloatPref(o.pref, Float.parseFloat(v)),
+				v -> o.store.applyFloatPref(o.removeDefault, o.pref, Float.parseFloat(v)),
 				v -> String.valueOf(v * o.scale),
 				v -> (int) (Float.parseFloat(v) / o.scale),
 				null);
@@ -215,7 +215,7 @@ public class PreferenceView extends ConstraintLayout {
 
 	private void setTimePreference(TimeOpts o) {
 		setNumberPreference(o, () -> TextUtils.timeToString(o.store.getIntPref(o.pref)),
-				v -> o.store.applyIntPref(o.pref, TextUtils.stringToTime(v)),
+				v -> o.store.applyIntPref(o.removeDefault, o.pref, TextUtils.stringToTime(v)),
 				TextUtils::timeToString, TextUtils::stringToTime,
 				(t, sb) -> {
 					t.setInputType(InputType.TYPE_CLASS_TEXT);
@@ -337,12 +337,14 @@ public class PreferenceView extends ConstraintLayout {
 					Resources res = getContext().getResources();
 
 					for (int i = 0; i < o.values.length; i++) {
+						if (!o.valuesFilter.apply(i)) continue;
 						int id = (o.valuesMap == null) ? i : o.valuesMap[i];
 						OverlayMenuItem item = b.addItem(id, res.getString(o.values[i]));
 						if (id == currentValue) b.setSelectedItem(item);
 					}
 				} else {
 					for (int i = 0; i < o.stringValues.length; i++) {
+						if (!o.valuesFilter.apply(i)) continue;
 						int id = (o.valuesMap == null) ? i : o.valuesMap[i];
 						OverlayMenuItem item = b.addItem(id, o.stringValues[i]);
 						if (id == currentValue) b.setSelectedItem(item);
@@ -353,7 +355,7 @@ public class PreferenceView extends ConstraintLayout {
 					int id = item.getItemId();
 					if (id == currentValue) return true;
 
-					o.store.applyIntPref(o.pref, id);
+					o.store.applyIntPref(o.removeDefault, o.pref, id);
 					if (formatTitle != null) formatTitle.run();
 					if (formatSubtitle != null) formatSubtitle.run();
 					return true;
@@ -492,6 +494,7 @@ public class PreferenceView extends ConstraintLayout {
 	public static class PrefOpts<S> extends Opts {
 		public PreferenceStore store;
 		public PreferenceStore.Pref<S> pref;
+		public boolean removeDefault = true;
 	}
 
 	public static class BooleanOpts extends PrefOpts<BooleanSupplier> {
@@ -535,6 +538,7 @@ public class PreferenceView extends ConstraintLayout {
 		public int[] values;
 		public int[] valuesMap;
 		public String[] stringValues;
+		public IntFunction<Boolean> valuesFilter = i -> true;
 		public boolean formatTitle;
 		public boolean formatSubtitle;
 		public Consumer<ListOpts> initList;

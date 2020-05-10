@@ -57,43 +57,71 @@ public interface PreferenceStore extends EventBroadcaster<PreferenceStore.Listen
 	}
 
 	default void applyBooleanPref(Pref<? extends BooleanSupplier> pref, boolean value) {
-		try (Edit e = editPreferenceStore()) {
+		applyBooleanPref(true, pref, value);
+	}
+
+	default void applyBooleanPref(boolean removeDefault, Pref<? extends BooleanSupplier> pref, boolean value) {
+		try (Edit e = editPreferenceStore(removeDefault)) {
 			e.setBooleanPref(pref, value);
 		}
 	}
 
 	default void applyIntPref(Pref<? extends IntSupplier> pref, int value) {
-		try (Edit e = editPreferenceStore()) {
+		applyIntPref(true, pref, value);
+	}
+
+	default void applyIntPref(boolean removeDefault, Pref<? extends IntSupplier> pref, int value) {
+		try (Edit e = editPreferenceStore(removeDefault)) {
 			e.setIntPref(pref, value);
 		}
 	}
 
 	default void applyIntArrayPref(Pref<? extends Supplier<int[]>> pref, int[] value) {
-		try (Edit e = editPreferenceStore()) {
+		applyIntArrayPref(true, pref, value);
+	}
+
+	default void applyIntArrayPref(boolean removeDefault, Pref<? extends Supplier<int[]>> pref, int[] value) {
+		try (Edit e = editPreferenceStore(removeDefault)) {
 			e.setIntArrayPref(pref, value);
 		}
 	}
 
 	default void applyLongPref(Pref<? extends LongSupplier> pref, long value) {
-		try (Edit e = editPreferenceStore()) {
+		applyLongPref(true, pref, value);
+	}
+
+	default void applyLongPref(boolean removeDefault, Pref<? extends LongSupplier> pref, long value) {
+		try (Edit e = editPreferenceStore(removeDefault)) {
 			e.setLongPref(pref, value);
 		}
 	}
 
 	default void applyFloatPref(Pref<? extends DoubleSupplier> pref, float value) {
-		try (Edit e = editPreferenceStore()) {
+		applyFloatPref(true, pref, value);
+	}
+
+	default void applyFloatPref(boolean removeDefault, Pref<? extends DoubleSupplier> pref, float value) {
+		try (Edit e = editPreferenceStore(removeDefault)) {
 			e.setFloatPref(pref, value);
 		}
 	}
 
 	default void applyStringPref(Pref<? extends Supplier<String>> pref, String value) {
-		try (Edit e = editPreferenceStore()) {
+		applyStringPref(true, pref, value);
+	}
+
+	default void applyStringPref(boolean removeDefault, Pref<? extends Supplier<String>> pref, String value) {
+		try (Edit e = editPreferenceStore(removeDefault)) {
 			e.setStringPref(pref, value);
 		}
 	}
 
 	default void applyStringArrayPref(Pref<? extends Supplier<String[]>> pref, String[] value) {
-		try (Edit e = editPreferenceStore()) {
+		applyStringArrayPref(true, pref, value);
+	}
+
+	default void applyStringArrayPref(boolean removeDefault, Pref<? extends Supplier<String[]>> pref, String[] value) {
+		try (Edit e = editPreferenceStore(removeDefault)) {
 			e.setStringArrayPref(pref, value);
 		}
 	}
