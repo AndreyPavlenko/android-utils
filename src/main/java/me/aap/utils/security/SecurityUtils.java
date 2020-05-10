@@ -130,6 +130,56 @@ public class SecurityUtils {
 		return digestString(sha1Digest(), c);
 	}
 
+	public static MessageDigest md5Digest() {
+		try {
+			return MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+
+	public static byte[] md5(byte... bytes) {
+		return digest(md5Digest(), bytes);
+	}
+
+	public static String md5String(byte... bytes) {
+		return digestString(md5Digest(), bytes);
+	}
+
+	public static byte[] md5(ByteBuffer bytes) {
+		return digest(md5Digest(), bytes);
+	}
+
+	public static String md5String(ByteBuffer bytes) {
+		return digestString(md5Digest(), bytes);
+	}
+
+	public static byte[] md5(CharSequence... text) {
+		return md5(UTF_8, text);
+	}
+
+	public static String md5String(CharSequence... text) {
+		return md5String(UTF_8, text);
+	}
+
+	public static byte[] md5(Charset charset,
+													 final CharSequence... text) {
+		return digest(md5Digest(), charset, text);
+	}
+
+	public static String md5String(Charset charset,
+																 final CharSequence... text) {
+		return digestString(md5Digest(), charset, text);
+	}
+
+	public static byte[] md5(File f) throws IOException {
+		return digest(md5Digest(), f);
+	}
+
+	public static String md5String(File f) throws IOException {
+		return digestString(md5Digest(), f);
+	}
+
 	public static byte[] digest(MessageDigest md, byte... bytes) {
 		md.update(bytes);
 		return md.digest();
