@@ -20,12 +20,23 @@ import static java.lang.Character.toUpperCase;
  */
 public class TextUtils {
 
-	public static int indexOfChar(CharSequence seq, int from, int to, CharSequence chars) {
+	public static int indexOfChar(CharSequence seq, CharSequence chars, int from, int to) {
 		for (int len = chars.length(); from < to; from++) {
 			char c = seq.charAt(from);
 			for (int n = 0; n < len; n++) {
 				if (chars.charAt(n) == c) return from;
 			}
+		}
+		return -1;
+	}
+
+	public static int indexOf(CharSequence text, char c) {
+		return indexOf(text, c, 0, text.length());
+	}
+
+	public static int indexOf(CharSequence text, char c, int fromIndex, int toIndex) {
+		for (; fromIndex < toIndex; fromIndex++) {
+			if (c == text.charAt(fromIndex)) return fromIndex;
 		}
 		return -1;
 	}

@@ -24,6 +24,7 @@ import me.aap.utils.function.Supplier;
 import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.resource.Rid;
+import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
@@ -52,7 +53,7 @@ public class LocalFileSystem implements VirtualFileSystem {
 	@NonNull
 	@Override
 	public FutureSupplier<VirtualResource> getResource(Rid rid) {
-		return completed(getResource(rid.getPath().toString()));
+		return completed(getResource(rid.getPath()));
 	}
 
 	public VirtualResource getResource(String path) {
@@ -61,6 +62,16 @@ public class LocalFileSystem implements VirtualFileSystem {
 		if (file.isDirectory()) return new LocalFolder(file);
 		if (file.isFile()) return new LocalFile(file);
 		return null;
+	}
+
+	@Override
+	public FutureSupplier<VirtualFile> getFile(Rid rid) {
+		return completed(new LocalFile(new File(rid.getPath())));
+	}
+
+	@Override
+	public FutureSupplier<VirtualFolder> getFolder(Rid rid) {
+		return completed(new LocalFolder(new File(rid.getPath())));
 	}
 
 	@NonNull

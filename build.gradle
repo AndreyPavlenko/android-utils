@@ -6,7 +6,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.0-beta03'
+        classpath 'com.android.tools.build:gradle:4.0.0-beta05'
     }
 }
 
@@ -52,7 +52,9 @@ dependencies {
     implementation "androidx.constraintlayout:constraintlayout:" + ANDROIDX_CONSTRAINTLAYOUT_VERSION
     implementation 'com.google.android.play:core:' + ANDROID_PLAY_CORE_VERSION
     implementation 'com.google.android.material:material:' + ANDROID_MATERIAL_VERSION
+
     implementation 'com.jcraft:jsch:0.1.55'
+    implementation 'com.hierynomus:smbj:0.10.0'
 
     implementation 'com.google.gms:google-services:4.3.3'
     implementation 'com.google.android.gms:play-services-auth:18.0.0'

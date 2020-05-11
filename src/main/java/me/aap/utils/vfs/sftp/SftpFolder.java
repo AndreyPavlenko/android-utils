@@ -1,5 +1,7 @@
 package me.aap.utils.vfs.sftp;
 
+import androidx.annotation.NonNull;
+
 import com.jcraft.jsch.ChannelSftp.LsEntry;
 
 import java.util.ArrayList;
@@ -16,17 +18,21 @@ import me.aap.utils.vfs.VirtualResource;
  */
 class SftpFolder extends SftpResource implements VirtualFolder {
 
-	public SftpFolder(SftpRoot root, String path) {
+	SftpFolder(@NonNull SftpRoot root, @NonNull String path) {
 		super(root, path);
+	}
+
+	SftpFolder(@NonNull SftpRoot root, @NonNull String path, VirtualFolder parent) {
+		super(root, path, parent);
 	}
 
 	@Override
 	public FutureSupplier<List<VirtualResource>> getChildren() {
-		return getRoot().useChannel(ch -> {
+		SftpRoot root = getRoot();
+		return root.useChannel(ch -> {
 			@SuppressWarnings("unchecked") List<LsEntry> ls = ch.ls(getPath());
 			if (ls.isEmpty()) return Collections.emptyList();
 
-			SftpRoot root = getRoot();
 			List<VirtualResource> children = new ArrayList<>(ls.size());
 
 			try (SharedTextBuilder tb = SharedTextBuilder.get()) {
@@ -38,8 +44,8 @@ class SftpFolder extends SftpResource implements VirtualFolder {
 					if (name.equals(".") || name.equals("..")) continue;
 					tb.setLength(len);
 					String p = tb.append(name).toString();
-					if (e.getAttrs().isDir()) children.add(new SftpFolder(root, p));
-					else children.add(new SftpFile(root, p));
+					if (e.getAttrs().isDir()) children.add(new SftpFolder(root, p, this));
+					else children.add(new SftpFile(root, p, this));
 				}
 			}
 

@@ -29,7 +29,7 @@ class JavaUriWrapper implements Rid {
 
 	@Nullable
 	@Override
-	public CharSequence getAuthority() {
+	public String getAuthority() {
 		return uri.getAuthority();
 	}
 

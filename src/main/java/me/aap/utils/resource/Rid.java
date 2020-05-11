@@ -18,21 +18,21 @@ import static me.aap.utils.os.OsUtils.isAndroid;
  */
 public interface Rid {
 
-	CharSequence getScheme();
+	String getScheme();
 
-	CharSequence getAuthority();
+	String getAuthority();
 
-	CharSequence getUserInfo();
+	String getUserInfo();
 
-	CharSequence getHost();
+	String getHost();
 
 	int getPort();
 
-	CharSequence getPath();
+	String getPath();
 
-	CharSequence getQuery();
+	String getQuery();
 
-	CharSequence getFragment();
+	String getFragment();
 
 	static Rid create(CharSequence rid) {
 		if (isAndroid()) {
@@ -44,6 +44,16 @@ public interface Rid {
 				throw new IllegalArgumentException(ex);
 			}
 		}
+	}
+
+	static Rid create(CharSequence scheme, CharSequence userInfo, CharSequence host, int port,
+										CharSequence path) {
+		return create(scheme, userInfo, host, port, path, null, null);
+	}
+
+	static Rid create(CharSequence scheme, CharSequence userInfo, CharSequence host, int port,
+										CharSequence path, CharSequence query, CharSequence fragment) {
+		return GenericRid.create(scheme, userInfo, host, port, path, query, fragment);
 	}
 
 	static CharSequence encode(CharSequence rid) {

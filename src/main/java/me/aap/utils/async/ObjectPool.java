@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import me.aap.utils.BuildConfig;
 import me.aap.utils.concurrent.ConcurrentQueueBase;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.holder.Holder;
@@ -304,6 +305,10 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 
 		@Override
 		protected void finalize() {
+			if (BuildConfig.DEBUG && (ref != null)) {
+				Log.w("Pooled object has not been properly released: " + ref);
+			}
+
 			release();
 		}
 	}

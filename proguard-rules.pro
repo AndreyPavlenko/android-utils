@@ -4,5 +4,5 @@
 -keep class com.jcraft.jsch.** { *; }
 
 -assumenosideeffects class me.aap.utils.log.Log {
-    public static int d(...);
+    public static void d(...);
 }

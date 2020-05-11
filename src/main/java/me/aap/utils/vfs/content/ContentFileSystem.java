@@ -18,7 +18,9 @@ import me.aap.utils.io.FileUtils;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.pref.PreferenceStore.Pref;
 import me.aap.utils.resource.Rid;
+import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFileSystem;
+import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
 import me.aap.utils.vfs.local.LocalFileSystem;
 
@@ -46,6 +48,15 @@ public class ContentFileSystem implements VirtualFileSystem {
 		return provider;
 	}
 
+	@Override
+	public FutureSupplier<VirtualFile> getFile(Rid rid) {
+		return getResource(rid).map(r -> (r instanceof VirtualFile) ? (VirtualFile) r : null);
+	}
+
+	@Override
+	public FutureSupplier<VirtualFolder> getFolder(Rid rid) {
+		return getResource(rid).map(r -> (r instanceof VirtualFile) ? (VirtualFolder) r : null);
+	}
 
 	@NonNull
 	@Override

@@ -83,7 +83,8 @@ public class VfsHttpHandler implements HttpRequestHandler {
 				}
 
 				reply.onCompletion((r, f) -> {
-					if (close || (f != null)) channel.close();
+					if (f != null) ServiceUnavailable.instance.write(channel);
+					else if (close) channel.close();
 				});
 			});
 		});

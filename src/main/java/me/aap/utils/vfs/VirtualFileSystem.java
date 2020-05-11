@@ -22,6 +22,14 @@ public interface VirtualFileSystem {
 	@NonNull
 	FutureSupplier<VirtualResource> getResource(Rid rid);
 
+	default FutureSupplier<VirtualFile> getFile(Rid rid) {
+		return getResource(rid).map(r -> (r instanceof VirtualFile) ? (VirtualFile) r : null);
+	}
+
+	default FutureSupplier<VirtualFolder> getFolder(Rid rid) {
+		return getResource(rid).map(r -> (r instanceof VirtualFile) ? (VirtualFolder) r : null);
+	}
+
 	@NonNull
 	default FutureSupplier<List<VirtualFolder>> getRoots() {
 		return completedEmptyList();

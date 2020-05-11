@@ -1,11 +1,15 @@
-package me.aap.utils.vfs.sftp;
+package me.aap.utils.vfs.smb;
 
 import androidx.annotation.NonNull;
 
-import com.jcraft.jsch.SftpATTRS;
+import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.smbj.share.File;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.EnumSet;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.ObjectPool.PooledObject;
@@ -14,7 +18,7 @@ import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualInputStream;
-import me.aap.utils.vfs.sftp.SftpRoot.SftpSession;
+import me.aap.utils.vfs.smb.SmbRoot.SmbSession;
 
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.io.IoUtils.emptyByteBuffer;
@@ -23,27 +27,28 @@ import static me.aap.utils.vfs.VirtualInputStream.readInputStream;
 /**
  * @author Andrey Pavlenko
  */
-class SftpFile extends SftpResource implements VirtualFile {
+class SmbFile extends SmbResource implements VirtualFile {
 
-	SftpFile(SftpRoot root, String path) {
+	SmbFile(@NonNull SmbRoot root, @NonNull String path) {
 		super(root, path);
 	}
 
-	SftpFile(@NonNull SftpRoot root, @NonNull String path, VirtualFolder parent) {
+	SmbFile(@NonNull SmbRoot root, @NonNull String path, VirtualFolder parent) {
 		super(root, path, parent);
 	}
 
 	@Override
 	public FutureSupplier<Long> getLength() {
-		return lstat().map(SftpATTRS::getSize);
+		return getRoot().useShare(s -> s.getFileInformation(smbPath()).getStandardInformation().getEndOfFile());
 	}
 
 	@Override
 	public VirtualInputStream getInputStream(long offset) {
 		return new VirtualInputStream() {
-			private final FutureSupplier<PooledObject<SftpSession>> session = getRoot().getSession();
+			private final FutureSupplier<PooledObject<SmbSession>> session = getRoot().getSession();
 			long pos = offset;
 			InputStream stream;
+			File file;
 
 			@Override
 			public FutureSupplier<ByteBuffer> read(ByteBufferSupplier dst) {
@@ -59,10 +64,19 @@ class SftpFile extends SftpResource implements VirtualFile {
 				}
 
 				return session.then(s -> {
-					SftpSession session = s.get();
+					SmbSession session = s.get();
 					if (session == null) return completed(emptyByteBuffer());
 
-					InputStream is = stream = session.getChannel().get(getPath(), null, pos);
+					file = session.getShare().openFile(smbPath(),
+							EnumSet.of(AccessMask.GENERIC_READ),
+							null,
+							EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
+							SMB2CreateDisposition.FILE_OPEN,
+							null);
+					InputStream is = stream = file.getInputStream();
+					//noinspection StatementWithEmptyBody
+					for (long p = 0; p < pos; p += is.skip(pos - p)) ;
+
 					FutureSupplier<ByteBuffer> r = readInputStream(is, dst.getByteBuffer(), getInputBufferLen());
 					pos += r.peek().remaining();
 					return r;
@@ -71,16 +85,13 @@ class SftpFile extends SftpResource implements VirtualFile {
 
 			@Override
 			public boolean cancel() {
-				InputStream in = stream;
-
-				if (in != null) {
-					IoUtils.close(in);
-					stream = null;
-				}
+				IoUtils.close(stream, file);
+				file = null;
+				stream = null;
 
 				if (session.cancel()) return true;
 
-				PooledObject<SftpSession> s = session.peek();
+				PooledObject<SmbSession> s = session.peek();
 				return (s != null) && s.release();
 			}
 		};

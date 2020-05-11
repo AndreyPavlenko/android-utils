@@ -78,19 +78,50 @@ public class VfsManager {
 	}
 
 	public FutureSupplier<VirtualResource> getResource(Rid rid) {
+		return getResource(rid, 0);
+	}
+
+	@NonNull
+	public FutureSupplier<VirtualFile> getFile(CharSequence rid) {
+		return getFile(Rid.create(rid));
+	}
+
+	public FutureSupplier<VirtualFile> getFile(Rid rid) {
+		return getResource(rid, 1);
+	}
+
+	@NonNull
+	public FutureSupplier<VirtualFolder> getFolder(CharSequence rid) {
+		return getFolder(Rid.create(rid));
+	}
+
+	public FutureSupplier<VirtualFolder> getFolder(Rid rid) {
+		return getResource(rid, 2);
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private <R extends VirtualResource> FutureSupplier<R> getResource(Rid rid, int type) {
 		Mounts mounts = this.mounts;
-		List<VirtualFileSystem> list = mounts.map.get(rid.getScheme().toString());
+		List<VirtualFileSystem> list = mounts.map.get(rid.getScheme());
 
 		if ((list != null) && !list.isEmpty()) {
 			for (VirtualFileSystem fs : list) {
-				if (fs.isSupportedResource(rid)) return fs.getResource(rid);
+				if (fs.isSupportedResource(rid)) {
+					return (type == 0) ? (FutureSupplier) fs.getResource(rid)
+							: (type == 1) ? (FutureSupplier) fs.getFile(rid)
+							: (FutureSupplier) fs.getFolder(rid);
+				}
 			}
 
 			return completedNull();
 		}
 
-		for (VirtualFileSystem p : mounts.any) {
-			if (p.isSupportedResource(rid)) return p.getResource(rid);
+		for (VirtualFileSystem fs : mounts.any) {
+			if (fs.isSupportedResource(rid)) {
+				return (type == 0) ? (FutureSupplier) fs.getResource(rid)
+						: (type == 1) ? (FutureSupplier) fs.getFile(rid)
+						: (FutureSupplier) fs.getFolder(rid);
+			}
 		}
 
 		return completedNull();
@@ -117,8 +148,9 @@ public class VfsManager {
 		return Rid.create("http://localhost:" + port + HTTP_PATH + "?" + HTTP_QUERY + encoded);
 	}
 
-	private NetServer getNetServer() {
+	public NetServer getNetServer() {
 		NetServer net = netServer;
+
 		if (net == null) {
 			synchronized (this) {
 				if ((net = netServer) == null) {
@@ -126,6 +158,7 @@ public class VfsManager {
 				}
 			}
 		}
+
 		return net;
 	}
 
