@@ -67,7 +67,7 @@ public class NetResourceBase<R extends VirtualFolder> implements VirtualResource
 		if (idx == 0) return parent = ("/".equals(path) ? completedNull() : completed(root));
 
 		String pp = path.substring(0, idx);
-		if (pp.equals(root.getRid().getPath().toString())) return parent = completed(root);
+		if (pp.equals(root.getRid().getPath())) return parent = completed(root);
 
 		NetFileSystemBase fs = (NetFileSystemBase) root.getVirtualFileSystem();
 		return fs.createResource(root, pp).then(r ->

@@ -61,6 +61,14 @@ public class App extends android.app.Application {
 		return h;
 	}
 
+	public void run(Runnable task) {
+		if (isMainThread()) {
+			task.run();
+		} else {
+			getHandler().post(task);
+		}
+	}
+
 	public ThreadPool getExecutor() {
 		ThreadPool e = executor;
 

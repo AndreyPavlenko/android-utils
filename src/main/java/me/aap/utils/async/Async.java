@@ -10,6 +10,7 @@ import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.CheckedSupplier;
 import me.aap.utils.log.Log;
 
+import static me.aap.utils.async.Completed.completedNull;
 import static me.aap.utils.async.Completed.completedVoid;
 import static me.aap.utils.async.Completed.failed;
 
@@ -104,6 +105,8 @@ public class Async {
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	public static <T> FutureSupplier<T> iterate(FutureSupplier<T> first, CheckedFunction<FutureSupplier<T>, FutureSupplier<T>, Throwable> next) {
+		if (first == null) return completedNull();
+
 		try {
 			for (FutureSupplier<T> s = first; ; ) {
 				if (s.isDone()) {
@@ -124,28 +127,40 @@ public class Async {
 	}
 
 	public static <T> FutureSupplier<T> retry(CheckedSupplier<FutureSupplier<T>, Throwable> task) {
+		return retry(task, ex -> task.get());
+	}
+
+	public static <T> FutureSupplier<T> retry(CheckedSupplier<FutureSupplier<T>, Throwable> task,
+																						CheckedFunction<Throwable, FutureSupplier<T>, Throwable> retry) {
 		FutureSupplier<T> s;
 
-		for (int i = 0; ; i++) {
+		try {
+			s = task.get();
+		} catch (Throwable ex) {
 			try {
-				s = task.get();
-			} catch (Throwable ex) {
-				if (i == 1) return failed(ex);
 				Log.d(ex, "Task failed, retrying ...");
-				continue;
+				return retry.apply(ex);
+			} catch (Throwable ex1) {
+				return failed(ex1);
 			}
+		}
 
-			if (i == 1) return s;
+		if (s.isDone()) {
+			if (!s.isFailed() || s.isCancelled()) return s;
 
-			if (s.isDone()) {
-				if (!s.isFailed() || s.isCancelled()) return s;
-			} else {
-				break;
+			Throwable ex = s.getFailure();
+			Log.d(ex, "Task failed, retrying ...");
+
+			try {
+				return retry.apply(ex);
+			} catch (Throwable ex1) {
+				return failed(ex1);
 			}
 		}
 
 		ProxySupplier<T, T> proxy = new ProxySupplier<T, T>() {
-			boolean retry;
+			FutureSupplier<T> supplier = s;
+			boolean retrying;
 
 			@Override
 			public T map(T value) {
@@ -154,28 +169,31 @@ public class Async {
 
 			@Override
 			public boolean completeExceptionally(@NonNull Throwable ex) {
-				if (retry) return super.completeExceptionally(ex);
+				if (retrying) return super.completeExceptionally(ex);
 				if (isDone()) return false;
 
 				Log.d(ex, "Task failed, retrying ...");
-				retry = true;
+				retrying = true;
 
 				try {
-					FutureSupplier<T> f = task.get();
+					supplier = retry.apply(ex);
 
-					if (f.isDone()) {
-						if (f.isFailed()) return super.completeExceptionally(f.getFailure());
-						else return complete(f.peek());
+					if (supplier.isDone()) {
+						if (supplier.isFailed()) return super.completeExceptionally(supplier.getFailure());
+						else return complete(supplier.peek());
 					}
 
-					f.addConsumer(this);
+					supplier.addConsumer(this);
 					return true;
 				} catch (Throwable fail) {
 					return super.completeExceptionally(fail);
 				}
 			}
-		};
 
+			public boolean cancel(boolean mayInterruptIfRunning) {
+				return super.cancel(mayInterruptIfRunning) || supplier.cancel();
+			}
+		};
 
 		s.addConsumer(proxy);
 		return proxy;

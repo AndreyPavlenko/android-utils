@@ -94,10 +94,12 @@ public class FilePickerFragment extends GenericDialogFragment implements
 
 	public void setMode(byte mode) {
 		state.mode = mode;
+		setFilter(getListView());
 	}
 
 	public void setPattern(@Nullable Pattern pattern) {
 		state.pattern = pattern;
+		setFilter(getListView());
 	}
 
 	public void setCreateFolder(CreateFolder create) {
@@ -126,14 +128,18 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		v.setHasFixedSize(true);
 		v.setItemClickListener(this);
 		v.setItemsChangeListener(this);
+		setFilter(v);
+		if (state.supplier != null) v.setItems(requireNonNull(state.supplier));
+	}
+
+	private void setFilter(ListView<VirtualResource> v) {
+		if (v == null) return;
 
 		if ((state.pattern != null) || (state.mode != FILE_OR_FOLDER)) {
 			v.setFilter(this::filter);
 		} else {
 			v.setFilter(null);
 		}
-
-		v.setItems(requireNonNull(state.supplier));
 	}
 
 	private boolean filter(VirtualResource f) {

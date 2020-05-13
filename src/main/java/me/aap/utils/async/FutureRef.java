@@ -11,11 +11,11 @@ import me.aap.utils.function.CheckedSupplier;
  */
 public abstract class FutureRef<T> {
 	@SuppressWarnings("rawtypes")
-	private static final AtomicReferenceFieldUpdater<FutureRef, FutureSupplier> ref =
-			AtomicReferenceFieldUpdater.newUpdater(FutureRef.class, FutureSupplier.class, "refHolder");
+	private static final AtomicReferenceFieldUpdater<FutureRef, FutureSupplier> REF =
+			AtomicReferenceFieldUpdater.newUpdater(FutureRef.class, FutureSupplier.class, "ref");
 	@Keep
 	@SuppressWarnings("unused")
-	private volatile FutureSupplier<T> refHolder;
+	private volatile FutureSupplier<T> ref;
 
 	protected abstract FutureSupplier<T> create() throws Throwable;
 
@@ -30,33 +30,33 @@ public abstract class FutureRef<T> {
 
 	@SuppressWarnings("unchecked")
 	public FutureSupplier<T> get() {
-		FutureSupplier<T> r = ref.get(this);
+		FutureSupplier<T> r = REF.get(this);
 		if ((r != null) && (!r.isDone() || isValid(r))) return r;
 
 		Promise<T> p = new Promise<>();
 
-		for (; !ref.compareAndSet(this, r, p); r = ref.get(this)) {
+		for (; !REF.compareAndSet(this, r, p); r = REF.get(this)) {
 			if ((r != null) && (!r.isDone() || isValid(r))) return r;
 		}
 
 		try {
-			create().thenReplaceOrClear(ref, this, p);
+			create().thenReplaceOrClear(REF, this, p);
 		} catch (Throwable ex) {
 			p.completeExceptionally(ex);
 			compareAndSet(p, null);
 			return p;
 		}
 
-		r = ref.get(this);
+		r = REF.get(this);
 		return (r != null) ? r : p;
 	}
 
 	public void set(FutureSupplier<T> r) {
-		ref.set(this, r);
+		REF.set(this, r);
 	}
 
 	public boolean compareAndSet(FutureSupplier<T> expect, FutureSupplier<T> update) {
-		return ref.compareAndSet(this, expect, update);
+		return REF.compareAndSet(this, expect, update);
 	}
 
 	protected boolean isValid(FutureSupplier<T> ref) {

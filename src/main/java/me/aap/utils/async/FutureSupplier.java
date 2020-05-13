@@ -110,7 +110,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			public boolean cancel(boolean mayInterruptIfRunning) {
 				cancelled = true;
 				if (!super.cancel(mayInterruptIfRunning)) return false;
-				FutureSupplier.this.cancel();
+				FutureSupplier.this.cancel(mayInterruptIfRunning);
 				return true;
 			}
 
@@ -199,13 +199,23 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			}
 		}
 
-		return ProxySupplier.create(this, map);
+		return ProxySupplier.create(this, map, ex -> {
+			if (isCancellation(ex)) FutureSupplier.this.cancel();
+			throw ex;
+		});
 	}
 
-	default FutureSupplier<T> ifFail(Function<Throwable, ? extends T> onFail) {
+	default FutureSupplier<T> ifFail(CheckedFunction<Throwable, ? extends T, Throwable> onFail) {
 		if (isDone()) {
-			if (isFailed()) return completed(onFail.apply(getFailure()));
-			else return this;
+			if (isFailed()) {
+				try {
+					return completed(onFail.apply(getFailure()));
+				} catch (Throwable ex) {
+					return failed(ex);
+				}
+			} else {
+				return this;
+			}
 		}
 
 		return ProxySupplier.create(this, t -> t, onFail);
@@ -224,7 +234,13 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			}
 		}
 
-		Promise<R> p = new Promise<>();
+		Promise<R> p = new Promise<R>() {
+			@Override
+			public boolean cancel(boolean mayInterruptIfRunning) {
+				return super.cancel(mayInterruptIfRunning)
+						|| FutureSupplier.this.cancel(mayInterruptIfRunning);
+			}
+		};
 
 		onCompletion((result, fail) -> {
 			if (fail == null) {
@@ -260,6 +276,9 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			try (@SuppressWarnings("unused") AutoCloseable closeable = (AutoCloseable) result) {
 				return map.apply(result);
 			}
+		}, ex -> {
+			if (isCancellation(ex)) FutureSupplier.this.cancel();
+			throw ex;
 		});
 	}
 
@@ -276,7 +295,12 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			}
 		}
 
-		Promise<R> p = new Promise<>();
+		Promise<R> p = new Promise<R>() {
+			public boolean cancel(boolean mayInterruptIfRunning) {
+				return super.cancel(mayInterruptIfRunning)
+						|| FutureSupplier.this.cancel(mayInterruptIfRunning);
+			}
+		};
 
 		onCompletion((result, fail) -> {
 			if (fail == null) {

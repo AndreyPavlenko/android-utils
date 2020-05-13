@@ -21,11 +21,9 @@ import androidx.core.content.ContextCompat;
 import me.aap.utils.async.Completable;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
-import me.aap.utils.function.BiConsumer;
 import me.aap.utils.function.Supplier;
 
 import static android.app.NotificationManager.IMPORTANCE_LOW;
-import static android.content.Context.NOTIFICATION_SERVICE;
 import static me.aap.utils.async.Completed.completed;
 
 /**
@@ -36,7 +34,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 	private static final int GRANT_PERM_REQ = 1;
 	private static ActivityBase instance;
 	private static Completable<AppActivity> pendingConsumer;
-	private BiConsumer<Integer, Intent> resultHandler;
+	private Promise<Intent> startActivity;
 	private ActivityDelegate delegate;
 
 	protected abstract Supplier<? extends ActivityDelegate> getConstructor();
@@ -137,18 +135,23 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 		super.finish();
 	}
 
-	public void startActivityForResult(BiConsumer<Integer, Intent> resultHandler, Intent intent) {
-		assert this.resultHandler == null;
-		this.resultHandler = resultHandler;
+	public FutureSupplier<Intent> startActivityForResult(Intent intent) {
+		if (startActivity != null) {
+			startActivity.cancel();
+			startActivity = null;
+		}
+
+		Promise<Intent> p = startActivity = new Promise<>();
 		super.startActivityForResult(intent, START_ACTIVITY_REQ, null);
+		return p;
 	}
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-		if ((requestCode == START_ACTIVITY_REQ) && (resultHandler != null)) {
-			BiConsumer<Integer, Intent> h = resultHandler;
-			resultHandler = null;
-			h.accept(resultCode, data);
+		if ((requestCode == START_ACTIVITY_REQ) && (startActivity != null)) {
+			Promise<Intent> p = startActivity;
+			startActivity = null;
+			p.complete(data);
 		} else {
 			super.onActivityResult(requestCode, resultCode, data);
 		}

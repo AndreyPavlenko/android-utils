@@ -66,8 +66,14 @@ public class GenericFragment extends ActivityFragment {
 		this.contentProvider = contentProvider;
 		ViewGroup v = getView();
 		if (v == null) return;
-		if (contentProvider == null) v.removeAllViews();
-		else contentProvider.accept(v);
+		v.removeAllViews();
+		contentProvider.accept(v);
+	}
+
+	@Override
+	public void onCreate(@Nullable Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setRetainInstance(true);
 	}
 
 	@Nullable

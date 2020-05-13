@@ -10,7 +10,7 @@ public interface ProgressiveResultConsumer<T> extends ResultConsumer<T> {
 	int PROGRESS_DONE = Integer.MAX_VALUE;
 
 	static int progressShift(long total) {
-		if (total<= Integer.MAX_VALUE) return 0;
+		if (total <= Integer.MAX_VALUE) return 0;
 
 		for (int shift = 1; ; shift++) {
 			if ((total >> shift) <= Integer.MAX_VALUE) return shift;

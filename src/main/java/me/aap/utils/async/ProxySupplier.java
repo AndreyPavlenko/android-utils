@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import me.aap.utils.function.CheckedFunction;
-import me.aap.utils.function.Function;
 
 import static me.aap.utils.async.CompletableSupplier.Cancelled.CANCELLED;
 
@@ -51,7 +50,7 @@ public abstract class ProxySupplier<C, S> extends CompletableSupplier<C, S> impl
 
 	public static <T, R> ProxySupplier<T, R> create(@Nullable FutureSupplier<? extends T> supplier,
 																									@NonNull CheckedFunction<? super T, ? extends R, Throwable> map,
-																									@NonNull Function<Throwable, ? extends T> onFail) {
+																									@NonNull CheckedFunction<Throwable, ? extends T, Throwable> onFail) {
 		return new ProxySupplier<T, R>(supplier) {
 			@Override
 			public R map(T t) throws Throwable {
@@ -60,12 +59,20 @@ public abstract class ProxySupplier<C, S> extends CompletableSupplier<C, S> impl
 
 			@Override
 			public boolean completeExceptionally(@NonNull Throwable fail) {
-				return complete(onFail.apply(fail));
+				try {
+					return complete(onFail.apply(fail));
+				} catch (Throwable ex) {
+					return super.completeExceptionally(ex);
+				}
 			}
 
 			@Override
 			public boolean cancel(boolean mayInterruptIfRunning) {
-				return complete(onFail.apply(CANCELLED.fail));
+				try {
+					return complete(onFail.apply(CANCELLED.fail));
+				} catch (Throwable ex) {
+					return super.completeExceptionally(ex);
+				}
 			}
 		};
 	}

@@ -11,6 +11,7 @@ import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 
+import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.BiConsumer;
 
 /**
@@ -39,7 +40,7 @@ public interface AppActivity {
 
 	void finish();
 
-	void startActivityForResult(BiConsumer<Integer, Intent> resultHandler, Intent intent);
+	FutureSupplier<Intent> startActivityForResult(Intent intent);
 
 	void checkPermissions(String... perms);
 

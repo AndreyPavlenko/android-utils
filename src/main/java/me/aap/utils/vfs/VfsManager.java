@@ -14,6 +14,7 @@ import java.util.Set;
 
 import me.aap.utils.app.App;
 import me.aap.utils.app.NetApp;
+import me.aap.utils.async.FutureRef;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.net.NetHandler;
 import me.aap.utils.net.NetServer;
@@ -31,7 +32,7 @@ public class VfsManager {
 
 	@NonNull
 	private volatile Mounts mounts;
-	private volatile NetServer netServer;
+	private final FutureRef<NetServer> netServer = FutureRef.create(this::createHttpServer);
 
 	public VfsManager(VirtualFileSystem... fileSystems) {
 		this(Arrays.asList(fileSystems));
@@ -143,34 +144,26 @@ public class VfsManager {
 	}
 
 	public Rid getHttpRid(Rid rid) {
-		int port = getNetServer().getPort();
+		int port = getNetServer().getOrThrow().getPort();
 		CharSequence encoded = Rid.encode(rid.toString());
 		return Rid.create("http://localhost:" + port + HTTP_PATH + "?" + HTTP_QUERY + encoded);
 	}
 
-	public NetServer getNetServer() {
-		NetServer net = netServer;
-
-		if (net == null) {
-			synchronized (this) {
-				if ((net = netServer) == null) {
-					netServer = net = App.get().execute(this::createHttpServer).getOrThrow();
-				}
-			}
-		}
-
-		return net;
+	public FutureSupplier<NetServer> getNetServer() {
+		return netServer.get();
 	}
 
-	protected NetServer createHttpServer() {
-		NetHandler handler = NetApp.get().getNetHandler();
-		HttpConnectionHandler httpHandler = new HttpConnectionHandler();
-		VfsHttpHandler vfsHandler = new VfsHttpHandler(this);
-		httpHandler.addHandler(HTTP_PATH, (path, method, version) -> vfsHandler);
-		return handler.bind(o -> {
-			o.host = "localhost";
-			o.handler = httpHandler;
-		}).getOrThrow();
+	protected FutureSupplier<NetServer> createHttpServer() {
+		return App.get().execute(() -> {
+			NetHandler handler = NetApp.get().getNetHandler();
+			HttpConnectionHandler httpHandler = new HttpConnectionHandler();
+			VfsHttpHandler vfsHandler = new VfsHttpHandler(this);
+			httpHandler.addHandler(HTTP_PATH, (path, method, version) -> vfsHandler);
+			return handler.bind(o -> {
+				o.host = "localhost";
+				o.handler = httpHandler;
+			});
+		}).then(bind -> bind);
 	}
 
 	private static final class Mounts {

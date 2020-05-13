@@ -96,6 +96,7 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 		try {
 			return supply(map(value), null, PROGRESS_DONE, PROGRESS_DONE);
 		} catch (Throwable ex) {
+			Log.d(ex);
 			return completeExceptionally(ex);
 		}
 	}
@@ -248,15 +249,16 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 	private void supply(ProgressiveResultConsumer<? super S> consumer, S result, Throwable fail,
 											int progress, int total, @Nullable Executor executor) {
-		if ((executor == null) || (consumer instanceof WaitingConsumer)) {
-			consumer.accept(result, fail, progress, total);
-		} else {
-			try {
+		try {
+			if ((executor == null) || (consumer instanceof WaitingConsumer)) {
+				consumer.accept(result, fail, progress, total);
+			} else {
 				executor.execute(() -> consumer.accept(result, fail, progress, total));
-			} catch (Throwable ex) {
-				completeExceptionally(ex);
-				consumer.accept(null, ex);
 			}
+		} catch (Throwable ex) {
+			Log.d(ex);
+			completeExceptionally(ex);
+			consumer.accept(null, ex);
 		}
 	}
 
