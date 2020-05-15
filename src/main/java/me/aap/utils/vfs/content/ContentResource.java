@@ -94,6 +94,12 @@ class ContentResource implements VirtualResource {
 		return Objects.hash(parent, id);
 	}
 
+	@NonNull
+	@Override
+	public String toString() {
+		return getRid().toString();
+	}
+
 	static FutureSupplier<Long> getLong(Uri uri, String column, long defaultValue) {
 		return App.get().execute(() -> queryLong(uri, column, defaultValue));
 	}

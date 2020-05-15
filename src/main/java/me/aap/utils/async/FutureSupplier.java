@@ -353,6 +353,8 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 
 	default FutureSupplier<T> thenRun(Runnable... run) {
 		return onCompletion(((result, fail) -> {
+			if (fail != null) Log.d(fail);
+
 			for (Runnable r : run) {
 				r.run();
 			}

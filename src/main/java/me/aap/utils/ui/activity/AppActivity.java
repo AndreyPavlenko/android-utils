@@ -12,7 +12,6 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 
 import me.aap.utils.async.FutureSupplier;
-import me.aap.utils.function.BiConsumer;
 
 /**
  * @author Andrey Pavlenko
@@ -42,7 +41,7 @@ public interface AppActivity {
 
 	FutureSupplier<Intent> startActivityForResult(Intent intent);
 
-	void checkPermissions(String... perms);
+	FutureSupplier<int[]> checkPermissions(String... perms);
 
 	default Context getContext() {
 		return (Context) this;

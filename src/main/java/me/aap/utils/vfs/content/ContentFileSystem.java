@@ -1,5 +1,6 @@
 package me.aap.utils.vfs.content;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
@@ -55,7 +56,7 @@ public class ContentFileSystem implements VirtualFileSystem {
 
 	@Override
 	public FutureSupplier<VirtualFolder> getFolder(Rid rid) {
-		return getResource(rid).map(r -> (r instanceof VirtualFile) ? (VirtualFolder) r : null);
+		return getResource(rid).map(r -> (r instanceof VirtualFolder) ? (VirtualFolder) r : null);
 	}
 
 	@NonNull
@@ -102,27 +103,28 @@ public class ContentFileSystem implements VirtualFileSystem {
 
 	}
 
-	private ContentFolder create(@NonNull Uri rootUri) {
-		Uri uri = DocumentsContract.buildDocumentUriUsingTree(rootUri,
-				DocumentsContract.getTreeDocumentId(rootUri));
+	private ContentResource create(@NonNull Uri docUri) {
+		Context ctx = App.get();
+		Uri uri = DocumentsContract.buildDocumentUriUsingTree(docUri,
+				DocumentsContract.getTreeDocumentId(docUri));
 		String name = null;
-		String id = DocumentsContract.getTreeDocumentId(rootUri);
+		String id = DocumentsContract.getTreeDocumentId(docUri);
 
-		try (Cursor c = App.get().getContentResolver().query(uri, new String[]{COLUMN_DISPLAY_NAME}, null, null, null)) {
+		try (Cursor c = ctx.getContentResolver().query(uri, new String[]{COLUMN_DISPLAY_NAME}, null, null, null)) {
 			if ((c != null) && c.moveToNext()) name = c.getString(0);
 		}
 
-		return new ContentFolder(null, (name == null) ? uri.getLastPathSegment() : name, id) {
+		ContentFolder root = new ContentFolder(null, (name == null) ? uri.getLastPathSegment() : name, id) {
 			@NonNull
 			@Override
 			public Rid getRid() {
-				return Rid.create(rootUri);
+				return Rid.create(docUri);
 			}
 
 			@NonNull
 			@Override
 			Uri getRootUri() {
-				return rootUri;
+				return docUri;
 			}
 
 			@NonNull
@@ -137,6 +139,19 @@ public class ContentFileSystem implements VirtualFileSystem {
 				return ContentFileSystem.this;
 			}
 		};
+
+		if (DocumentsContract.isDocumentUri(ctx, docUri)) {
+			id = DocumentsContract.getDocumentId(docUri);
+			name = null;
+
+			try (Cursor c = ctx.getContentResolver().query(docUri, new String[]{COLUMN_DISPLAY_NAME}, null, null, null)) {
+				if ((c != null) && c.moveToNext()) name = c.getString(0);
+			}
+
+			return new ContentFile(root, (name == null) ? uri.getLastPathSegment() : name, id);
+		} else {
+			return root;
+		}
 	}
 
 	public static final class Provider implements VirtualFileSystem.Provider {

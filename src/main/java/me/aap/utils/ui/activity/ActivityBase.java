@@ -5,7 +5,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -24,6 +23,7 @@ import me.aap.utils.async.Promise;
 import me.aap.utils.function.Supplier;
 
 import static android.app.NotificationManager.IMPORTANCE_LOW;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static me.aap.utils.async.Completed.completed;
 
 /**
@@ -35,6 +35,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 	private static ActivityBase instance;
 	private static Completable<AppActivity> pendingConsumer;
 	private Promise<Intent> startActivity;
+	private Promise<int[]> checkPermissions;
 	private ActivityDelegate delegate;
 
 	protected abstract Supplier<? extends ActivityDelegate> getConstructor();
@@ -157,12 +158,35 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 		}
 	}
 
-	public void checkPermissions(String... perms) {
-		for (String perm : perms) {
-			if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+	public FutureSupplier<int[]> checkPermissions(String... perms) {
+		if (checkPermissions != null) {
+			checkPermissions.cancel();
+			checkPermissions = null;
+		}
+
+		int[] result = new int[perms.length];
+
+		for (int i = 0; i < perms.length; i++) {
+			if (ContextCompat.checkSelfPermission(this, perms[i]) != PERMISSION_GRANTED) {
+				Promise<int[]> p = checkPermissions = new Promise<>();
 				ActivityCompat.requestPermissions(this, perms, GRANT_PERM_REQ);
-				return;
+				return p;
+			} else {
+				result[i] = PERMISSION_GRANTED;
 			}
+		}
+
+		return completed(result);
+	}
+
+	@Override
+	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+		Promise<int[]> p = checkPermissions;
+
+		if (p != null) {
+			checkPermissions = null;
+			p.complete(grantResults);
 		}
 	}
 }
