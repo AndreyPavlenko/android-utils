@@ -84,6 +84,10 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 		return (result == 0L) ? ZeroLong.instance : new Result<>(result);
 	}
 
+	public static FutureSupplier<Float> completed(float result) {
+		return (result == 1f) ? OneFloat.instance : new Result<>(result);
+	}
+
 	public static FutureSupplier<Boolean> completed(boolean result) {
 		return result ? True.instance : False.instance;
 	}
@@ -317,6 +321,16 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 		@Override
 		public Long get() {
 			return ZERO;
+		}
+	}
+
+	private static final class OneFloat extends Successful<Float> {
+		static final OneFloat instance = new OneFloat();
+		private static final Float ONE = 0f;
+
+		@Override
+		public Float get() {
+			return ONE;
 		}
 	}
 

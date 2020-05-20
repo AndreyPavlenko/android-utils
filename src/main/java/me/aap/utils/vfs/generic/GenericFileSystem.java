@@ -31,7 +31,15 @@ public class GenericFileSystem implements VirtualFileSystem {
 	@NonNull
 	@Override
 	public FutureSupplier<VirtualResource> getResource(Rid rid) {
-		return completed(new GenericResource(rid));
+		return completed(create(rid));
+	}
+
+	public GenericResource create(String rid) {
+		return create(Rid.create(rid));
+	}
+
+	public GenericResource create(Rid rid) {
+		return new GenericResource(rid);
 	}
 
 	@NonNull
