@@ -124,7 +124,7 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		ListView<VirtualResource> v = getListView();
 		if (v == null) return;
 		ViewGroup.LayoutParams lp = v.getLayoutParams();
-		lp.height = lp.width = MATCH_PARENT;
+		if (lp != null) lp.height = lp.width = MATCH_PARENT;
 		v.setHasFixedSize(true);
 		v.setItemClickListener(this);
 		v.setItemsChangeListener(this);
@@ -408,7 +408,7 @@ public class FilePickerFragment extends GenericDialogFragment implements
 				if ((st.create != null) && st.create.isAvailable(p)) {
 					State state = (State) p.resetState();
 					state.create.create(st.parent, st.children)
-							.withMainHandler()
+							.main()
 							.onFailure(fail -> {
 								ListView<VirtualResource> lv = p.getListView();
 								if (lv != null) lv.onFailure(fail);

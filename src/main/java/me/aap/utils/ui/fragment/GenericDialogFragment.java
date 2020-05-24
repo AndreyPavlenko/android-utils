@@ -1,5 +1,8 @@
 package me.aap.utils.ui.fragment;
 
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
@@ -91,7 +94,7 @@ public class GenericDialogFragment extends GenericFragment {
 
 			ImageButton b = createOkButton(tb, p);
 			addView(tb, b, getOkButtonId());
-			b.setVisibility(getOkButtonVisibility(p));
+			setOkButtonVisibility(b, getOkButtonVisibility(p));
 
 			b = createCloseButton(tb, p);
 			addView(tb, b, getCloseButtonId());
@@ -107,7 +110,7 @@ public class GenericDialogFragment extends GenericFragment {
 				b.setVisibility(getBackButtonVisibility(p));
 
 				b = tb.findViewById(getOkButtonId());
-				b.setVisibility(getOkButtonVisibility(p));
+				setOkButtonVisibility(b, getOkButtonVisibility(p));
 			}
 		}
 
@@ -137,6 +140,17 @@ public class GenericDialogFragment extends GenericFragment {
 
 		default int getOkButtonVisibility(GenericDialogFragment f) {
 			return f.getOkButtonVisibility();
+		}
+
+		default void setOkButtonVisibility(ImageButton b, int vis) {
+			b.setVisibility(vis);
+
+			if (vis == VISIBLE) {
+				Animation shake = AnimationUtils.loadAnimation(b.getContext(), R.anim.shake_y_20);
+				b.startAnimation(shake);
+			} else {
+				b.clearAnimation();
+			}
 		}
 
 		@IdRes

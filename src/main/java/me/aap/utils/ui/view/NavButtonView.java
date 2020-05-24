@@ -2,6 +2,10 @@ package me.aap.utils.ui.view;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Canvas;
+import android.graphics.CornerPathEffect;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -10,11 +14,15 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 
 import me.aap.utils.R;
+import me.aap.utils.ui.UiUtils;
+
+import static me.aap.utils.ui.UiUtils.toPx;
 
 /**
  * @author Andrey Pavlenko
  */
 public class NavButtonView extends LinearLayout {
+
 	public NavButtonView(Context context, @Nullable AttributeSet attrs) {
 		this(context, attrs, R.attr.bottomNavigationStyle);
 	}
@@ -46,5 +54,51 @@ public class NavButtonView extends LinearLayout {
 
 	public TextView getText() {
 		return (TextView) getChildAt(1);
+	}
+
+	public static class Ext extends NavButtonView {
+		private final Path path = new Path();
+		private final CornerPathEffect corner;
+		private boolean hasExt;
+
+		public Ext(Context ctx, @Nullable AttributeSet attrs) {
+			super(ctx, attrs);
+			corner = new CornerPathEffect(toPx(ctx, 1));
+		}
+
+		public void setHasExt(boolean hasExt) {
+			this.hasExt = hasExt;
+			invalidate();
+		}
+
+		@Override
+		protected void onDraw(Canvas canvas) {
+			if (!hasExt) return;
+
+			Context ctx = getContext();
+			NavBarView nb = (NavBarView) getParent();
+			super.onDraw(canvas);
+
+			float w = toPx(ctx, 2);
+			float len = toPx(ctx, 4);
+			float x2 = getWidth() - 2 * w;
+			float x1 = x2 - len;
+			float y2 = getHeight() / 2f;
+			float y1 = y2 - len;
+			float y3 = y2 + len;
+
+			path.reset();
+			path.moveTo(x1, y1);
+			path.lineTo(x2, y2);
+			path.lineTo(x1, y3);
+
+			Paint paint = UiUtils.getPaint();
+			paint.setPathEffect(corner);
+			paint.setStyle(Paint.Style.STROKE);
+			paint.setStrokeWidth(w);
+			paint.setColor(nb.getTint());
+			paint.setAntiAlias(true);
+			canvas.drawPath(path, paint);
+		}
 	}
 }

@@ -6,10 +6,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 
+import me.aap.utils.function.CheckedBiConsumer;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.CheckedSupplier;
+import me.aap.utils.holder.BiHolder;
 import me.aap.utils.log.Log;
 
+import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.completedNull;
 import static me.aap.utils.async.Completed.completedVoid;
 import static me.aap.utils.async.Completed.failed;
@@ -197,5 +200,77 @@ public class Async {
 
 		s.addConsumer(proxy);
 		return proxy;
+	}
+
+	public static <T, U> FutureSupplier<BiHolder<T, U>> and(FutureSupplier<T> first, FutureSupplier<U> second) {
+		if (first.isDone()) {
+			if (first.isFailed()) return failed(first.getFailure());
+
+			if (second.isDone()) {
+				if (second.isFailed()) return failed(second.getFailure());
+				return completed(new BiHolder<>(first.peek(), second.peek()));
+			}
+
+			T t = first.peek();
+			return second.map(u -> new BiHolder<>(t, second.peek()));
+		}
+
+		return first.then(t -> {
+			if (second.isDone()) {
+				if (second.isFailed()) return failed(second.getFailure());
+				return completed(new BiHolder<>(t, second.peek()));
+			}
+
+			return second.map(u -> new BiHolder<>(t, second.peek()));
+		});
+	}
+
+	public static <T, U> FutureSupplier<?> and(FutureSupplier<T> first, FutureSupplier<U> second,
+																						 CheckedBiConsumer<T, U, Throwable> consumer) {
+		if (first.isDone()) {
+			if (first.isFailed()) return failed(first.getFailure());
+
+			if (second.isDone()) {
+				if (second.isFailed()) return failed(second.getFailure());
+
+				try {
+					consumer.accept(first.peek(), second.peek());
+					return completedVoid();
+				} catch (Throwable ex) {
+					return failed(ex);
+				}
+			}
+
+			T t = first.peek();
+			return second.onSuccess(u -> {
+				try {
+					consumer.accept(t, u);
+				} catch (Throwable ex) {
+					Log.e(ex);
+				}
+			});
+		}
+
+		return first.then(t -> {
+			if (second.isDone()) {
+				if (second.isFailed()) return failed(second.getFailure());
+
+				try {
+					consumer.accept(t, second.peek());
+					return completedVoid();
+				} catch (Throwable ex) {
+					return failed(ex);
+				}
+			}
+
+			return second.then(u -> {
+				try {
+					consumer.accept(t, u);
+					return completedVoid();
+				} catch (Throwable ex) {
+					return failed(ex);
+				}
+			});
+		});
 	}
 }

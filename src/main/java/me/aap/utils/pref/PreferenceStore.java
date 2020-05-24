@@ -34,6 +34,10 @@ public interface PreferenceStore extends EventBroadcaster<PreferenceStore.Listen
 
 	String[] getStringArrayPref(Pref<? extends Supplier<String[]>> pref);
 
+	default <T> T getCompoundPref(Pref<? extends Compound<T>> pref) {
+		return pref.getDefaultValue().get(this, pref.getName());
+	}
+
 	default boolean hasPref(Pref<?> pref) {
 		return hasPref(pref, true);
 	}
@@ -126,6 +130,17 @@ public interface PreferenceStore extends EventBroadcaster<PreferenceStore.Listen
 		}
 	}
 
+	default <T> void applyCompoundPref(Pref<? extends Compound<T>> pref, T value) {
+		applyCompoundPref(true, pref, value);
+	}
+
+	default <T> void applyCompoundPref(boolean removeDefault, Pref<? extends Compound<T>> pref, T value) {
+		try (Edit e = editPreferenceStore(removeDefault)) {
+			e.setCompoundPref(pref, value);
+		}
+	}
+
+
 	default void removePref(Pref<?> pref) {
 		try (Edit e = editPreferenceStore()) {
 			e.removePref(pref);
@@ -142,9 +157,18 @@ public interface PreferenceStore extends EventBroadcaster<PreferenceStore.Listen
 			return true;
 		}
 
-		Pref<S> withInheritance(boolean inheritable);
+		default PreferenceStore.Pref<S> withInheritance(boolean inheritable) {
+			return new PrefBase<S>(getName(), getDefaultValue()) {
+				@Override
+				public boolean isInheritable() {
+					return inheritable;
+				}
+			};
+		}
 
-		Pref<S> withDefaultValue(S defaultValue);
+		default PreferenceStore.Pref<S> withDefaultValue(S defaultValue) {
+			return new PrefBase<>(getName(), defaultValue).withInheritance(isInheritable());
+		}
 
 		static Pref<BooleanSupplier> b(String name, boolean defaultValue) {
 			return b(name, () -> defaultValue);
@@ -214,6 +238,10 @@ public interface PreferenceStore extends EventBroadcaster<PreferenceStore.Listen
 			return create(name, defaultValue);
 		}
 
+		static Pref<Supplier<String[]>> sa(String name) {
+			return sa(name, () -> new String[0]);
+		}
+
 		static Pref<Supplier<String[]>> sa(String name, String[] defaultValue) {
 			return sa(name, () -> defaultValue);
 		}
@@ -243,6 +271,12 @@ public interface PreferenceStore extends EventBroadcaster<PreferenceStore.Listen
 
 		void setStringArrayPref(Pref<? extends Supplier<String[]>> pref, String[] value);
 
+		default <T> void setCompoundPref(Pref<? extends Compound<T>> pref, T value) {
+			pref.getDefaultValue().set(this, pref.getName(), value);
+		}
+
+		boolean isRemoveDefault();
+
 		void removePref(Pref<?> pref);
 
 		void apply();
@@ -251,6 +285,13 @@ public interface PreferenceStore extends EventBroadcaster<PreferenceStore.Listen
 		default void close() {
 			apply();
 		}
+	}
+
+	interface Compound<T> {
+
+		T get(PreferenceStore store, String name);
+
+		void set(PreferenceStore.Edit edit, String name, T value);
 	}
 
 	interface Listener {

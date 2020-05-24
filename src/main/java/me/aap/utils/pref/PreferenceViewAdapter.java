@@ -63,7 +63,10 @@ public class PreferenceViewAdapter extends RecyclerView.Adapter<PreferenceViewAd
 
 	public void setPreferenceSet(PreferenceSet set) {
 		PreferenceSet old = getPreferenceSet();
+		if (old != null) old.setAdapter(null);
+
 		this.set = set;
+		set.setAdapter(this);
 		notifyDataSetChanged();
 
 		if ((set != null) && (old != null) && (recyclerView != null)) {

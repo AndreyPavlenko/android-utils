@@ -3,9 +3,7 @@ package me.aap.utils.module;
 import android.app.Activity;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.content.Context;
 import android.os.Build;
-import me.aap.utils.log.Log;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -20,10 +18,13 @@ import com.google.android.play.core.splitinstall.SplitInstallSessionState;
 import com.google.android.play.core.splitinstall.SplitInstallStateUpdatedListener;
 import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus;
 
+import java.util.Collections;
+
 import javax.annotation.Nonnull;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
+import me.aap.utils.log.Log;
 
 import static android.app.NotificationManager.IMPORTANCE_LOW;
 import static android.content.Context.NOTIFICATION_SERVICE;
@@ -103,6 +104,15 @@ public class DynamicModuleInstaller {
 			p.notif.cancel(TAG, p.sessionId);
 		});
 
+		return p;
+	}
+
+	public FutureSupplier<Void> uninstall(String moduleName) {
+		Promise<Void> p = new Promise<>();
+		SplitInstallManager sm = SplitInstallManagerFactory.create(activity);
+		sm.deferredUninstall(Collections.singletonList(moduleName))
+				.addOnSuccessListener(r -> p.complete(null))
+				.addOnFailureListener(fail -> p.completeExceptionally(fail));
 		return p;
 	}
 

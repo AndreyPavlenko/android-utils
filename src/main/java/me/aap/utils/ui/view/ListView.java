@@ -125,7 +125,7 @@ public class ListView<I> extends RecyclerView {
 
 	public void setItems(@NonNull I parent) {
 		cancel();
-		loading = itemAdapter.getChildren(parent).withMainHandler()
+		loading = itemAdapter.getChildren(parent).main()
 				.onSuccess(items -> setItems(parent, items))
 				.onFailure(this::onFailure)
 				.onCancel(this::onCancel)
@@ -135,7 +135,7 @@ public class ListView<I> extends RecyclerView {
 
 	public void setItems(FutureSupplier<BiHolder<? extends I, List<? extends I>>> supplier) {
 		cancel();
-		loading = supplier.withMainHandler()
+		loading = supplier.main()
 				.onSuccess(h -> {
 					if (h != null) setItems(h.getValue1(), h.getValue2());
 				})

@@ -77,15 +77,15 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 	}
 
 	public static FutureSupplier<Integer> completed(int result) {
-		return (result == 0) ? ZeroInt.instance : new Result<>(result);
+		return (result == 0) ? CompletedInt.ZERO : new CompletedInt(result);
 	}
 
 	public static FutureSupplier<Long> completed(long result) {
-		return (result == 0L) ? ZeroLong.instance : new Result<>(result);
+		return (result == 0L) ? CompletedLong.ZERO : new CompletedLong(result);
 	}
 
 	public static FutureSupplier<Float> completed(float result) {
-		return (result == 1f) ? OneFloat.instance : new Result<>(result);
+		return (result == 1f) ? CompletedFloat.ONE : new CompletedFloat(result);
 	}
 
 	public static FutureSupplier<Boolean> completed(boolean result) {
@@ -304,33 +304,45 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 		}
 	}
 
-	private static final class ZeroInt extends Successful<Integer> {
-		static final ZeroInt instance = new ZeroInt();
-		private static final Integer ZERO = 0;
+	private static final class CompletedInt extends Successful<Integer> {
+		private static final CompletedInt ZERO = new CompletedInt(0);
+		private final int value;
+
+		CompletedInt(int value) {
+			this.value = value;
+		}
 
 		@Override
 		public Integer get() {
-			return ZERO;
+			return value;
 		}
 	}
 
-	private static final class ZeroLong extends Successful<Long> {
-		static final ZeroLong instance = new ZeroLong();
-		private static final Long ZERO = 0L;
+	private static final class CompletedLong extends Successful<Long> {
+		private static final CompletedLong ZERO = new CompletedLong(0);
+		private final long value;
+
+		CompletedLong(long value) {
+			this.value = value;
+		}
 
 		@Override
 		public Long get() {
-			return ZERO;
+			return value;
 		}
 	}
 
-	private static final class OneFloat extends Successful<Float> {
-		static final OneFloat instance = new OneFloat();
-		private static final Float ONE = 0f;
+	private static final class CompletedFloat extends Successful<Float> {
+		private static final CompletedFloat ONE = new CompletedFloat(1f);
+		private final float value;
+
+		CompletedFloat(float value) {
+			this.value = value;
+		}
 
 		@Override
 		public Float get() {
-			return ONE;
+			return value;
 		}
 	}
 

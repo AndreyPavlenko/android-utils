@@ -363,8 +363,13 @@ public interface SharedPreferenceStore extends PreferenceStore {
 			}
 		}
 
+		@Override
+		public boolean isRemoveDefault() {
+			return removeDefault;
+		}
+
 		private <S> boolean removeDefault(Pref<S> pref, Function<PreferenceStore, Boolean> compare) {
-			if (!removeDefault) return false;
+			if (!isRemoveDefault()) return false;
 
 			if (!pref.isInheritable()) {
 				removePref(pref);

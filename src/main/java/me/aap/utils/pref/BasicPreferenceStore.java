@@ -131,6 +131,11 @@ public class BasicPreferenceStore extends BasicEventBroadcaster<PreferenceStore.
 			public void apply() {
 			}
 
+			@Override
+			public boolean isRemoveDefault() {
+				return false;
+			}
+
 			private void notifyPreferenceChange(Pref<?> pref) {
 				fireBroadcastEvent(l -> l.onPreferenceChanged(BasicPreferenceStore.this, Collections.singletonList(pref)));
 			}

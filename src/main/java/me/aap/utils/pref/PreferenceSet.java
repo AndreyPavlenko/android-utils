@@ -21,6 +21,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	final List<Supplier<? extends PreferenceView.Opts>> preferences = new ArrayList<>();
 	private final PreferenceSet parent;
 	private final Consumer<PreferenceView.Opts> builder;
+	private PreferenceViewAdapter adapter;
 
 	public PreferenceSet() {
 		this(null, null);
@@ -35,7 +36,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 		return parent;
 	}
 
-	public List<Supplier<? extends PreferenceView.Opts>> getPreferences() {
+	List<Supplier<? extends PreferenceView.Opts>> getPreferences() {
 		return preferences;
 	}
 
@@ -47,7 +48,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	}
 
 	public void addBooleanPref(Consumer<PreferenceView.BooleanOpts> builder) {
-		preferences.add(() -> {
+		add(() -> {
 			PreferenceView.BooleanOpts o = new PreferenceView.BooleanOpts();
 			builder.accept(o);
 			return o;
@@ -55,7 +56,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	}
 
 	public void addStringPref(Consumer<PreferenceView.StringOpts> builder) {
-		preferences.add(() -> {
+		add(() -> {
 			PreferenceView.StringOpts o = new PreferenceView.StringOpts();
 			builder.accept(o);
 			return o;
@@ -63,7 +64,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	}
 
 	public void addFilePref(Consumer<PreferenceView.FileOpts> builder) {
-		preferences.add(() -> {
+		add(() -> {
 			PreferenceView.FileOpts o = new PreferenceView.FileOpts();
 			builder.accept(o);
 			return o;
@@ -71,7 +72,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	}
 
 	public void addIntPref(Consumer<PreferenceView.IntOpts> builder) {
-		preferences.add(() -> {
+		add(() -> {
 			PreferenceView.IntOpts o = new PreferenceView.IntOpts();
 			builder.accept(o);
 			return o;
@@ -79,7 +80,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	}
 
 	public void addFloatPref(Consumer<PreferenceView.FloatOpts> builder) {
-		preferences.add(() -> {
+		add(() -> {
 			PreferenceView.FloatOpts o = new PreferenceView.FloatOpts();
 			builder.accept(o);
 			return o;
@@ -87,7 +88,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	}
 
 	public void addTimePref(Consumer<PreferenceView.TimeOpts> builder) {
-		preferences.add(() -> {
+		add(() -> {
 			PreferenceView.TimeOpts o = new PreferenceView.TimeOpts();
 			builder.accept(o);
 			return o;
@@ -95,7 +96,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	}
 
 	public void addListPref(Consumer<PreferenceView.ListOpts> builder) {
-		preferences.add(() -> {
+		add(() -> {
 			PreferenceView.ListOpts o = new PreferenceView.ListOpts();
 			builder.accept(o);
 			return o;
@@ -104,7 +105,7 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 
 	public PreferenceSet subSet(Consumer<PreferenceView.Opts> builder) {
 		PreferenceSet sub = new PreferenceSet(this, builder);
-		preferences.add(sub);
+		add(sub);
 		return sub;
 	}
 
@@ -121,6 +122,26 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 
 		if (setMinWidth) {
 			prefsView.setMinimumWidth(Resources.getSystem().getDisplayMetrics().widthPixels * 2 / 3);
+		}
+	}
+
+	public void configure(Consumer<PreferenceSet> c) {
+		preferences.clear();
+		c.accept(this);
+		notifyChanged();
+	}
+
+	void setAdapter(PreferenceViewAdapter adapter) {
+		this.adapter = adapter;
+	}
+
+	private void add(Supplier<? extends PreferenceView.Opts> supplier) {
+		preferences.add(supplier);
+	}
+
+	private void notifyChanged() {
+		if ((adapter != null) && (adapter.getPreferenceSet() == this)) {
+			adapter.setPreferenceSet(this);
 		}
 	}
 }

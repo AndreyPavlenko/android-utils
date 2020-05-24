@@ -66,7 +66,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		setVisibility(VISIBLE);
 
 		ViewGroup g = builder.view;
-		builder.consumer.apply(builder).withMainHandler().onSuccess(ignore -> {
+		builder.consumer.apply(builder).main().onSuccess(ignore -> {
 			int count = g.getChildCount();
 			if (count == 0) return;
 

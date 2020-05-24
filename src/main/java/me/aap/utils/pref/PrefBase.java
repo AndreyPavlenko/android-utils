@@ -36,17 +36,4 @@ public class PrefBase<S> implements PreferenceStore.Pref<S> {
 			return getName().equals(((PreferenceStore.Pref<?>) obj).getName());
 		else return false;
 	}
-
-	public PreferenceStore.Pref<S> withInheritance(boolean inheritable) {
-		return new PrefBase<S>(getName(), getDefaultValue()) {
-			@Override
-			public boolean isInheritable() {
-				return inheritable;
-			}
-		};
-	}
-
-	public PreferenceStore.Pref<S> withDefaultValue(S defaultValue) {
-		return new PrefBase<>(getName(), defaultValue).withInheritance(isInheritable());
-	}
 }

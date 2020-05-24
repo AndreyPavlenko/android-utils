@@ -58,7 +58,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 		setMediator(a.getActiveFragment());
 	}
 
-	protected Mediator getMediator() {
+	public Mediator getMediator() {
 		return mediator;
 	}
 
@@ -102,6 +102,11 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 	}
 
 	public interface Mediator extends ViewFragmentMediator<ToolBarView> {
+
+		@Override
+		default void enable(ToolBarView tb, ActivityFragment f) {
+			tb.setVisibility(VISIBLE);
+		}
 
 		@Override
 		default void disable(ToolBarView tb) {
@@ -199,6 +204,16 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 			return new Joint(Mediator.this, m);
 		}
 
+		interface Invisible extends Mediator {
+			Invisible instance = new Invisible() {
+			};
+
+			@Override
+			default void enable(ToolBarView tb, ActivityFragment f) {
+				tb.setVisibility(GONE);
+			}
+		}
+
 		/**
 		 * Back button and title.
 		 */
@@ -208,6 +223,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 
 			@Override
 			default void enable(ToolBarView tb, ActivityFragment f) {
+				Mediator.super.enable(tb, f);
 				TextView t = createTitleText(tb);
 				addView(tb, t, getTitleId(), LEFT);
 				t.setText(f.getTitle());

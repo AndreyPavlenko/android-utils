@@ -12,11 +12,13 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import me.aap.utils.app.App;
 import me.aap.utils.concurrent.HandlerExecutor;
 import me.aap.utils.function.Cancellable;
+import me.aap.utils.function.CheckedBiConsumer;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.CheckedSupplier;
 import me.aap.utils.function.Function;
 import me.aap.utils.function.ProgressiveResultConsumer;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.holder.BiHolder;
 import me.aap.utils.log.Log;
 
 import static me.aap.utils.async.Completed.completed;
@@ -129,7 +131,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return p;
 	}
 
-	default FutureSupplier<T> withMainHandler() {
+	default FutureSupplier<T> main() {
 		if (isDone() && isMainThread()) return this;
 		return withExecutor(App.get().getHandler(), false);
 	}
@@ -396,5 +398,13 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			updater.compareAndSet(owner, expect, replacement);
 			if (expect instanceof Completable) ((Completable) expect).complete(result, fail);
 		});
+	}
+
+	default <U> FutureSupplier<BiHolder<T, U>> and(FutureSupplier<U> second) {
+		return Async.and(this, second);
+	}
+
+	default <U> FutureSupplier<?> and(FutureSupplier<U> second, CheckedBiConsumer<T, U, Throwable> consumer) {
+		return Async.and(this, second, consumer);
 	}
 }

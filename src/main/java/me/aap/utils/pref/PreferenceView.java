@@ -2,6 +2,7 @@ package me.aap.utils.pref;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.text.Editable;
 import android.text.InputType;
@@ -49,6 +50,7 @@ import me.aap.utils.vfs.local.LocalFileSystem;
 
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
+import static me.aap.utils.ui.UiUtils.toIntPx;
 import static me.aap.utils.ui.UiUtils.toPx;
 import static me.aap.utils.ui.fragment.FilePickerFragment.FILE_OR_FOLDER;
 
@@ -57,6 +59,8 @@ import static me.aap.utils.ui.fragment.FilePickerFragment.FILE_OR_FOLDER;
  */
 public class PreferenceView extends ConstraintLayout {
 	private Opts opts;
+	private PreferenceViewAdapter adapter;
+	private Supplier<? extends PreferenceView.Opts> supplier;
 	private PreferenceStore.Listener prefListener;
 	private ChangeableCondition.Listener condListener;
 
@@ -78,6 +82,7 @@ public class PreferenceView extends ConstraintLayout {
 		}
 
 		this.prefListener = null;
+		this.condListener = null;
 		setOnClickListener(null);
 
 		if (supplier == null) {
@@ -86,6 +91,8 @@ public class PreferenceView extends ConstraintLayout {
 		}
 
 		this.opts = supplier.get();
+		this.adapter = adapter;
+		this.supplier = supplier;
 
 		if (supplier instanceof PreferenceSet) {
 			setPreferenceSet(adapter, (PreferenceSet) supplier, opts);
@@ -106,6 +113,17 @@ public class PreferenceView extends ConstraintLayout {
 		} else {
 			throw new IllegalArgumentException();
 		}
+	}
+
+	@Override
+	protected void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		reconfigure();
+	}
+
+	private void reconfigure() {
+		removeAllViews();
+		if (adapter != null) setPreference(adapter, supplier);
 	}
 
 	public Opts getOpts() {
@@ -423,6 +441,7 @@ public class PreferenceView extends ConstraintLayout {
 		} else {
 			iconView.setVisibility(VISIBLE);
 			iconView.setImageResource(opts.icon);
+			iconView.setPadding(0, 0, toIntPx(getContext(), 5), 0);
 		}
 
 		if (opts.subtitle == ID_NULL) {
@@ -440,7 +459,7 @@ public class PreferenceView extends ConstraintLayout {
 
 		if (opts.visibility != null) {
 			setVisibility(opts.visibility.get() ? VISIBLE : GONE);
-			setCondListener(c -> setVisibility(c.get() ? VISIBLE : GONE));
+			setCondListener(c -> reconfigure());
 		} else {
 			setVisibility(VISIBLE);
 		}
