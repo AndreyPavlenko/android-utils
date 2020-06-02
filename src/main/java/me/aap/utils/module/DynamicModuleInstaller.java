@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import com.google.android.play.core.install.InstallException;
+import com.google.android.play.core.splitcompat.SplitCompat;
 import com.google.android.play.core.splitinstall.SplitInstallManager;
 import com.google.android.play.core.splitinstall.SplitInstallManagerFactory;
 import com.google.android.play.core.splitinstall.SplitInstallRequest;
@@ -112,7 +113,7 @@ public class DynamicModuleInstaller {
 		SplitInstallManager sm = SplitInstallManagerFactory.create(activity);
 		sm.deferredUninstall(Collections.singletonList(moduleName))
 				.addOnSuccessListener(r -> p.complete(null))
-				.addOnFailureListener(fail -> p.completeExceptionally(fail));
+				.addOnFailureListener(p::completeExceptionally);
 		return p;
 	}
 
@@ -154,6 +155,8 @@ public class DynamicModuleInstaller {
 					notification.setContentTitle(installingMessage);
 					break;
 				case SplitInstallSessionStatus.INSTALLED:
+					SplitCompat.install(activity.getApplicationContext());
+					SplitCompat.installActivity(activity);
 					complete(null);
 					return;
 				case SplitInstallSessionStatus.FAILED:

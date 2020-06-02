@@ -55,7 +55,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 
 		if (i != null) {
 			if (pending != null) {
-				pending.complete((A) i);
+				pending.complete(i);
 				pendingConsumer = null;
 			}
 
