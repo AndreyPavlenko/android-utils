@@ -3,12 +3,15 @@ package me.aap.utils.ui.activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources.Theme;
+import android.util.AttributeSet;
 import android.view.View;
 import android.view.Window;
+import android.widget.EditText;
 
 import androidx.annotation.IdRes;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.AppCompatEditText;
 import androidx.fragment.app.FragmentManager;
 
 import me.aap.utils.async.FutureSupplier;
@@ -45,5 +48,9 @@ public interface AppActivity {
 
 	default Context getContext() {
 		return (Context) this;
+	}
+
+	default EditText createEditText(Context ctx, AttributeSet attrs) {
+		return new AppCompatEditText(ctx, attrs);
 	}
 }

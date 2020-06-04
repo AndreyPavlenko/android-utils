@@ -335,8 +335,7 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		}
 
 		default EditText createPath(ToolBarView tb, FilePickerFragment f) {
-			Context ctx = tb.getContext();
-			EditText t = new AppCompatEditText(ctx);
+			EditText t = createEditText(tb);
 			ConstraintLayout.LayoutParams lp = setLayoutParams(t, 0, WRAP_CONTENT);
 			t.setTextAppearance(getPathTextAppearance(f));
 			t.setBackgroundResource(R.drawable.tool_bar_edittext_bg);

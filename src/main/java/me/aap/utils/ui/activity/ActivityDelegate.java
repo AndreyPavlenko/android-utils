@@ -4,9 +4,11 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.res.Resources.Theme;
 import android.os.Bundle;
+import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.IdRes;
@@ -194,6 +196,10 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 
 	public <T extends View> T findViewById(@IdRes int id) {
 		return getAppActivity().findViewById(id);
+	}
+
+	public EditText createEditText(Context ctx, AttributeSet attrs) {
+		return getAppActivity().createEditText(ctx, attrs);
 	}
 
 	@NonNull
