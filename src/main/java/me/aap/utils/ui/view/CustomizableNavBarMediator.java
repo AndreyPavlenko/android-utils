@@ -1,5 +1,6 @@
 package me.aap.utils.ui.view;
 
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +22,7 @@ import static android.view.View.LAYOUT_DIRECTION_LTR;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
+import static me.aap.utils.ui.UiUtils.toPx;
 
 /**
  * @author Andrey Pavlenko
@@ -42,6 +44,9 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 		int activeId = a.getActiveNavItemId();
 		if (activeId == ID_NULL) activeId = a.getActiveFragmentId();
 
+		NavButtonView first = null;
+		NavButtonView last = null;
+
 
 		for (NavBarItem i : getItems(nb)) {
 			if (i.isPinned()) {
@@ -51,12 +56,17 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 					v.setSelected(true);
 					selected = true;
 				}
+				if (first == null) first = v;
+				last = v;
 			} else {
 				ext.add(i);
 			}
 		}
 
-		if (ext.isEmpty()) return;
+		if (ext.isEmpty()) {
+			setFocus(first, last);
+			return;
+		}
 
 		if (!selected) {
 			for (NavBarItem i : ext) {
@@ -66,6 +76,7 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 					extButton.setSelected(true);
 					extButton.setHasExt(ext.size() > 1);
 					addView(nb, extButton, id, this);
+					setFocus(first, extButton);
 					return;
 				}
 			}
@@ -75,6 +86,14 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 		extButton = createButton(nb, NavButtonView.Ext::new, i.getIcon(), i.getText());
 		extButton.setHasExt(ext.size() > 1);
 		addView(nb, extButton, i.getId(), this);
+		setFocus(first, extButton);
+	}
+
+	private void setFocus(View first, View last) {
+		if ((first != null) && (last != null)) {
+			first.setNextFocusLeftId(last.getId());
+			last.setNextFocusRightId(first.getId());
+		}
 	}
 
 	@Override
@@ -100,23 +119,31 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 		ColorStateList textColor = extButton.getText().getTextColors();
 		menu.setBackgroundColor(nb.getBgColor());
 		menu.show(b -> {
+			int selectedId = extButton.getId();
+			OverlayMenuItemView selected = null;
+
 			for (NavBarItem i : ext) {
-				OverlayMenuItemView item = (OverlayMenuItemView) b.addItem(i.getId(),
+				int id = i.getId();
+				OverlayMenuItemView item = (OverlayMenuItemView) b.addItem(id,
 						i.getIcon(), i.getText()).setData(i);
 				item.setTextColor(textColor);
 				item.setCompoundDrawableTintList(tint);
+				if (id == selectedId) selected = item;
 			}
 
+			if (selected != null) b.setSelectedItem(selected);
 			b.setSelectionHandler(this::extItemSelected);
 			b.setCloseHandlerHandler(m -> ((ViewGroup) (nb.getParent())).removeView((View) m));
 		});
 	}
 
 	protected OverlayMenuView createOverlayMenu(NavBarView nb) {
+		Context ctx = nb.getContext();
 		ViewGroup parent = (ViewGroup) nb.getParent();
-		OverlayMenuView menu = new OverlayMenuView(nb.getContext(), null);
+		OverlayMenuView menu = new OverlayMenuView(ctx, null);
 		parent.addView(menu);
 		ViewGroup.LayoutParams lp = menu.getLayoutParams();
+		menu.setElevation(toPx(ctx, 10));
 
 		if (lp instanceof ConstraintLayout.LayoutParams) {
 			ConstraintLayout.LayoutParams clp = (ConstraintLayout.LayoutParams) lp;

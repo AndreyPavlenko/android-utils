@@ -163,11 +163,12 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	}
 
 	default T peek(@Nullable Supplier<? extends T> ifNotDone) {
-		if (isDone() && !isFailed()) {
-			return getOrThrow();
-		} else {
-			return (ifNotDone != null) ? ifNotDone.get() : null;
+		if (isDone()) {
+			if (!isFailed()) return getOrThrow();
+			Log.e(getFailure());
 		}
+
+		return (ifNotDone != null) ? ifNotDone.get() : null;
 	}
 
 

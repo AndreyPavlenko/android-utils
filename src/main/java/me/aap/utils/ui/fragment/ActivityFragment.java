@@ -53,4 +53,8 @@ public abstract class ActivityFragment extends Fragment {
 
 	public void switchingTo(@NonNull ActivityFragment newFragment) {
 	}
+
+	public void setInput(Object input) {
+		throw new UnsupportedOperationException();
+	}
 }

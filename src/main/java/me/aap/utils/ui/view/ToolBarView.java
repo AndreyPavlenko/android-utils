@@ -20,7 +20,11 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.google.android.material.textview.MaterialTextView;
 
+import java.util.Collection;
+import java.util.LinkedList;
+
 import me.aap.utils.R;
+import me.aap.utils.event.EventBroadcaster;
 import me.aap.utils.ui.UiUtils;
 import me.aap.utils.ui.activity.ActivityDelegate;
 import me.aap.utils.ui.activity.ActivityListener;
@@ -38,8 +42,10 @@ import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
 /**
  * @author Andrey Pavlenko
  */
-public class ToolBarView extends ConstraintLayout implements ActivityListener {
+public class ToolBarView extends ConstraintLayout implements ActivityListener,
+		EventBroadcaster<ToolBarView.Listener> {
 	private Mediator mediator;
+	private final Collection<ListenerRef<Listener>> listeners = new LinkedList<>();
 
 	public ToolBarView(@NonNull Context context, @Nullable AttributeSet attrs) {
 		this(context, attrs, R.attr.toolbarStyle);
@@ -99,6 +105,25 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 			Mediator m = getMediator();
 			if (m != null) m.onActivityEvent(this, a, e);
 		}
+	}
+
+	public EditText getFilter() {
+		if (mediator instanceof Mediator.BackTitleFilter) {
+			return findViewById(((Mediator.BackTitleFilter) mediator).getFilterId());
+		} else {
+			return findViewById(R.id.tool_bar_filter);
+		}
+	}
+
+	@Override
+	public Collection<ListenerRef<Listener>> getBroadcastEventListeners() {
+		return listeners;
+	}
+
+	public interface Listener {
+		byte FILTER_CHANGED = 1;
+
+		void onToolBarEvent(ToolBarView tb, byte event);
 	}
 
 	public interface Mediator extends ViewFragmentMediator<ToolBarView> {
@@ -191,7 +216,22 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 
 		default EditText createEditText(ToolBarView tb) {
 			Context ctx = tb.getContext();
-			return ActivityDelegate.get(ctx).createEditText(ctx, null);
+			EditText t = ActivityDelegate.get(ctx).createEditText(ctx);
+			t.setTextAppearance(getEditTextAppearance(ctx));
+			return t;
+		}
+
+		@StyleRes
+		default int getEditTextAppearance(Context ctx) {
+			TypedArray ta = ctx.obtainStyledAttributes(null, new int[]{R.attr.editTextStyle},
+					R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
+			int style = ta.getResourceId(0, R.style.Theme_Utils_Base_ToolBarEditTextStyle);
+			ta.recycle();
+			ta = ctx.obtainStyledAttributes(null, new int[]{android.R.attr.textAppearance},
+					style, R.style.Theme_Utils_Base_ToolBarEditTextStyle);
+			style = ta.getResourceId(0, R.style.Theme_Utils_Base_ToolBarEditTextAppearance);
+			ta.recycle();
+			return style;
 		}
 
 		default Mediator join(Mediator m) {
@@ -397,24 +437,14 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener {
 			default EditText createFilter(ToolBarView tb) {
 				EditText t = createEditText(tb);
 				ConstraintLayout.LayoutParams lp = setLayoutParams(t, 0, WRAP_CONTENT);
-				TextChangedListener l = s -> tb.getActivity().fireBroadcastEvent(FILTER_CHANGED);
+				TextChangedListener l = s -> tb.fireBroadcastEvent(r -> r.onToolBarEvent(tb, Listener.FILTER_CHANGED));
 				t.addTextChangedListener(l);
-				t.setTextAppearance(getFilterTextAppearance(tb.getContext()));
 				t.setBackgroundResource(R.drawable.tool_bar_edittext_bg);
 				t.setOnKeyListener(UiUtils::dpadFocusHelper);
 				t.setMaxLines(1);
 				lp.horizontalWeight = 2;
 				setFilterPadding(t);
 				return t;
-			}
-
-			@StyleRes
-			default int getFilterTextAppearance(Context ctx) {
-				TypedArray ta = ctx.obtainStyledAttributes(null, new int[]{R.attr.textAppearanceBody1},
-						R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
-				int style = ta.getResourceId(0, R.style.TextAppearance_MaterialComponents_Body1);
-				ta.recycle();
-				return style;
 			}
 
 			default void setFilterPadding(EditText t) {

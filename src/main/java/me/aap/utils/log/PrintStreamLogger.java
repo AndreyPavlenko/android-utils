@@ -57,6 +57,11 @@ class PrintStreamLogger extends Logger {
 		log(msg, ex);
 	}
 
+	@Override
+	public boolean isLoggable(Log.Level level) {
+		return true;
+	}
+
 	private void log(StringBuilder msg) {
 		ps.println(msg);
 	}

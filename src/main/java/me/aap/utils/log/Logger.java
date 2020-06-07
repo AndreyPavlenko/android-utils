@@ -21,6 +21,8 @@ public abstract class Logger {
 
 	public abstract void logError(StringBuilder msg, Throwable ex);
 
+	public abstract boolean isLoggable(Log.Level level);
+
 	public void formatMessage(Log.Level level, StringBuilder sb, Object... msg) {
 		boolean threadName = addThreadName();
 		boolean callerName = addCallerName();

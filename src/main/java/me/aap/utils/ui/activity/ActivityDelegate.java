@@ -4,7 +4,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.res.Resources.Theme;
 import android.os.Bundle;
-import android.util.AttributeSet;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
@@ -27,6 +27,7 @@ import me.aap.utils.R;
 import me.aap.utils.app.App;
 import me.aap.utils.event.EventBroadcaster;
 import me.aap.utils.function.Function;
+import me.aap.utils.function.IntObjectFunction;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.ui.fragment.ActivityFragment;
 import me.aap.utils.ui.fragment.FilePickerFragment;
@@ -34,6 +35,7 @@ import me.aap.utils.ui.fragment.GenericDialogFragment;
 import me.aap.utils.ui.fragment.GenericFragment;
 import me.aap.utils.ui.menu.OverlayMenu;
 import me.aap.utils.ui.menu.OverlayMenuView;
+import me.aap.utils.ui.view.DialogBuilder;
 import me.aap.utils.ui.view.NavBarView;
 import me.aap.utils.ui.view.ToolBarView;
 
@@ -198,8 +200,20 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 		return getAppActivity().findViewById(id);
 	}
 
-	public EditText createEditText(Context ctx, AttributeSet attrs) {
-		return getAppActivity().createEditText(ctx, attrs);
+	public EditText createEditText() {
+		return createEditText(getContext());
+	}
+
+	public EditText createEditText(Context ctx) {
+		return getAppActivity().createEditText(ctx);
+	}
+
+	public DialogBuilder createDialogBuilder() {
+		return createDialogBuilder(getContext());
+	}
+
+	public DialogBuilder createDialogBuilder(Context ctx) {
+		return getAppActivity().createDialogBuilder(ctx);
 	}
 
 	@NonNull
@@ -231,8 +245,12 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 		return null;
 	}
 
-	@SuppressWarnings("unchecked")
 	public <F extends ActivityFragment> F showFragment(@IdRes int id) {
+		return showFragment(id, null);
+	}
+
+	@SuppressWarnings("unchecked")
+	public <F extends ActivityFragment> F showFragment(@IdRes int id, Object input) {
 		int activeId = getActiveFragmentId();
 		if (id == activeId) return (F) getActiveFragment();
 
@@ -267,6 +285,7 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 		activeFragmentId = switchingTo.getFragmentId();
 		if (switchingFrom != null) switchingFrom.switchingTo(switchingTo);
 		switchingTo.switchingFrom(switchingFrom);
+		if (input != null) switchingTo.setInput(input);
 		tr.commitAllowingStateLoss();
 		postBroadcastEvent(FRAGMENT_CHANGED);
 		return (F) switchingTo;
@@ -378,5 +397,17 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 
 	protected void setSystemUiVisibility() {
 		setFullScreen(isFullScreen());
+	}
+
+	public boolean onKeyUp(int keyCode, KeyEvent keyEvent, IntObjectFunction<KeyEvent, Boolean> next) {
+		return next.apply(keyCode, keyEvent);
+	}
+
+	public boolean onKeyDown(int keyCode, KeyEvent keyEvent, IntObjectFunction<KeyEvent, Boolean> next) {
+		return next.apply(keyCode, keyEvent);
+	}
+
+	public boolean onKeyLongPress(int keyCode, KeyEvent keyEvent, IntObjectFunction<KeyEvent, Boolean> next) {
+		return next.apply(keyCode, keyEvent);
 	}
 }

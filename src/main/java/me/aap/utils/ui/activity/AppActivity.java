@@ -3,7 +3,6 @@ package me.aap.utils.ui.activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources.Theme;
-import android.util.AttributeSet;
 import android.view.View;
 import android.view.Window;
 import android.widget.EditText;
@@ -11,10 +10,13 @@ import android.widget.EditText;
 import androidx.annotation.IdRes;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
-import androidx.appcompat.widget.AppCompatEditText;
 import androidx.fragment.app.FragmentManager;
 
+import com.google.android.material.textfield.TextInputEditText;
+
+import me.aap.utils.R;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.ui.view.DialogBuilder;
 
 /**
  * @author Andrey Pavlenko
@@ -50,7 +52,11 @@ public interface AppActivity {
 		return (Context) this;
 	}
 
-	default EditText createEditText(Context ctx, AttributeSet attrs) {
-		return new AppCompatEditText(ctx, attrs);
+	default EditText createEditText(Context ctx) {
+		return new TextInputEditText(ctx, null, R.attr.editTextStyle);
+	}
+
+	default DialogBuilder createDialogBuilder(Context ctx) {
+		return DialogBuilder.create(ctx);
 	}
 }

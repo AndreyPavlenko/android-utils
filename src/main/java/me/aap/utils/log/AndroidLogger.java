@@ -49,6 +49,27 @@ public class AndroidLogger extends Logger {
 		android.util.Log.e(tag, msg.toString(), ex);
 	}
 
+	@Override
+	public boolean isLoggable(Log.Level level) {
+		int l;
+
+		switch (level) {
+			case DEBUG:
+				l = android.util.Log.DEBUG;
+				break;
+			case INFO:
+				l = android.util.Log.INFO;
+				break;
+			case WARN:
+				l = android.util.Log.WARN;
+				break;
+			default:
+				l = android.util.Log.ERROR;
+		}
+
+		return android.util.Log.isLoggable(tag, l);
+	}
+
 	protected int getStackTraceOffset() {
 		return 4;
 	}

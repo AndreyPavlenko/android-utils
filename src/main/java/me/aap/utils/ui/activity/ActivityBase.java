@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.KeyEvent;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -188,5 +189,23 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 			checkPermissions = null;
 			p.complete(grantResults);
 		}
+	}
+
+	@Override
+	public boolean onKeyUp(int keyCode, KeyEvent keyEvent) {
+		return (delegate != null) ? delegate.onKeyUp(keyCode, keyEvent, super::onKeyUp)
+				: super.onKeyUp(keyCode, keyEvent);
+	}
+
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent keyEvent) {
+		return (delegate != null) ? delegate.onKeyDown(keyCode, keyEvent, super::onKeyDown)
+				: super.onKeyDown(keyCode, keyEvent);
+	}
+
+	@Override
+	public boolean onKeyLongPress(int keyCode, KeyEvent keyEvent) {
+		return (delegate != null) ? delegate.onKeyLongPress(keyCode, keyEvent, super::onKeyLongPress)
+				: super.onKeyLongPress(keyCode, keyEvent);
 	}
 }

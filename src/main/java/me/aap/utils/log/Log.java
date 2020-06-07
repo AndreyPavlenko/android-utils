@@ -1,5 +1,6 @@
 package me.aap.utils.log;
 
+import me.aap.utils.BuildConfig;
 import me.aap.utils.text.SharedTextBuilder;
 
 import static me.aap.utils.log.Log.Level.DEBUG;
@@ -76,6 +77,26 @@ public abstract class Log {
 			impl.formatMessage(ERROR, sb, msg);
 			impl.logError(sb, err);
 		}
+	}
+
+	public static boolean isLoggableD() {
+		return BuildConfig.DEBUG;
+	}
+
+	public static boolean isLoggableI() {
+		return isLoggable(INFO);
+	}
+
+	public static boolean isLoggableW() {
+		return isLoggable(WARN);
+	}
+
+	public static boolean isLoggableE() {
+		return isLoggable(ERROR);
+	}
+
+	public static boolean isLoggable(Level level) {
+		return impl.isLoggable(level);
 	}
 
 	public enum Level {

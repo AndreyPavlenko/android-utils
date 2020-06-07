@@ -1,7 +1,5 @@
 package me.aap.utils.ui.fragment;
 
-import android.content.Context;
-import android.content.res.TypedArray;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -13,8 +11,6 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.StyleRes;
-import androidx.appcompat.widget.AppCompatEditText;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import java.util.Collections;
@@ -46,7 +42,6 @@ import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEFT;
 import static java.util.Objects.requireNonNull;
 import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.UiUtils.toPx;
 import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
 import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
@@ -68,6 +63,17 @@ public class FilePickerFragment extends GenericDialogFragment implements
 	@Override
 	public int getFragmentId() {
 		return R.id.file_picker;
+	}
+
+	@Override
+	public void setInput(Object input) {
+		if (input instanceof FutureSupplier) {
+			setSupplier((FutureSupplier) input);
+		} else if (input instanceof VirtualFileSystem) {
+			setFileSystem((VirtualFileSystem) input);
+		} else {
+			super.setInput(input);
+		}
 	}
 
 	public void setFileSystem(VirtualFileSystem fs) {
@@ -337,7 +343,6 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		default EditText createPath(ToolBarView tb, FilePickerFragment f) {
 			EditText t = createEditText(tb);
 			ConstraintLayout.LayoutParams lp = setLayoutParams(t, 0, WRAP_CONTENT);
-			t.setTextAppearance(getPathTextAppearance(f));
 			t.setBackgroundResource(R.drawable.tool_bar_edittext_bg);
 			t.setOnKeyListener((v, k, e) -> onPathKeyEvent(f, t, k, e));
 			t.setMaxLines(1);
@@ -345,18 +350,6 @@ public class FilePickerFragment extends GenericDialogFragment implements
 			lp.horizontalWeight = 2;
 			setPathPadding(t);
 			return t;
-		}
-
-		@StyleRes
-		default int getPathTextAppearance(FilePickerFragment f) {
-			Context ctx = f.getContext();
-			if (ctx == null) return ID_NULL;
-
-			TypedArray ta = ctx.obtainStyledAttributes(null, new int[]{R.attr.textAppearanceBody1},
-					R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
-			int style = ta.getResourceId(0, R.style.TextAppearance_MaterialComponents_Body1);
-			ta.recycle();
-			return style;
 		}
 
 		default void setPathPadding(EditText t) {

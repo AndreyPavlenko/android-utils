@@ -1,7 +1,6 @@
 package me.aap.utils.ui;
 
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -22,11 +21,11 @@ import android.widget.EditText;
 import androidx.annotation.ColorInt;
 import androidx.annotation.IdRes;
 import androidx.annotation.StringRes;
-import androidx.appcompat.app.AlertDialog;
 
 import me.aap.utils.R;
 import me.aap.utils.concurrent.ConcurrentUtils;
 import me.aap.utils.function.Consumer;
+import me.aap.utils.ui.activity.ActivityDelegate;
 
 import static android.graphics.Bitmap.Config.ARGB_8888;
 import static android.os.Build.VERSION.SDK_INT;
@@ -51,22 +50,39 @@ public class UiUtils {
 		queryText(ctx, title, "", result);
 	}
 
+	public static void showAlert(Context ctx, @StringRes int msg) {
+		showAlert(ctx, ctx.getString(msg));
+	}
+
+	public static void showAlert(Context ctx, String msg) {
+		ActivityDelegate.get(ctx).createDialogBuilder(ctx)
+				.setTitle(android.R.drawable.ic_dialog_alert, android.R.string.dialog_alert_title)
+				.setMessage(msg)
+				.setPositiveButton(android.R.string.ok, null)
+				.show();
+	}
+
+	public static void showInfo(Context ctx, @StringRes int msg) {
+		showInfo(ctx, ctx.getString(msg));
+	}
+
+	public static void showInfo(Context ctx, String msg) {
+		ActivityDelegate.get(ctx).createDialogBuilder(ctx)
+				.setMessage(msg)
+				.setPositiveButton(android.R.string.ok, null)
+				.show();
+	}
+
 	public static void queryText(Context ctx, @StringRes int title, CharSequence initText,
 															 Consumer<CharSequence> result) {
-		EditText text = new EditText(ctx);
+		ActivityDelegate a = ActivityDelegate.get(ctx);
+		EditText text = a.createEditText(ctx);
 		text.setSingleLine();
 		text.setText(initText);
-		createAlertDialog(ctx)
+		a.createDialogBuilder(ctx)
 				.setTitle(title).setView(text)
 				.setNegativeButton(android.R.string.cancel, (d, i) -> result.accept(null))
 				.setPositiveButton(android.R.string.ok, (d, i) -> result.accept(text.getText())).show();
-	}
-
-	public static AlertDialog.Builder createAlertDialog(Context ctx) {
-		TypedArray ta = ctx.obtainStyledAttributes(new int[]{R.attr.alertDialogStyle});
-		int style = ta.getResourceId(0, R.style.Theme_Utils_Base_AlertDialog);
-		ta.recycle();
-		return new AlertDialog.Builder(ctx, style);
 	}
 
 	public static boolean dpadFocusHelper(View v, int keyCode, KeyEvent event) {
