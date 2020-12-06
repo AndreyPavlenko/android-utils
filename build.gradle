@@ -6,7 +6,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.0'
+        classpath 'com.android.tools.build:gradle:4.1.1'
     }
 }
 
@@ -56,17 +56,17 @@ dependencies {
     implementation 'com.jcraft:jsch:0.1.55'
     implementation 'com.hierynomus:smbj:0.10.0'
 
-    implementation 'com.google.gms:google-services:4.3.3'
-    implementation 'com.google.android.gms:play-services-auth:18.0.0'
-    implementation 'com.google.http-client:google-http-client-gson:1.26.0'
-    implementation('com.google.api-client:google-api-client-android:1.26.0') {
+    implementation 'com.google.gms:google-services:4.3.4'
+    implementation 'com.google.android.gms:play-services-auth:19.0.0'
+    implementation 'com.google.http-client:google-http-client-gson:1.38.0'
+    implementation('com.google.api-client:google-api-client-android:1.31.1') {
         exclude group: 'org.apache.httpcomponents'
     }
-    implementation('com.google.apis:google-api-services-drive:v3-rev136-1.25.0') {
+    implementation('com.google.apis:google-api-services-drive:v3-rev99-1.23.0') {
         exclude group: 'org.apache.httpcomponents'
     }
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 }
