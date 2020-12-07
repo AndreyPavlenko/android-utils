@@ -8,14 +8,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import me.aap.utils.app.App;
 import me.aap.utils.app.NetApp;
+import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureRef;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.collection.CollectionUtils;
 import me.aap.utils.net.NetHandler;
 import me.aap.utils.net.NetServer;
 import me.aap.utils.net.http.HttpConnectionHandler;
@@ -29,16 +33,23 @@ import static me.aap.utils.vfs.VfsHttpHandler.HTTP_QUERY;
  * @author Andrey Pavlenko
  */
 public class VfsManager {
-
+	private final int cacheSize;
+	private final Map<Rid, VirtualResource> cache;
+	private final FutureRef<NetServer> netServer = FutureRef.create(this::createHttpServer);
 	@NonNull
 	private volatile Mounts mounts;
-	private final FutureRef<NetServer> netServer = FutureRef.create(this::createHttpServer);
 
 	public VfsManager(VirtualFileSystem... fileSystems) {
 		this(Arrays.asList(fileSystems));
 	}
 
 	public VfsManager(List<VirtualFileSystem> fileSystems) {
+		this(128, fileSystems);
+	}
+
+	public VfsManager(int cacheSize, List<VirtualFileSystem> fileSystems) {
+		this.cacheSize = cacheSize;
+		this.cache = (cacheSize != 0) ? new LinkedHashMap<>() : Collections.emptyMap();
 		this.mounts = new Mounts(fileSystems);
 	}
 
@@ -64,6 +75,14 @@ public class VfsManager {
 		this.mounts = new Mounts(list);
 	}
 
+	public void clearCache() {
+		if (cacheSize != 0) {
+			synchronized (cache) {
+				cache.clear();
+			}
+		}
+	}
+
 	public List<VirtualFileSystem> getFileSystems() {
 		return mounts.all;
 	}
@@ -79,7 +98,7 @@ public class VfsManager {
 	}
 
 	public FutureSupplier<VirtualResource> getResource(Rid rid) {
-		return getResource(rid, 0);
+		return getCachedResource(rid, 0);
 	}
 
 	@NonNull
@@ -88,7 +107,7 @@ public class VfsManager {
 	}
 
 	public FutureSupplier<VirtualFile> getFile(Rid rid) {
-		return getResource(rid, 1);
+		return getCachedResource(rid, 1);
 	}
 
 	@NonNull
@@ -97,10 +116,43 @@ public class VfsManager {
 	}
 
 	public FutureSupplier<VirtualFolder> getFolder(Rid rid) {
-		return getResource(rid, 2);
+		return getCachedResource(rid, 2);
 	}
 
-	@SuppressWarnings({"unchecked", "rawtypes"})
+	@SuppressWarnings("unchecked")
+	private <R extends VirtualResource> FutureSupplier<R> getCachedResource(Rid rid, int type) {
+		if (cacheSize == 0) return getResource(rid, type);
+
+		VirtualResource r;
+
+		synchronized (cache) {
+			r = cache.get(rid);
+		}
+
+		if (r != null) return Completed.completed((R) r);
+
+		return this.<R>getResource(rid, type).map(vr -> {
+			synchronized (cache) {
+				R cached = (R) CollectionUtils.putIfAbsent(cache, rid, vr);
+				if (cached != null) return cached;
+
+				int size = cache.size();
+
+				if (size > cacheSize) {
+					Iterator<Map.Entry<Rid, VirtualResource>> it = cache.entrySet().iterator();
+					do {
+						it.next();
+						it.remove();
+						size--;
+					} while (size > cacheSize);
+				}
+
+				return vr;
+			}
+		});
+	}
+
+	@SuppressWarnings("unchecked")
 	private <R extends VirtualResource> FutureSupplier<R> getResource(Rid rid, int type) {
 		Mounts mounts = this.mounts;
 		List<VirtualFileSystem> list = mounts.map.get(rid.getScheme());
@@ -108,9 +160,9 @@ public class VfsManager {
 		if ((list != null) && !list.isEmpty()) {
 			for (VirtualFileSystem fs : list) {
 				if (fs.isSupportedResource(rid)) {
-					return (type == 0) ? (FutureSupplier) fs.getResource(rid)
-							: (type == 1) ? (FutureSupplier) fs.getFile(rid)
-							: (FutureSupplier) fs.getFolder(rid);
+					return (type == 0) ? (FutureSupplier<R>) fs.getResource(rid)
+							: (type == 1) ? (FutureSupplier<R>) fs.getFile(rid)
+							: (FutureSupplier<R>) fs.getFolder(rid);
 				}
 			}
 
@@ -119,9 +171,9 @@ public class VfsManager {
 
 		for (VirtualFileSystem fs : mounts.any) {
 			if (fs.isSupportedResource(rid)) {
-				return (type == 0) ? (FutureSupplier) fs.getResource(rid)
-						: (type == 1) ? (FutureSupplier) fs.getFile(rid)
-						: (FutureSupplier) fs.getFolder(rid);
+				return (type == 0) ? (FutureSupplier<R>) fs.getResource(rid)
+						: (type == 1) ? (FutureSupplier<R>) fs.getFile(rid)
+						: (FutureSupplier<R>) fs.getFolder(rid);
 			}
 		}
 

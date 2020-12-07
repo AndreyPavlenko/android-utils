@@ -25,6 +25,7 @@ class ContentResource implements VirtualResource {
 	private final ContentFolder parent;
 	private final String name;
 	private final String id;
+	private FutureSupplier<Long> lastModified;
 
 	public ContentResource(ContentFolder parent, String name, String id) {
 		this.parent = parent;
@@ -52,7 +53,10 @@ class ContentResource implements VirtualResource {
 
 	@Override
 	public FutureSupplier<Long> getLastModified() {
-		return getLong(getRid().toAndroidUri(), DocumentsContract.Document.COLUMN_LAST_MODIFIED, 0);
+		if (lastModified != null) return lastModified;
+		return lastModified = App.get().execute(() -> queryLong(getRid().toAndroidUri(),
+				DocumentsContract.Document.COLUMN_LAST_MODIFIED, 0))
+				.onSuccess(lm -> lastModified = completed(lm));
 	}
 
 	@NonNull
@@ -100,13 +104,9 @@ class ContentResource implements VirtualResource {
 		return getRid().toString();
 	}
 
-	static FutureSupplier<Long> getLong(Uri uri, String column, long defaultValue) {
-		return App.get().execute(() -> queryLong(uri, column, defaultValue));
-	}
-
 	static long queryLong(Uri uri, String column, long defaultValue) {
 		try (Cursor c = App.get().getContentResolver().query(uri, new String[]{column}, null, null, null)) {
-			if (c.moveToFirst() && !c.isNull(0)) return c.getLong(0);
+			if ((c != null) && c.moveToFirst() && !c.isNull(0)) return c.getLong(0);
 			else return defaultValue;
 		}
 	}

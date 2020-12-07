@@ -28,7 +28,7 @@ class SftpResource extends NetResourceBase<SftpRoot> {
 	}
 
 	@Override
-	public FutureSupplier<Long> getLastModified() {
+	protected FutureSupplier<Long> loadLastModified() {
 		return lstat().map(s -> s.getATime() * 1000L);
 	}
 

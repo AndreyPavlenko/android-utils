@@ -1,5 +1,7 @@
 package me.aap.utils.io;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 import me.aap.utils.log.Log;
@@ -25,6 +27,16 @@ public class IoUtils {
 				close(c);
 			}
 		}
+	}
+
+	public static long skip(InputStream in, long n) throws IOException {
+		long skipped = 0;
+		while (skipped < n) {
+			long s = in.skip(n - skipped);
+			if (s <= 0) break;
+			skipped += s;
+		}
+		return skipped;
 	}
 
 	public static ByteBuffer emptyByteBuffer() {

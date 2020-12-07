@@ -61,7 +61,7 @@ public class VfsHttpHandler implements HttpRequestHandler {
 					return;
 				}
 
-				if (range != null) {
+				if ((len >= 0) && (range != null)) {
 					range.align(len);
 
 					if (!range.isSatisfiable(len)) {
@@ -100,6 +100,13 @@ public class VfsHttpHandler implements HttpRequestHandler {
 
 	protected ByteBuffer buildResponse(HttpVersion version, long len, Range range, boolean close) {
 		HttpHeaderBuilder b = new HttpHeaderBuilder();
+
+		if (len < 0) {
+			b.statusOk(version);
+			if (close) b.addLine("Connection: close");
+			return b.build();
+		}
+
 		long contentLen = len;
 
 		if (range != null) {

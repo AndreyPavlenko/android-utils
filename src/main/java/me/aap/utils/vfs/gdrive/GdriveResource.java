@@ -22,6 +22,7 @@ class GdriveResource implements VirtualResource {
 	private final String name;
 	private Rid rid;
 	private FutureSupplier<VirtualFolder> parent;
+	private FutureSupplier<Long> lastModified;
 
 	GdriveResource(GdriveFileSystem fs, String id, String name) {
 		this.fs = fs;
@@ -59,7 +60,9 @@ class GdriveResource implements VirtualResource {
 
 	@Override
 	public FutureSupplier<Long> getLastModified() {
-		return fs.useDrive(d -> d.files().get(id).setFields("modifiedTime").execute().getModifiedTime().getValue());
+		if (lastModified != null) return lastModified;
+		return lastModified = fs.useDrive(d -> d.files().get(id).setFields("modifiedTime").execute()
+				.getModifiedTime().getValue()).onSuccess(lm -> lastModified = completed(lm));
 	}
 
 	@NonNull

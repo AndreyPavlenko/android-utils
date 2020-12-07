@@ -10,6 +10,7 @@ import java.io.IOException;
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.io.FileUtils;
+import me.aap.utils.io.IoUtils;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualInputStream;
@@ -77,7 +78,7 @@ class LocalFile extends LocalResource implements VirtualFile {
 	@Override
 	public VirtualInputStream getInputStream(long offset) throws IOException {
 		FileInputStream in = new FileInputStream(file);
-		while (offset > 0) offset -= in.skip(offset);
+		IoUtils.skip(in, offset);
 		return VirtualInputStream.wrapInputStream(in, getInputBufferLen());
 	}
 

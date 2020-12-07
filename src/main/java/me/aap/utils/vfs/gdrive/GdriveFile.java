@@ -13,12 +13,14 @@ import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualInputStream;
 
+import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.vfs.VirtualInputStream.readInputStream;
 
 /**
  * @author Andrey Pavlenko
  */
 class GdriveFile extends GdriveResource implements VirtualFile {
+	private FutureSupplier<Long> length;
 
 	GdriveFile(GdriveFileSystem fs, String id, String name) {
 		super(fs, id, name);
@@ -30,7 +32,9 @@ class GdriveFile extends GdriveResource implements VirtualFile {
 
 	@Override
 	public FutureSupplier<Long> getLength() {
-		return fs.useDrive(d -> d.files().get(id).setFields("size").execute().getSize());
+		if (length != null) return length;
+		return length = fs.useDrive(d -> d.files().get(id).setFields("size").execute().getSize())
+				.onSuccess(len -> length = completed(len));
 	}
 
 	@Override

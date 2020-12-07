@@ -31,7 +31,7 @@ class SmbResource extends NetResourceBase<SmbRoot> {
 	}
 
 	@Override
-	public FutureSupplier<Long> getLastModified() {
+	protected FutureSupplier<Long> loadLastModified() {
 		return getRoot().useShare(s -> {
 			FileAllInformation info = s.getFileInformation(smbPath());
 			return info.getBasicInformation().getChangeTime().toEpochMillis();

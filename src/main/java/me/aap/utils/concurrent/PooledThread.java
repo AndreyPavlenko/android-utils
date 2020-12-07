@@ -11,7 +11,7 @@ import static me.aap.utils.misc.Assert.assertSame;
  * @author Andrey Pavlenko
  */
 public class PooledThread extends Thread {
-	private SharedTextBuilder sb = SharedTextBuilder.create(this);
+	private final SharedTextBuilder sb = SharedTextBuilder.create(this);
 
 	public PooledThread() {
 	}

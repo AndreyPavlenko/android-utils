@@ -84,7 +84,7 @@ public interface VirtualFile extends VirtualResource {
 			Holder<ByteBufferSupplier> hdr = (header != null) ? new Holder<>(header) : null;
 
 			return Async.iterate(() -> {
-				long remaining = len - (pos.value - off);
+				long remaining = (len < 0) ? Long.MAX_VALUE : (len - (pos.value - off));
 				if (remaining <= 0) return null;
 
 				return in.read(() -> allocateInputBuffer(remaining)).then(buf -> {
@@ -102,7 +102,7 @@ public interface VirtualFile extends VirtualResource {
 							}
 						});
 					} else {
-						pos.value = len + off;
+						pos.value = off + ((len > 0) ? len : 0);
 						return completedVoid();
 					}
 				});

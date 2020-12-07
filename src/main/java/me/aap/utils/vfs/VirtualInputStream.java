@@ -134,7 +134,7 @@ public interface VirtualInputStream extends Cancellable {
 			@Override
 			public long skip(long n) throws IOException {
 				try {
-					return VirtualInputStream.this.skip(n).get().intValue();
+					return VirtualInputStream.this.skip(n).get();
 				} catch (Exception ex) {
 					throw new IOException(ex);
 				}

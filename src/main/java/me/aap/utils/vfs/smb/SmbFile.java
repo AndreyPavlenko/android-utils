@@ -28,6 +28,7 @@ import static me.aap.utils.vfs.VirtualInputStream.readInputStream;
  * @author Andrey Pavlenko
  */
 class SmbFile extends SmbResource implements VirtualFile {
+	private FutureSupplier<Long> length;
 
 	SmbFile(@NonNull SmbRoot root, @NonNull String path) {
 		super(root, path);
@@ -39,7 +40,9 @@ class SmbFile extends SmbResource implements VirtualFile {
 
 	@Override
 	public FutureSupplier<Long> getLength() {
-		return getRoot().useShare(s -> s.getFileInformation(smbPath()).getStandardInformation().getEndOfFile());
+		if (length != null) return length;
+		return length = getRoot().useShare(s -> s.getFileInformation(smbPath())
+				.getStandardInformation().getEndOfFile()).onSuccess(len -> length = completed(len));
 	}
 
 	@Override
@@ -74,9 +77,7 @@ class SmbFile extends SmbResource implements VirtualFile {
 							SMB2CreateDisposition.FILE_OPEN,
 							null);
 					InputStream is = stream = file.getInputStream();
-					//noinspection StatementWithEmptyBody
-					for (long p = 0; p < pos; p += is.skip(pos - p)) ;
-
+					IoUtils.skip(in, pos);
 					FutureSupplier<ByteBuffer> r = readInputStream(is, dst.getByteBuffer(), getInputBufferLen());
 					pos += r.peek().remaining();
 					return r;

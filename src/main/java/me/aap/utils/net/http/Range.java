@@ -10,7 +10,7 @@ import static me.aap.utils.misc.Assert.assertTrue;
  * @author Andrey Pavlenko
  */
 public class Range {
-	private long start;
+	private final long start;
 	private long end;
 	private static final Range invalid = new Range(-1, -1) {
 

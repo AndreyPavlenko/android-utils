@@ -24,6 +24,7 @@ import static me.aap.utils.vfs.VirtualInputStream.readInputStream;
  * @author Andrey Pavlenko
  */
 class SftpFile extends SftpResource implements VirtualFile {
+	private FutureSupplier<Long> length;
 
 	SftpFile(SftpRoot root, String path) {
 		super(root, path);
@@ -35,7 +36,8 @@ class SftpFile extends SftpResource implements VirtualFile {
 
 	@Override
 	public FutureSupplier<Long> getLength() {
-		return lstat().map(SftpATTRS::getSize);
+		if (length != null) return length;
+		return length = lstat().map(SftpATTRS::getSize).onSuccess(len -> length = completed(len));
 	}
 
 	@Override

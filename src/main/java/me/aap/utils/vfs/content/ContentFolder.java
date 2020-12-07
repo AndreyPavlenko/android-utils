@@ -62,7 +62,7 @@ public class ContentFolder extends ContentResource implements VirtualFolder {
 			}
 
 			return Collections.<VirtualResource>emptyList();
-		}).then(list -> this.children = completed(list));
+		}).onSuccess(list -> this.children = list.isEmpty() ? null : completed(list));
 	}
 
 	FutureSupplier<ContentFile> findAnyFile() {
@@ -75,13 +75,13 @@ public class ContentFolder extends ContentResource implements VirtualFolder {
 
 			Iterator<VirtualResource> it = ls.iterator();
 			return Async.iterate(((ContentFolder) it.next()).findAnyFile(), find -> {
-				ContentFile f = find.get(null);
-				return (f != null) ? find : it.hasNext() ? ((ContentFolder) it.next()).findAnyFile() : null;
+				ContentFile f = find.peek();
+				return (f != null) || !it.hasNext() ? null : ((ContentFolder) it.next()).findAnyFile();
 			});
 		});
 	}
 
 	private static boolean isDir(String mime) {
-		return MIME_TYPE_DIR.equals(mime);
+		return MIME_TYPE_DIR.equals(mime) || "directory".equals(mime);
 	}
 }

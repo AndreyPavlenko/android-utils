@@ -62,10 +62,10 @@ public class ContentFileSystem implements VirtualFileSystem {
 	@NonNull
 	@Override
 	public FutureSupplier<VirtualResource> getResource(Rid rid) {
-		Uri rootUri = rid.toAndroidUri();
+		Uri uri = rid.toAndroidUri();
 
 		if (preferFiles) {
-			String path = uriToPathMap.getString(rootUri.toString(), null);
+			String path = uriToPathMap.getString(uri.toString(), null);
 
 			if (path != null) {
 				VirtualResource local = LocalFileSystem.getInstance().getResource(path);
@@ -73,33 +73,32 @@ public class ContentFileSystem implements VirtualFileSystem {
 			}
 		}
 
-		FutureSupplier<VirtualResource> contentDir = App.get().execute(() -> create(rootUri));
-		if (!preferFiles) return contentDir;
+		FutureSupplier<VirtualResource> res = App.get().execute(() -> create(uri));
+		if (!preferFiles) return res;
 
-		return contentDir.then(folder -> ((ContentFolder) folder).findAnyFile()
+		return res.then(r -> (r instanceof ContentFolder) ? ((ContentFolder) r).findAnyFile()
 				.then(contentFile -> {
-					if (contentFile == null) return contentDir;
+					if (contentFile == null) return res;
 
 					File f = FileUtils.getFileFromUri(contentFile.getRid().toAndroidUri());
-					if (f == null) return contentDir;
+					if (f == null) return res;
 
-					VirtualResource dir = contentDir.get(null);
+					VirtualResource dir = res.get(null);
 					f = f.getParentFile();
-
 
 					for (ContentFolder p = contentFile.getParentFolder(); (p != null) && (f != null);
 							 p = p.getParentFolder(), f = f.getParentFile()) {
 						if (p == dir) {
 							String path = f.getAbsolutePath();
 							VirtualResource local = LocalFileSystem.getInstance().getResource(path);
-							if (local == null) return contentDir;
-							uriToPathMap.edit().putString(rootUri.toString(), path).apply();
+							if (local == null) return res;
+							uriToPathMap.edit().putString(uri.toString(), path).apply();
 							return completed(local);
 						}
 					}
 
-					return contentDir;
-				}));
+					return res;
+				}) : completed(r));
 
 	}
 
@@ -155,7 +154,7 @@ public class ContentFileSystem implements VirtualFileSystem {
 	}
 
 	public static final class Provider implements VirtualFileSystem.Provider {
-		public static final Pref<BooleanSupplier> PREFER_FILE_API = Pref.b("PREFER_FILE_API", true);
+		public static final Pref<BooleanSupplier> PREFER_FILE_API = Pref.b("PREFER_FILE_API", false);
 		private static final Set<String> schemes = Collections.singleton("content");
 		private static final Provider instance = new Provider();
 

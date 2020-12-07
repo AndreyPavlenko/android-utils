@@ -122,6 +122,28 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			}
 
 			@Override
+			public boolean isFailed() {
+				if (!super.isFailed()) return false;
+
+				if (executor instanceof HandlerExecutor) {
+					return ((HandlerExecutor) executor).getLooper().isCurrentThread();
+				} else {
+					return true;
+				}
+			}
+
+			@Override
+			public boolean isDone() {
+				if (!super.isDone()) return false;
+
+				if (executor instanceof HandlerExecutor) {
+					return ((HandlerExecutor) executor).getLooper().isCurrentThread();
+				} else {
+					return true;
+				}
+			}
+
+			@Override
 			public T map(T t) {
 				return t;
 			}

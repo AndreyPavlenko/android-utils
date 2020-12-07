@@ -20,6 +20,7 @@ public class NetResourceBase<R extends VirtualFolder> implements VirtualResource
 	private final String path;
 	private Rid rid;
 	private FutureSupplier<VirtualFolder> parent;
+	private FutureSupplier<Long> lastModified;
 
 	protected NetResourceBase(@NonNull R root, @NonNull String path) {
 		this.root = root;
@@ -73,6 +74,16 @@ public class NetResourceBase<R extends VirtualFolder> implements VirtualResource
 		return fs.createResource(root, pp).then(r ->
 				parent = (r instanceof VirtualFolder) ? completed((VirtualFolder) r) : completedNull()
 		);
+	}
+
+	@Override
+	public FutureSupplier<Long> getLastModified() {
+		return (lastModified != null) ? lastModified :
+				(lastModified = loadLastModified().onSuccess(lm -> lastModified = completed(lm)));
+	}
+
+	protected FutureSupplier<Long> loadLastModified() {
+		return completed(0L);
 	}
 
 	@Override

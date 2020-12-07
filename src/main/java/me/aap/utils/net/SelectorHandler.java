@@ -32,6 +32,7 @@ import me.aap.utils.async.Promise;
 import me.aap.utils.async.RunnablePromise;
 import me.aap.utils.concurrent.ConcurrentQueueBase;
 import me.aap.utils.concurrent.ConcurrentQueueBase.Node;
+import me.aap.utils.concurrent.PooledThread;
 import me.aap.utils.function.ProgressiveResultConsumer.Completion;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.log.Log;
@@ -58,7 +59,7 @@ class SelectorHandler implements NetHandler, Runnable {
 	}
 
 	public void start() {
-		Thread t = new Thread(this, "SelectorHandler");
+		Thread t = new PooledThread(this, "SelectorHandler");
 		t.setDaemon(true);
 		t.start();
 	}
