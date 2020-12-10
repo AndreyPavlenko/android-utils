@@ -375,6 +375,10 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 		return true;
 	}
 
+	public boolean isMenuActive() {
+		return activeMenu != null;
+	}
+
 	public boolean interceptTouchEvent(MotionEvent e, Function<MotionEvent, Boolean> view) {
 		if ((e.getAction() != MotionEvent.ACTION_DOWN) || (activeMenu == null)) return view.apply(e);
 		activeMenu.hide();

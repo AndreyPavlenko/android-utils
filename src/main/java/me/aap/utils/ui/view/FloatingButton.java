@@ -9,10 +9,12 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.Px;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -133,7 +135,75 @@ public class FloatingButton extends FloatingActionButton implements ActivityList
 	@SuppressLint("ClickableViewAccessibility")
 	@Override
 	public boolean onTouchEvent(@NonNull MotionEvent e) {
-		return getActivity().interceptTouchEvent(e, super::onTouchEvent);
+		return getActivity().interceptTouchEvent(e, this::handleTouchEvent);
+	}
+
+	private final static float MOVE_TOLERANCE = 10;
+	private float downX, downY, dx, dy;
+	private boolean moving;
+
+	private boolean handleTouchEvent(@NonNull MotionEvent e) {
+		switch (e.getActionMasked()) {
+			case MotionEvent.ACTION_DOWN:
+				downX = e.getRawX();
+				downY = e.getRawY();
+				dx = getX() - downX;
+				dy = getY() - downY;
+				return super.onTouchEvent(e);
+
+			case MotionEvent.ACTION_MOVE:
+				int w = getWidth();
+				int h = getHeight();
+
+				View p = (View) getParent();
+				int pw = p.getWidth();
+				int ph = p.getHeight();
+
+				float newX = e.getRawX() + dx;
+				float newY = e.getRawY() + dy;
+				ViewGroup.LayoutParams lp = getLayoutParams();
+
+				if (lp instanceof ViewGroup.MarginLayoutParams) {
+					ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) getLayoutParams();
+					newX = Math.max(mlp.leftMargin, newX);
+					newX = Math.min(pw - w - mlp.rightMargin, newX);
+					newY = Math.max(mlp.topMargin, newY);
+					newY = Math.min(ph - h - mlp.bottomMargin, newY);
+				} else {
+					newX = Math.min(pw - w, newX);
+					newY = Math.min(ph - h, newY);
+				}
+
+				animate().x(newX).y(newY).setDuration(0).start();
+				setPressed(false);
+				moving = true;
+				return true;
+			case MotionEvent.ACTION_UP:
+				if (moving) {
+					moving = false;
+
+					if ((Math.abs(e.getRawX() - downX) >= MOVE_TOLERANCE)
+							|| (Math.abs(e.getRawY() - downY) >= MOVE_TOLERANCE)) {
+						return true;
+					}
+
+					setPressed(true);
+				}
+
+				return super.onTouchEvent(e);
+			default:
+				return super.onTouchEvent(e);
+		}
+	}
+
+	@Override
+	public void setOnClickListener(@Nullable OnClickListener l) {
+		super.setOnClickListener(l);
+	}
+
+	@Override
+	public void setOnLongClickListener(@Nullable OnLongClickListener l) {
+		super.setOnLongClickListener(l);
 	}
 
 	public interface Mediator extends ViewFragmentMediator<FloatingButton> {
