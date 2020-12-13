@@ -81,7 +81,11 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 
 	@Override
 	public boolean onInterceptTouchEvent(MotionEvent e) {
-		return getActivity().interceptTouchEvent(e, super::onTouchEvent);
+		return getActivity().interceptTouchEvent(e, this::interceptTouchEvent);
+	}
+
+	protected boolean interceptTouchEvent(MotionEvent e) {
+		return super.onTouchEvent(e);
 	}
 
 	@Override
