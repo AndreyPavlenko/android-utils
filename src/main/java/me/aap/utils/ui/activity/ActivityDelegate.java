@@ -185,7 +185,8 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 
 	@Override
 	public Context getContext() {
-		return getAppActivity().getContext();
+		AppActivity a = getAppActivity();
+		return (a == null) ? super.getContext() : a.getContext();
 	}
 
 	public Window getWindow() {

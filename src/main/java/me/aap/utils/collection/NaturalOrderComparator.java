@@ -2,6 +2,8 @@ package me.aap.utils.collection;
 
 import java.util.Comparator;
 
+import me.aap.utils.log.Log;
+
 import static java.lang.Character.isDigit;
 
 /**
@@ -14,6 +16,15 @@ public class NaturalOrderComparator<S extends CharSequence> implements Comparato
 	}
 
 	public static <S extends CharSequence> int compareNatural(S a, S b) {
+		try {
+			return cmp(a, b);
+		} catch (NumberFormatException ex) {
+			Log.e(ex, "Failed to compare '" + a + "' and '" + b + '\'');
+			return a.toString().compareTo(b.toString());
+		}
+	}
+
+	private static <S extends CharSequence> int cmp(S a, S b) {
 		int alen = a.length();
 		int blen = b.length();
 

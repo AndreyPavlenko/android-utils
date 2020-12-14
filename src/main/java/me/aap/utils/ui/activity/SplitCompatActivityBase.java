@@ -20,7 +20,6 @@ public abstract class SplitCompatActivityBase extends ActivityBase {
 
 	@Override
 	public void onAttachFragment(@NonNull Fragment fragment) {
-		Context ctx = fragment.getContext();
-		if(ctx != null) SplitCompat.install(ctx);
+		SplitCompat.install(fragment.getContext());
 	}
 }
