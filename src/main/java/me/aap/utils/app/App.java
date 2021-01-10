@@ -2,7 +2,12 @@ package me.aap.utils.app;
 
 import android.annotation.SuppressLint;
 
+import androidx.annotation.Nullable;
+
+import java.io.File;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import me.aap.utils.async.FutureSupplier;
@@ -13,6 +18,7 @@ import me.aap.utils.function.CheckedSupplier;
 
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.collection.CollectionUtils.forEach;
 import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
 
 /**
@@ -23,6 +29,7 @@ public class App extends android.app.Application {
 	private static App instance;
 	private volatile HandlerExecutor handler;
 	private volatile ThreadPool executor;
+	private volatile ScheduledExecutorService scheduler;
 
 	@SuppressWarnings("unchecked")
 	public static <C extends App> C get() {
@@ -41,10 +48,25 @@ public class App extends android.app.Application {
 		instance = null;
 		ExecutorService e = executor;
 		if (e != null) e.shutdown();
+		ScheduledExecutorService s = scheduler;
+		if (s != null) forEach(s.shutdownNow(), Runnable::run);
 	}
 
 	public String getLogTag() {
 		return getApplicationInfo().loadLabel(getPackageManager()).toString();
+	}
+
+	@Nullable
+	public File getLogFile() {
+		return null;
+	}
+
+	public int getLogFlushDelay() {
+		return 1;
+	}
+
+	public int getLogRotateThreshold() {
+		return 64 * 1024;
 	}
 
 	public HandlerExecutor getHandler() {
@@ -122,5 +144,23 @@ public class App extends android.app.Application {
 
 	protected int getMaxNumberOfThreads() {
 		return 1;
+	}
+
+	public ScheduledExecutorService getScheduler() {
+		ScheduledExecutorService s = scheduler;
+
+		if (s == null) {
+			synchronized (this) {
+				if ((s = scheduler) == null) {
+					scheduler = s = createScheduler();
+				}
+			}
+		}
+
+		return s;
+	}
+
+	protected ScheduledExecutorService createScheduler() {
+		return Executors.newScheduledThreadPool(1);
 	}
 }

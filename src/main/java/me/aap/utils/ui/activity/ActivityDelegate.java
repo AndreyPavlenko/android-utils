@@ -29,6 +29,7 @@ import me.aap.utils.event.EventBroadcaster;
 import me.aap.utils.function.Function;
 import me.aap.utils.function.IntObjectFunction;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.ui.fragment.ActivityFragment;
 import me.aap.utils.ui.fragment.FilePickerFragment;
 import me.aap.utils.ui.fragment.GenericDialogFragment;
@@ -57,7 +58,8 @@ import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
 /**
  * @author Andrey Pavlenko
  */
-public abstract class ActivityDelegate extends Fragment implements EventBroadcaster<ActivityListener> {
+public abstract class ActivityDelegate extends Fragment implements
+		EventBroadcaster<ActivityListener>, Thread.UncaughtExceptionHandler {
 	private static Function<Context, ActivityDelegate> contextToDelegate;
 	private static final int FULLSCREEN_FLAGS = SYSTEM_UI_FLAG_LAYOUT_STABLE |
 			SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
@@ -134,6 +136,7 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 	}
 
 	protected void onActivityCreate(Bundle savedInstanceState) {
+		Thread.setDefaultUncaughtExceptionHandler(this);
 		setTheme();
 	}
 
@@ -173,6 +176,12 @@ public abstract class ActivityDelegate extends Fragment implements EventBroadcas
 	public void finish() {
 		fireBroadcastEvent(ACTIVITY_FINISH);
 		getAppActivity().finish();
+	}
+
+	@Override
+	public void uncaughtException(@NonNull Thread t, @NonNull Throwable ex) {
+		RuntimeException err = new RuntimeException("Uncaught exception in thread " + t, ex);
+		Log.e(err);
 	}
 
 	public AppActivity getAppActivity() {

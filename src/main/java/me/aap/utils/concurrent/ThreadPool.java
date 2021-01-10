@@ -11,13 +11,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import me.aap.utils.BuildConfig;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.RunnablePromise;
 import me.aap.utils.function.CheckedRunnable;
 import me.aap.utils.function.CheckedSupplier;
 import me.aap.utils.log.Log;
-import me.aap.utils.misc.TestUtils;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -121,9 +119,7 @@ public class ThreadPool extends ThreadPoolExecutor implements ThreadFactory, Thr
 
 	@Override
 	public void uncaughtException(@NonNull Thread t, @NonNull Throwable ex) {
-		if (BuildConfig.DEBUG && TestUtils.logExceptions()) {
-			Log.e(ex, "Uncaught exception in thread ", t);
-		}
+		Log.e(ex, "Uncaught exception in thread ", t);
 	}
 
 	static abstract class Task<T> extends RunnablePromise<T> {

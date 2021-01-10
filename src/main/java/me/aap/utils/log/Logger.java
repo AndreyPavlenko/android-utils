@@ -1,5 +1,8 @@
 package me.aap.utils.log;
 
+import java.util.Calendar;
+import java.util.Date;
+
 /**
  * @author Andrey Pavlenko
  */
@@ -37,6 +40,11 @@ public abstract class Logger {
 			ste = null;
 		}
 
+		if (addTimeStamp()) {
+			sb.append('[');
+			appendTimeStamp(sb);
+			sb.append(']');
+		}
 		if (addLevelName()) {
 			sb.append('[').append(level);
 			if ((ste == null) && !threadName) sb.append("] ");
@@ -69,6 +77,10 @@ public abstract class Logger {
 		return 3;
 	}
 
+	protected boolean addTimeStamp() {
+		return true;
+	}
+
 	protected boolean addLevelName() {
 		return true;
 	}
@@ -83,5 +95,21 @@ public abstract class Logger {
 
 	protected boolean addCallerName() {
 		return true;
+	}
+
+	private void appendTimeStamp(StringBuilder sb) {
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(new Date());
+		appendDateTime(sb, cal.get(Calendar.DAY_OF_MONTH)).append('-');
+		appendDateTime(sb, cal.get(Calendar.MONTH)).append('-');
+		appendDateTime(sb, cal.get(Calendar.YEAR) % 100).append(' ');
+		appendDateTime(sb, cal.get(Calendar.HOUR_OF_DAY)).append(':');
+		appendDateTime(sb, cal.get(Calendar.MINUTE)).append(':');
+		appendDateTime(sb, cal.get(Calendar.SECOND));
+	}
+
+	private StringBuilder appendDateTime(StringBuilder sb, int d) {
+		if (d < 10) sb.append('0');
+		return sb.append(d);
 	}
 }
