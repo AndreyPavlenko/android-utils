@@ -6,7 +6,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.1'
+        classpath 'com.android.tools.build:gradle:4.1.2'
     }
 }
 
@@ -18,12 +18,12 @@ repositories {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
     buildToolsVersion "29.0.2"
 
     defaultConfig {
         minSdkVersion 23
-        targetSdkVersion 29
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
 
@@ -48,25 +48,27 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:' + ANDROIDX_APPCOMPAT_VERSION
-    implementation "androidx.constraintlayout:constraintlayout:" + ANDROIDX_CONSTRAINTLAYOUT_VERSION
-    implementation 'com.google.android.play:core:' + ANDROID_PLAY_CORE_VERSION
-    implementation 'com.google.android.material:material:' + ANDROID_MATERIAL_VERSION
+    implementation "androidx.appcompat:appcompat:${ANDROIDX_APPCOMPAT_VERSION}"
+    implementation "androidx.constraintlayout:constraintlayout:${ANDROIDX_CONSTRAINTLAYOUT_VERSION}"
+    implementation "com.google.android.play:core:${ANDROID_PLAY_CORE_VERSION}"
+    implementation "com.google.android.material:material:${ANDROID_MATERIAL_VERSION}"
 
     implementation 'com.jcraft:jsch:0.1.55'
     implementation 'com.hierynomus:smbj:0.10.0'
 
-    implementation 'com.google.gms:google-services:4.3.4'
+    implementation 'com.google.gms:google-services:4.3.5'
     implementation 'com.google.android.gms:play-services-auth:19.0.0'
-    implementation 'com.google.http-client:google-http-client-gson:1.38.0'
-    implementation('com.google.api-client:google-api-client-android:1.31.1') {
+    implementation 'com.google.http-client:google-http-client-gson:1.39.0'
+    implementation('com.google.api-client:google-api-client-android:1.31.3') {
         exclude group: 'org.apache.httpcomponents'
+        exclude group: 'com.google.guava'
     }
     implementation('com.google.apis:google-api-services-drive:v3-rev99-1.23.0') {
         exclude group: 'org.apache.httpcomponents'
+        exclude group: 'com.google.guava'
     }
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.1'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 }
