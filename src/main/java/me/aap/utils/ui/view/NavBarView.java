@@ -16,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.widget.LinearLayoutCompat;
+import androidx.core.content.ContextCompat;
 
 import me.aap.utils.R;
 import me.aap.utils.function.BiFunction;
@@ -31,6 +32,10 @@ import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
  * @author Andrey Pavlenko
  */
 public class NavBarView extends LinearLayoutCompat implements ActivityListener {
+	public static final int POSITION_BOTTOM = 0;
+	public static final int POSITION_LEFT = 1;
+	public static final int POSITION_RIGHT = 2;
+	private final int position;
 	@ColorInt
 	private final int bgColor;
 	@ColorInt
@@ -44,7 +49,12 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 	public NavBarView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
 
-		TypedArray ta = context.obtainStyledAttributes(attrs,
+		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.NavBarView);
+		position = ta.getInt(R.styleable.NavBarView_position, POSITION_BOTTOM);
+		if (position != POSITION_BOTTOM) setOrientation(VERTICAL);
+		ta.recycle();
+
+		ta = context.obtainStyledAttributes(attrs,
 				new int[]{android.R.attr.colorBackground, R.attr.tint},
 				R.attr.bottomNavigationStyle, R.style.Theme_Utils_Base_NavBarStyle);
 		bgColor = ta.getColor(0, Color.TRANSPARENT);
@@ -55,6 +65,10 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 		ActivityDelegate a = getActivity();
 		a.addBroadcastListener(this, Mediator.DEFAULT_EVENT_MASK);
 		setMediator(a.getActiveFragment());
+	}
+
+	public int getPosition() {
+		return position;
 	}
 
 	public void showMenu() {
@@ -212,6 +226,7 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 																		@IdRes int id, OnClickListener onClick) {
 			NavButtonView b = createButton(nb, icon, text);
 			addView(nb, b, id, onClick);
+			b.setSelected(false);
 			return b;
 		}
 
@@ -228,7 +243,7 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 
 		default NavButtonView createButton(NavBarView nb, @DrawableRes int icon, @StringRes int text) {
 			Context ctx = nb.getContext();
-			return createButton(nb, ctx.getDrawable(icon), ctx.getText(text));
+			return createButton(nb, ContextCompat.getDrawable(ctx, icon), ctx.getText(text));
 		}
 
 		default NavButtonView createButton(NavBarView nb, Drawable icon, CharSequence text) {
@@ -238,6 +253,7 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 		default <B extends NavButtonView> B createButton(
 				NavBarView nb, BiFunction<Context, AttributeSet, B> constructor, Drawable icon, CharSequence text) {
 			B b = constructor.apply(nb.getContext(), null);
+			b.setCompact(nb.getPosition() != POSITION_BOTTOM);
 			initButton(b, icon, text);
 			return b;
 		}

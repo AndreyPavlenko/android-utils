@@ -64,7 +64,7 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 		}
 
 		if (ext.isEmpty()) {
-			setFocus(first, last);
+			setFocus(nb, first, last);
 			return;
 		}
 
@@ -76,7 +76,7 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 					extButton.setSelected(true);
 					extButton.setHasExt(ext.size() > 1);
 					addView(nb, extButton, id, this);
-					setFocus(first, extButton);
+					setFocus(nb, first, extButton);
 					return;
 				}
 			}
@@ -86,13 +86,18 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 		extButton = createButton(nb, NavButtonView.Ext::new, i.getIcon(), i.getText());
 		extButton.setHasExt(ext.size() > 1);
 		addView(nb, extButton, i.getId(), this);
-		setFocus(first, extButton);
+		setFocus(nb, first, extButton);
 	}
 
-	private void setFocus(View first, View last) {
+	private void setFocus(NavBarView nb, View first, View last) {
 		if ((first != null) && (last != null)) {
-			first.setNextFocusLeftId(last.getId());
-			last.setNextFocusRightId(first.getId());
+			if (nb.getPosition() == NavBarView.POSITION_BOTTOM) {
+				first.setNextFocusLeftId(last.getId());
+				last.setNextFocusRightId(first.getId());
+			} else {
+				first.setNextFocusUpId(last.getId());
+				last.setNextFocusDownId(first.getId());
+			}
 		}
 	}
 
@@ -147,8 +152,18 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 
 		if (lp instanceof ConstraintLayout.LayoutParams) {
 			ConstraintLayout.LayoutParams clp = (ConstraintLayout.LayoutParams) lp;
-			clp.endToEnd = PARENT_ID;
-			clp.bottomToBottom = PARENT_ID;
+
+			if (nb.getPosition() == NavBarView.POSITION_BOTTOM) {
+				clp.endToEnd = PARENT_ID;
+				clp.bottomToTop = nb.getId();
+			} else if (nb.getPosition() == NavBarView.POSITION_LEFT) {
+				clp.startToEnd = nb.getId();
+				clp.bottomToBottom = PARENT_ID;
+			} else {
+				clp.endToStart = nb.getId();
+				clp.bottomToBottom = PARENT_ID;
+			}
+
 			clp.resolveLayoutDirection(LAYOUT_DIRECTION_LTR);
 		}
 

@@ -56,4 +56,12 @@
         <attr name="folderIcon" format="reference" />
     </declare-styleable>
 
+    <declare-styleable name="NavBarView">
+        <attr name="position" format="enum">
+            <enum name="BOTTOM" value="0" />
+            <enum name="LEFT" value="1" />
+            <enum name="RIGHT" value="2" />
+        </attr>
+    </declare-styleable>
+
 </resources>

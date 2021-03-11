@@ -8,20 +8,22 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.LinearLayoutCompat;
 
 import me.aap.utils.R;
 import me.aap.utils.ui.UiUtils;
 
+import static me.aap.utils.ui.UiUtils.toIntPx;
 import static me.aap.utils.ui.UiUtils.toPx;
 
 /**
  * @author Andrey Pavlenko
  */
-public class NavButtonView extends LinearLayout {
+public class NavButtonView extends LinearLayoutCompat {
+	private boolean compact = false;
 
 	public NavButtonView(Context context, @Nullable AttributeSet attrs) {
 		this(context, attrs, R.attr.bottomNavigationStyle);
@@ -42,10 +44,23 @@ public class NavButtonView extends LinearLayout {
 		setFocusable(true);
 	}
 
+	public void setCompact(boolean compact) {
+		this.compact = compact;
+		int pad = toIntPx(getContext(), compact ? 12 : 0);
+		setPadding(pad, 0, pad, 0);
+		setSelected(isSelected());
+	}
+
+	public boolean isCompact() {
+		return compact;
+	}
+
 	@Override
 	public void setSelected(boolean selected) {
 		super.setSelected(selected);
-		getText().setVisibility(selected ? VISIBLE : GONE);
+		getIcon().setAlpha(selected ? 1f : 0.3f);
+		if (isCompact()) getText().setVisibility(GONE);
+		else getText().setVisibility(selected ? VISIBLE : GONE);
 	}
 
 	public ImageView getIcon() {
@@ -81,16 +96,27 @@ public class NavButtonView extends LinearLayout {
 
 			float w = toPx(ctx, 2);
 			float len = toPx(ctx, 4);
-			float x2 = getWidth() - 2 * w;
-			float x1 = x2 - len;
-			float y2 = getHeight() / 2f;
-			float y1 = y2 - len;
-			float y3 = y2 + len;
-
 			path.reset();
-			path.moveTo(x1, y1);
-			path.lineTo(x2, y2);
-			path.lineTo(x1, y3);
+
+			if (isCompact()) {
+				float y2 = getHeight() - 2 * w;
+				float y1 = y2 - len;
+				float x2 = getWidth() / 2f;
+				float x1 = x2 - len;
+				float x3 = x2 + len;
+				path.moveTo(x1, y1);
+				path.lineTo(x2, y2);
+				path.lineTo(x3, y1);
+			} else {
+				float x2 = getWidth() - 2 * w;
+				float x1 = x2 - len;
+				float y2 = getHeight() / 2f;
+				float y1 = y2 - len;
+				float y3 = y2 + len;
+				path.moveTo(x1, y1);
+				path.lineTo(x2, y2);
+				path.lineTo(x1, y3);
+			}
 
 			Paint paint = UiUtils.getPaint();
 			paint.setPathEffect(corner);
