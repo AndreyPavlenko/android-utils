@@ -26,8 +26,7 @@ public abstract class ActivityFragment extends Fragment {
 	}
 
 	public NavBarView.Mediator getNavBarMediator() {
-		return (nb, f) -> {
-		};
+		return NavBarView.Mediator.instance;
 	}
 
 	public FloatingButton.Mediator getFloatingButtonMediator() {

@@ -133,6 +133,8 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 	}
 
 	public interface Mediator extends ViewFragmentMediator<NavBarView>, OnClickListener {
+		Mediator instance = (nb, f) -> {
+		};
 
 		@Override
 		default void disable(NavBarView nb) {

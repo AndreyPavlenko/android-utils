@@ -36,7 +36,7 @@ import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEF
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.RIGHT;
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET;
-import static me.aap.utils.ui.UiUtils.toPx;
+import static me.aap.utils.ui.UiUtils.toIntPx;
 import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
 
 /**
@@ -200,18 +200,19 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 			b.setScaleType(ImageView.ScaleType.FIT_CENTER);
 			b.setBackgroundResource(R.drawable.focusable_shape_transparent);
 			if (onClick != null) b.setOnClickListener(onClick);
+			setButtonPadding(b);
 			return b;
 		}
 
 		default ConstraintLayout.LayoutParams setLayoutParams(View v, int width, int height) {
 			ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(width, height);
-			lp.leftMargin = lp.rightMargin = (int) toPx(v.getContext(), getLeftRightMargin());
 			v.setLayoutParams(lp);
 			return lp;
 		}
 
-		default int getLeftRightMargin() {
-			return 10;
+		default void setButtonPadding(View v) {
+			int pad = toIntPx(v.getContext(), 6);
+			v.setPadding(pad, pad, pad, pad);
 		}
 
 		default EditText createEditText(ToolBarView tb) {
@@ -315,7 +316,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 				t.setTextAppearance(getTitleTextAppearance(ctx));
 				t.setMaxLines(1);
 				t.setFocusable(false);
-				t.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+				t.setEllipsize(TextUtils.TruncateAt.END);
 				ConstraintLayout.LayoutParams lp = setLayoutParams(t, 0, WRAP_CONTENT);
 				lp.horizontalWeight = 2;
 				return t;
@@ -448,7 +449,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 			}
 
 			default void setFilterPadding(EditText t) {
-				int p = (int) toPx(t.getContext(), 2);
+				int p = toIntPx(t.getContext(), 2);
 				t.setPadding(p, p, p, p);
 			}
 

@@ -159,6 +159,12 @@ public abstract class ActivityDelegate extends Fragment implements
 
 	protected void onActivityDestroy() {
 		fireBroadcastEvent(ACTIVITY_DESTROY);
+		activity = null;
+		activeMenu = null;
+		fullScreen = false;
+		backPressed = false;
+		activeFragmentId = ID_NULL;
+		activeNavItemId = ID_NULL;
 
 		if (BuildConfig.DEBUG) {
 			removeBroadcastListeners(l -> {
