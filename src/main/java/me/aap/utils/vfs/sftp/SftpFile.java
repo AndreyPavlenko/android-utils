@@ -9,16 +9,16 @@ import java.nio.ByteBuffer;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.ObjectPool.PooledObject;
+import me.aap.utils.io.AsyncInputStream;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
-import me.aap.utils.vfs.VirtualInputStream;
 import me.aap.utils.vfs.sftp.SftpRoot.SftpSession;
 
 import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.io.AsyncInputStream.readInputStream;
 import static me.aap.utils.io.IoUtils.emptyByteBuffer;
-import static me.aap.utils.vfs.VirtualInputStream.readInputStream;
 
 /**
  * @author Andrey Pavlenko
@@ -41,8 +41,8 @@ class SftpFile extends SftpResource implements VirtualFile {
 	}
 
 	@Override
-	public VirtualInputStream getInputStream(long offset) {
-		return new VirtualInputStream() {
+	public AsyncInputStream getInputStream(long offset) {
+		return new AsyncInputStream() {
 			private final FutureSupplier<PooledObject<SftpSession>> session = getRoot().getSession();
 			long pos = offset;
 			InputStream stream;
@@ -72,18 +72,11 @@ class SftpFile extends SftpResource implements VirtualFile {
 			}
 
 			@Override
-			public boolean cancel() {
-				InputStream in = stream;
-
-				if (in != null) {
-					IoUtils.close(in);
-					stream = null;
-				}
-
-				if (session.cancel()) return true;
-
+			public void close() {
+				IoUtils.close(stream);
+				session.cancel();
 				PooledObject<SftpSession> s = session.peek();
-				return (s != null) && s.release();
+				if (s != null) s.release();
 			}
 		};
 	}

@@ -1,5 +1,7 @@
 package me.aap.utils.net.http;
 
+import java.nio.ByteBuffer;
+
 import me.aap.utils.log.Log;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -15,17 +17,17 @@ public enum HttpMethod {
 		bytes = name().getBytes(US_ASCII);
 	}
 
-	static HttpMethod get(byte[] buf, int start, int end) {
-		switch ((char) buf[start]) {
+	static HttpMethod get(ByteBuffer buf, int start, int end) {
+		switch ((char) buf.get(start)) {
 			case 'G':
 				if ((end - start) < 3) return null;
-				return (buf[start + 1] == 'E') && (buf[start + 2] == 'T') ? GET : UNSUPPORTED;
+				return (buf.get(start + 1) == 'E') && (buf.get(start + 2) == 'T') ? GET : UNSUPPORTED;
 			case 'H':
 				if ((end - start) < 4) return null;
-				return (buf[start + 1] == 'E') && (buf[start + 2] == 'A') && (buf[start + 3] == 'D') ? HEAD : UNSUPPORTED;
+				return (buf.get(start + 1) == 'E') && (buf.get(start + 2) == 'A') && (buf.get(start + 3) == 'D') ? HEAD : UNSUPPORTED;
 			case 'P':
 				if ((end - start) < 4) return null;
-				return (buf[start + 1] == 'O') && (buf[start + 2] == 'S') && (buf[start + 3] == 'T') ? POST : UNSUPPORTED;
+				return (buf.get(start + 1) == 'O') && (buf.get(start + 2) == 'S') && (buf.get(start + 3) == 'T') ? POST : UNSUPPORTED;
 			default:
 				return UNSUPPORTED;
 		}

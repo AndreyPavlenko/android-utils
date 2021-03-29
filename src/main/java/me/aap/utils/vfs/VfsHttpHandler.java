@@ -8,13 +8,21 @@ import me.aap.utils.net.http.HttpError;
 import me.aap.utils.net.http.HttpError.Forbidden;
 import me.aap.utils.net.http.HttpError.NotFound;
 import me.aap.utils.net.http.HttpError.ServiceUnavailable;
-import me.aap.utils.net.http.HttpHeaderBuilder;
 import me.aap.utils.net.http.HttpMethod;
 import me.aap.utils.net.http.HttpRequest;
 import me.aap.utils.net.http.HttpRequestHandler;
+import me.aap.utils.net.http.HttpResponseBuilder;
 import me.aap.utils.net.http.HttpVersion;
 import me.aap.utils.net.http.Range;
 import me.aap.utils.resource.Rid;
+
+import static me.aap.utils.async.Completed.completedVoid;
+import static me.aap.utils.net.http.HttpHeader.ACCEPT_RANGES;
+import static me.aap.utils.net.http.HttpHeader.CONNECTION;
+import static me.aap.utils.net.http.HttpHeader.CONTENT_LENGTH;
+import static me.aap.utils.net.http.HttpHeader.CONTENT_RANGE;
+import static me.aap.utils.net.http.HttpResponseBuilder.supplier;
+import static me.aap.utils.net.http.HttpVersion.HTTP_1_1;
 
 /**
  * @author Andrey Pavlenko
@@ -29,18 +37,18 @@ public class VfsHttpHandler implements HttpRequestHandler {
 	}
 
 	@Override
-	public void handleRequest(NetChannel channel, HttpRequest req, ByteBuffer payload) {
+	public FutureSupplier<Void> handleRequest(HttpRequest req) {
+		NetChannel channel = req.getChannel();
 		Rid rid = getRid(req);
 
 		if (rid == null) {
-			NotFound.instance.write(channel);
-			return;
+			return NotFound.instance.write(channel);
 		}
 
 		Range range = req.getRange();
 		HttpMethod method = req.getMethod();
 		HttpVersion version = req.getVersion();
-		boolean close = req.closeConnection();
+		boolean close = req.isConnectionClose();
 
 		mgr.getResource(rid).onCompletion((result, fail) -> {
 			if (fail != null) {
@@ -73,13 +81,14 @@ public class VfsHttpHandler implements HttpRequestHandler {
 				FutureSupplier<Void> reply;
 
 				if (method == HttpMethod.HEAD) {
-					reply = channel.write(() -> buildResponse(version, len, range, close));
+					reply = channel.write(supplier(b -> buildResponse(b, version, len, range, close)));
 				} else if (range != null) {
 					long start = range.getStart();
-					reply = file.transferTo(channel, start, range.getEnd() - start + 1, ()
-							-> buildResponse(version, len, range, close));
+					reply = file.transferTo(channel, start, range.getEnd() - start + 1,
+							supplier(b -> buildResponse(b, version, len, range, close)));
 				} else {
-					reply = file.transferTo(channel, 0, len, () -> buildResponse(version, len, null, close));
+					reply = file.transferTo(channel, 0, len,
+							supplier(b -> buildResponse(b, version, len, null, close)));
 				}
 
 				reply.onCompletion((r, f) -> {
@@ -88,6 +97,8 @@ public class VfsHttpHandler implements HttpRequestHandler {
 				});
 			});
 		});
+
+		return completedVoid();
 	}
 
 	protected Rid getRid(HttpRequest req) {
@@ -98,12 +109,10 @@ public class VfsHttpHandler implements HttpRequestHandler {
 		return Rid.create(Rid.decode(q.subSequence(HTTP_QUERY.length(), q.length())));
 	}
 
-	protected ByteBuffer buildResponse(HttpVersion version, long len, Range range, boolean close) {
-		HttpHeaderBuilder b = new HttpHeaderBuilder();
-
+	protected ByteBuffer[] buildResponse(HttpResponseBuilder b, HttpVersion version, long len, Range range, boolean close) {
 		if (len < 0) {
-			b.statusOk(version);
-			if (close) b.addLine("Connection: close");
+			b.setStatusOk(version);
+			if (close) b.addHeader(CONNECTION);
 			return b.build();
 		}
 
@@ -111,15 +120,16 @@ public class VfsHttpHandler implements HttpRequestHandler {
 
 		if (range != null) {
 			contentLen = range.getEnd() - range.getStart() + 1;
-			b.statusPartial(version);
-			b.addLine("Content-Range: bytes " + range.getStart() + '-' + range.getEnd() + '/' + len);
+			b.setStatusPartial(version);
+			b.addHeader(CONTENT_RANGE, "bytes " + range.getStart() + '-' + range.getEnd() + '/' + len);
 		} else {
-			b.statusOk(version);
+			b.setStatusOk(version);
 		}
 
-		b.addLine("Accept-Ranges: bytes");
-		b.addLine("Content-Length: " + contentLen);
-		if (close) b.addLine("Connection: close");
+		b.addHeader(ACCEPT_RANGES);
+		b.addHeader(CONTENT_LENGTH, contentLen);
+		if (close) b.addHeader(CONNECTION);
+		else if (version != HTTP_1_1) b.addHeader(CONNECTION, "Keep-Alive");
 		return b.build();
 	}
 }

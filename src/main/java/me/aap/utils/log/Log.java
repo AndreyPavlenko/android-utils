@@ -16,6 +16,8 @@ public abstract class Log {
 	private static final Logger impl = isAndroid() ? new AndroidLogger() : new PrintStreamLogger(System.out);
 
 	public static void d(Object... msg) {
+		if (!BuildConfig.DEBUG) return;
+
 		try (SharedTextBuilder tb = SharedTextBuilder.get()) {
 			StringBuilder sb = tb.getStringBuilder();
 			impl.formatMessage(DEBUG, sb, msg);
@@ -24,6 +26,8 @@ public abstract class Log {
 	}
 
 	public static void d(Throwable err, Object... msg) {
+		if (!BuildConfig.DEBUG) return;
+
 		try (SharedTextBuilder tb = SharedTextBuilder.get()) {
 			StringBuilder sb = tb.getStringBuilder();
 			impl.formatMessage(DEBUG, sb, msg);

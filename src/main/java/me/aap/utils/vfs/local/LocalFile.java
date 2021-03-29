@@ -1,6 +1,7 @@
 package me.aap.utils.vfs.local;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,10 +12,11 @@ import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.io.FileUtils;
 import me.aap.utils.io.IoUtils;
+import me.aap.utils.io.RandomAccessChannel;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
-import me.aap.utils.vfs.VirtualInputStream;
-import me.aap.utils.vfs.VirtualOutputStream;
+import me.aap.utils.io.AsyncInputStream;
+import me.aap.utils.io.AsyncOutputStream;
 
 import static me.aap.utils.async.Completed.failed;
 
@@ -33,7 +35,7 @@ class LocalFile extends LocalResource implements VirtualFile {
 
 	@Override
 	public FutureSupplier<Long> getLength() {
-		return Completed.completed(file.length());
+		return getVirtualFileSystem().getLength(getLocalFile());
 	}
 
 	@Override
@@ -76,14 +78,20 @@ class LocalFile extends LocalResource implements VirtualFile {
 	}
 
 	@Override
-	public VirtualInputStream getInputStream(long offset) throws IOException {
+	public AsyncInputStream getInputStream(long offset) throws IOException {
 		FileInputStream in = new FileInputStream(file);
 		IoUtils.skip(in, offset);
-		return VirtualInputStream.wrapInputStream(in, getInputBufferLen());
+		return AsyncInputStream.wrapInputStream(in, getInputBufferLen());
 	}
 
 	@Override
-	public VirtualOutputStream getOutputStream() throws IOException {
-		return VirtualOutputStream.wrapOutputStream(new FileOutputStream(file), getOutputBufferLen());
+	public AsyncOutputStream getOutputStream() throws IOException {
+		return AsyncOutputStream.wrapOutputStream(new FileOutputStream(file), getOutputBufferLen());
+	}
+
+	@Nullable
+	@Override
+	public RandomAccessChannel getChannel() {
+		return getVirtualFileSystem().getChannel(getLocalFile());
 	}
 }

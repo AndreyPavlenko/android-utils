@@ -10,14 +10,16 @@ import me.aap.utils.async.Async;
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.holder.BooleanHolder;
-import me.aap.utils.holder.Holder;
 import me.aap.utils.holder.LongHolder;
+import me.aap.utils.io.AsyncInputStream;
+import me.aap.utils.io.AsyncOutputStream;
 import me.aap.utils.io.IoUtils;
+import me.aap.utils.io.RandomAccessChannel;
+import me.aap.utils.net.ByteBufferArraySupplier;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.net.NetChannel;
 
 import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.completedVoid;
 import static me.aap.utils.async.Completed.failed;
 
 /**
@@ -39,14 +41,24 @@ public interface VirtualFile extends VirtualResource {
 		return completed(0L);
 	}
 
+	@Nullable
+	default String getContentEncoding() {
+		return null;
+	}
+
+	@Nullable
+	default String getCharacterEncoding() {
+		return null;
+	}
+
 	@NonNull
 	default FutureSupplier<Void> copyTo(VirtualFile to) {
-		VirtualInputStream in = null;
-		VirtualOutputStream out = null;
+		AsyncInputStream in = null;
+		AsyncOutputStream out = null;
 
 		try {
-			VirtualInputStream is = in = getInputStream();
-			VirtualOutputStream os = out = to.getOutputStream();
+			AsyncInputStream is = in = getInputStream();
+			AsyncOutputStream os = out = to.getOutputStream();
 			BooleanHolder completed = new BooleanHolder();
 			ByteBuffer buf = ByteBuffer.allocate(Math.min(getInputBufferLen(), to.getOutputBufferLen()));
 
@@ -76,12 +88,22 @@ public interface VirtualFile extends VirtualResource {
 
 	default FutureSupplier<Void> transferTo(NetChannel channel, long off, long len,
 																					@Nullable ByteBufferSupplier header) {
-		VirtualInputStream vis = null;
+		return transferTo(channel, off, len, (header != null) ? header.asArray() : null);
+	}
+
+	default FutureSupplier<Void> transferTo(NetChannel channel, long off, long len,
+																					@Nullable ByteBufferArraySupplier header) {
+		RandomAccessChannel rac = getChannel();
+
+		if (rac != null) {
+			return channel.send(rac, off, len, header);
+		}
+
+		AsyncInputStream vis = null;
 
 		try {
-			VirtualInputStream in = vis = getInputStream(off);
+			AsyncInputStream in = vis = getInputStream(off);
 			LongHolder pos = new LongHolder(off);
-			Holder<ByteBufferSupplier> hdr = (header != null) ? new Holder<>(header) : null;
 
 			return Async.iterate(() -> {
 				long remaining = (len < 0) ? Long.MAX_VALUE : (len - (pos.value - off));
@@ -92,18 +114,10 @@ public interface VirtualFile extends VirtualResource {
 
 					if (read > 0) {
 						pos.value += read;
-						return channel.write(() -> {
-							if ((hdr != null) && (hdr.value != null)) {
-								ByteBuffer[] b = new ByteBuffer[]{hdr.value.getByteBuffer(), buf};
-								hdr.value = null;
-								return b;
-							} else {
-								return new ByteBuffer[]{buf};
-							}
-						});
+						return channel.write((header == null) ? () -> new ByteBuffer[]{buf} :
+								ByteBufferArraySupplier.wrap(header, () -> new ByteBuffer[]{buf}));
 					} else {
-						pos.value = off + ((len > 0) ? len : 0);
-						return completedVoid();
+						return null;
 					}
 				});
 			}).thenRun(vis::close);
@@ -113,16 +127,21 @@ public interface VirtualFile extends VirtualResource {
 		}
 	}
 
-	default VirtualInputStream getInputStream() throws IOException {
+	default AsyncInputStream getInputStream() throws IOException {
 		return getInputStream(0);
 	}
 
-	default VirtualInputStream getInputStream(long offset) throws IOException {
+	default AsyncInputStream getInputStream(long offset) throws IOException {
 		throw new IOException();
 	}
 
-	default VirtualOutputStream getOutputStream() throws IOException {
+	default AsyncOutputStream getOutputStream() throws IOException {
 		throw new IOException();
+	}
+
+	@Nullable
+	default RandomAccessChannel getChannel() {
+		return null;
 	}
 
 	default int getInputBufferLen() {

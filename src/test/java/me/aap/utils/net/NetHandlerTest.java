@@ -4,15 +4,18 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import me.aap.utils.async.FutureSupplier;
@@ -37,7 +40,7 @@ public class NetHandlerTest extends Assertions {
 		TestUtils.enableTestMode();
 		Random rnd = ThreadLocalRandom.current();
 		exec = new NetThreadPool(Runtime.getRuntime().availableProcessors());
-		handler = NetHandler.create(exec);
+		handler = NetHandler.create(o -> o.executor = exec);
 		data = new byte[1024 * 1024 * rnd.nextInt(10)];
 		rnd.nextBytes(data);
 		checksum = sha1(data);
@@ -92,5 +95,51 @@ public class NetHandlerTest extends Assertions {
 
 		server.close();
 		assertFalse(failed.get());
+	}
+
+	@Test
+	public void testTimeout() throws InterruptedException, TimeoutException {
+		try {
+			handler.connect(o -> {
+				o.host = "10.21.2.2";
+				o.port = 80;
+				o.connectTimeout = 1;
+			}).get(1500, TimeUnit.MILLISECONDS);
+			fail();
+		} catch (ExecutionException ex) {
+			assertTrue(ex.getCause() instanceof TimeoutException);
+		}
+
+		NetServer server = handler.bind(o ->
+				o.handler = ch -> {
+					try {
+						Thread.sleep(4000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					ch.write(ByteBuffer.wrap(data)).thenRun(ch::close);
+				}).getOrThrow();
+		SocketAddress addr = server.getBindAddress();
+
+		NetChannel ch = handler.connect(o -> {
+			o.address = addr;
+			o.readTimeout = 1;
+			o.writeTimeout = 2;
+		}).getOrThrow();
+
+		try {
+			ch.read().get(1500, TimeUnit.MILLISECONDS);
+			fail();
+		} catch (ExecutionException ex) {
+			assertTrue(ex.getCause() instanceof TimeoutException);
+		}
+
+		try {
+			ch.write(ByteBuffer.wrap(new byte[(int) (Runtime.getRuntime().maxMemory() / 2)]))
+					.get(2500, TimeUnit.MILLISECONDS);
+			fail();
+		} catch (ExecutionException ex) {
+			assertTrue(ex.getCause() instanceof TimeoutException);
+		}
 	}
 }

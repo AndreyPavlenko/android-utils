@@ -1,17 +1,19 @@
 package me.aap.utils.net.http;
 
-import java.nio.ByteBuffer;
 
-import me.aap.utils.net.NetChannel;
+import androidx.annotation.Nullable;
+
+import me.aap.utils.async.FutureSupplier;
 
 /**
  * @author Andrey Pavlenko
  */
 public interface HttpRequestHandler {
 
-	void handleRequest(NetChannel channel, HttpRequest req, ByteBuffer payload);
+	FutureSupplier<?> handleRequest(HttpRequest req);
 
 	interface Provider {
+		@Nullable
 		HttpRequestHandler getHandler(CharSequence path, HttpMethod method, HttpVersion version);
 	}
 }

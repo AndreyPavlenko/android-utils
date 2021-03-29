@@ -2,6 +2,8 @@ package me.aap.utils.collection;
 
 import android.os.Build;
 
+import androidx.annotation.Nullable;
+
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -108,6 +110,7 @@ public class CollectionUtils {
 		}
 	}
 
+	@Nullable
 	public static <K, V> V putIfAbsent(Map<K, V> m, K key, V value) {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
 			return m.putIfAbsent(key, value);
@@ -116,6 +119,15 @@ public class CollectionUtils {
 			if (v != null) return v;
 			m.put(key, value);
 			return null;
+		}
+	}
+
+	public static <K, V> V getOrDefault(Map<K, V> m, K key, V defaultValue) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+			return m.getOrDefault(key, defaultValue);
+		} else {
+			V v;
+			return (((v = m.get(key)) != null) || m.containsKey(key)) ? v : defaultValue;
 		}
 	}
 

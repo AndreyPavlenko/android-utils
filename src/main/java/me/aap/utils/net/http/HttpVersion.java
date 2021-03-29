@@ -1,5 +1,9 @@
 package me.aap.utils.net.http;
 
+import androidx.annotation.NonNull;
+
+import java.nio.ByteBuffer;
+
 import me.aap.utils.log.Log;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -18,13 +22,13 @@ public enum HttpVersion {
 		bytes = str.getBytes(US_ASCII);
 	}
 
-	static HttpVersion get(byte[] buf, int start, int end) {
+	static HttpVersion get(ByteBuffer buf, int start, int end) {
 		if ((end - start) < 8) return null;
 
-		if ((buf[start] == 'H') && (buf[start + 1] == 'T') && (buf[start + 2] == 'T') &&
-				(buf[start + 3] == 'P') && (buf[start + 4] == '/') && (buf[start + 5] == '1') &&
-				(buf[start + 6] == '.')) {
-			char c = (char) buf[start + 7];
+		if ((buf.get(start) == 'H') && (buf.get(start + 1) == 'T') && (buf.get(start + 2) == 'T') &&
+				(buf.get(start + 3) == 'P') && (buf.get(start + 4) == '/') && (buf.get(start + 5) == '1') &&
+				(buf.get(start + 6) == '.')) {
+			char c = (char) buf.get(start + 7);
 			return (c == '1') ? HTTP_1_1 : (c == '0') ? HTTP_1_0 : UNSUPPORTED;
 		}
 
@@ -47,6 +51,7 @@ public enum HttpVersion {
 		}
 	}
 
+	@NonNull
 	@Override
 	public String toString() {
 		return str;

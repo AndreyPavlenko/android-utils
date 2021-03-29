@@ -35,7 +35,11 @@ public class NetApp extends App {
 			synchronized (this) {
 				if ((net = netHandler) == null) {
 					try {
-						netHandler = net = NetHandler.create(getExecutor());
+						netHandler = net = NetHandler.create(o -> {
+							o.executor = getExecutor();
+							o.scheduler = getScheduler();
+							o.inactivityTimeout = getChannelInactivityTimeout();
+						});
 					} catch (IOException ex) {
 						throw new RuntimeException(ex);
 					}
@@ -44,6 +48,10 @@ public class NetApp extends App {
 		}
 
 		return net;
+	}
+
+	protected int getChannelInactivityTimeout() {
+		return 5 * 60;
 	}
 
 	protected ThreadPool createExecutor() {

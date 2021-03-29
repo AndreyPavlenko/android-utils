@@ -43,9 +43,10 @@ public class SharedTextBuilder implements TextBuilder, AutoCloseable {
 
 		if (t instanceof PooledThread) {
 			sb = ((PooledThread) t).getSharedTextBuilder();
-		} else {
-			assertTrue(!isAndroid() || (t == Looper.getMainLooper().getThread()));
+		} else if (isAndroid() && (t == Looper.getMainLooper().getThread())) {
 			sb = MainThreadBuilder.instance;
+		} else {
+			sb = new SharedTextBuilder();
 		}
 
 		if (sb.inUse) {

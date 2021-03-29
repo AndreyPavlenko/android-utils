@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +18,7 @@ import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureRef;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.collection.CollectionUtils;
+import me.aap.utils.collection.LruMap;
 import me.aap.utils.net.NetHandler;
 import me.aap.utils.net.NetServer;
 import me.aap.utils.net.http.HttpConnectionHandler;
@@ -33,7 +32,6 @@ import static me.aap.utils.vfs.VfsHttpHandler.HTTP_QUERY;
  * @author Andrey Pavlenko
  */
 public class VfsManager {
-	private final int cacheSize;
 	private final Map<Rid, VirtualResource> cache;
 	private final FutureRef<NetServer> netServer = FutureRef.create(this::createHttpServer);
 	@NonNull
@@ -48,8 +46,7 @@ public class VfsManager {
 	}
 
 	public VfsManager(int cacheSize, List<VirtualFileSystem> fileSystems) {
-		this.cacheSize = cacheSize;
-		this.cache = (cacheSize != 0) ? new LinkedHashMap<>() : Collections.emptyMap();
+		this.cache = (cacheSize != 0) ? new LruMap<>(cacheSize) : Collections.emptyMap();
 		this.mounts = new Mounts(fileSystems);
 	}
 
@@ -76,7 +73,7 @@ public class VfsManager {
 	}
 
 	public void clearCache() {
-		if (cacheSize != 0) {
+		if (useCache()) {
 			synchronized (cache) {
 				cache.clear();
 			}
@@ -97,6 +94,7 @@ public class VfsManager {
 		return getResource(Rid.create(rid));
 	}
 
+	@NonNull
 	public FutureSupplier<VirtualResource> getResource(Rid rid) {
 		return getCachedResource(rid, 0);
 	}
@@ -121,7 +119,7 @@ public class VfsManager {
 
 	@SuppressWarnings("unchecked")
 	private <R extends VirtualResource> FutureSupplier<R> getCachedResource(Rid rid, int type) {
-		if (cacheSize == 0) return getResource(rid, type);
+		if (!useCache()) return getResource(rid, type);
 
 		VirtualResource r;
 
@@ -134,20 +132,7 @@ public class VfsManager {
 		return this.<R>getResource(rid, type).map(vr -> {
 			synchronized (cache) {
 				R cached = (R) CollectionUtils.putIfAbsent(cache, rid, vr);
-				if (cached != null) return cached;
-
-				int size = cache.size();
-
-				if (size > cacheSize) {
-					Iterator<Map.Entry<Rid, VirtualResource>> it = cache.entrySet().iterator();
-					do {
-						it.next();
-						it.remove();
-						size--;
-					} while (size > cacheSize);
-				}
-
-				return vr;
+				return (cached != null) ? cached : vr;
 			}
 		});
 	}
@@ -216,6 +201,10 @@ public class VfsManager {
 				o.handler = httpHandler;
 			});
 		}).then(bind -> bind);
+	}
+
+	private boolean useCache() {
+		return cache != Collections.EMPTY_MAP;
 	}
 
 	private static final class Mounts {

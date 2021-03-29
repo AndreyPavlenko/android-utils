@@ -6,8 +6,8 @@ import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import me.aap.utils.async.FutureSupplier;
@@ -15,6 +15,7 @@ import me.aap.utils.concurrent.HandlerExecutor;
 import me.aap.utils.concurrent.ThreadPool;
 import me.aap.utils.function.CheckedRunnable;
 import me.aap.utils.function.CheckedSupplier;
+import me.aap.utils.net.NetHandler;
 
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.failed;
@@ -30,6 +31,7 @@ public class App extends android.app.Application {
 	private volatile HandlerExecutor handler;
 	private volatile ThreadPool executor;
 	private volatile ScheduledExecutorService scheduler;
+	private volatile NetHandler netHandler;
 
 	@SuppressWarnings("unchecked")
 	public static <C extends App> C get() {
@@ -161,6 +163,10 @@ public class App extends android.app.Application {
 	}
 
 	protected ScheduledExecutorService createScheduler() {
-		return Executors.newScheduledThreadPool(1);
+		return new ScheduledThreadPoolExecutor(1, r -> {
+			Thread t = new Thread(r, "Scheduler");
+			t.setDaemon(true);
+			return t;
+		});
 	}
 }

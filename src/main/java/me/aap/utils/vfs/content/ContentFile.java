@@ -14,7 +14,7 @@ import me.aap.utils.async.Promise;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.log.Log;
 import me.aap.utils.vfs.VirtualFile;
-import me.aap.utils.vfs.VirtualInputStream;
+import me.aap.utils.io.AsyncInputStream;
 
 import static me.aap.utils.async.Completed.completed;
 
@@ -61,10 +61,10 @@ class ContentFile extends ContentResource implements VirtualFile {
 	}
 
 	@Override
-	public VirtualInputStream getInputStream(long offset) throws IOException {
+	public AsyncInputStream getInputStream(long offset) throws IOException {
 		InputStream in = App.get().getContentResolver().openInputStream(getRid().toAndroidUri());
 		if (in == null) throw new IOException("Resource not found: " + this);
 		IoUtils.skip(in, offset);
-		return VirtualInputStream.wrapInputStream(in, getInputBufferLen());
+		return AsyncInputStream.wrapInputStream(in, getInputBufferLen());
 	}
 }

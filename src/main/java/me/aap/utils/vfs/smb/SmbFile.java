@@ -13,16 +13,16 @@ import java.util.EnumSet;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.ObjectPool.PooledObject;
+import me.aap.utils.io.AsyncInputStream;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
-import me.aap.utils.vfs.VirtualInputStream;
 import me.aap.utils.vfs.smb.SmbRoot.SmbSession;
 
 import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.io.AsyncInputStream.readInputStream;
 import static me.aap.utils.io.IoUtils.emptyByteBuffer;
-import static me.aap.utils.vfs.VirtualInputStream.readInputStream;
 
 /**
  * @author Andrey Pavlenko
@@ -46,8 +46,8 @@ class SmbFile extends SmbResource implements VirtualFile {
 	}
 
 	@Override
-	public VirtualInputStream getInputStream(long offset) {
-		return new VirtualInputStream() {
+	public AsyncInputStream getInputStream(long offset) {
+		return new AsyncInputStream() {
 			private final FutureSupplier<PooledObject<SmbSession>> session = getRoot().getSession();
 			long pos = offset;
 			InputStream stream;
@@ -85,15 +85,13 @@ class SmbFile extends SmbResource implements VirtualFile {
 			}
 
 			@Override
-			public boolean cancel() {
+			public void close() {
 				IoUtils.close(stream, file);
 				file = null;
 				stream = null;
-
-				if (session.cancel()) return true;
-
+				session.cancel();
 				PooledObject<SmbSession> s = session.peek();
-				return (s != null) && s.release();
+				if (s != null) s.release();
 			}
 		};
 	}

@@ -36,7 +36,7 @@ public interface VirtualFileSystem {
 	}
 
 	default boolean isSupportedResource(Rid rid) {
-		return getProvider().getSupportedSchemes().contains(rid.getScheme().toString());
+		return getProvider().getSupportedSchemes().contains(rid.getScheme());
 	}
 
 	interface Provider {

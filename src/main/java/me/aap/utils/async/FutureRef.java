@@ -14,7 +14,6 @@ public abstract class FutureRef<T> {
 	private static final AtomicReferenceFieldUpdater<FutureRef, FutureSupplier> REF =
 			AtomicReferenceFieldUpdater.newUpdater(FutureRef.class, FutureSupplier.class, "ref");
 	@Keep
-	@SuppressWarnings("unused")
 	private volatile FutureSupplier<T> ref;
 
 	protected abstract FutureSupplier<T> create() throws Throwable;
@@ -30,7 +29,7 @@ public abstract class FutureRef<T> {
 
 	@SuppressWarnings("unchecked")
 	public FutureSupplier<T> get() {
-		FutureSupplier<T> r = REF.get(this);
+		FutureSupplier<T> r = ref;
 		if ((r != null) && (!r.isDone() || isValid(r))) return r;
 
 		Promise<T> p = new Promise<>();
@@ -47,12 +46,22 @@ public abstract class FutureRef<T> {
 			return p;
 		}
 
-		r = REF.get(this);
+		r = ref;
 		return (r != null) ? r : p;
 	}
 
 	public void set(FutureSupplier<T> r) {
-		REF.set(this, r);
+		ref = r;
+	}
+
+	public T peek() {
+		FutureSupplier<T> r = ref;
+		if ((r != null) && (!r.isDone() || isValid(r))) return r.peek();
+		return null;
+	}
+
+	public void clear() {
+		ref = null;
 	}
 
 	public boolean compareAndSet(FutureSupplier<T> expect, FutureSupplier<T> update) {

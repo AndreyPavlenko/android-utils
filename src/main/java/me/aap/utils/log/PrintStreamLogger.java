@@ -62,7 +62,7 @@ class PrintStreamLogger extends Logger {
 		return true;
 	}
 
-	private void log(StringBuilder msg) {
+	private synchronized void log(StringBuilder msg) {
 		ps.println(msg);
 	}
 

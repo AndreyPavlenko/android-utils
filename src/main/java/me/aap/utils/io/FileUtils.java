@@ -86,7 +86,7 @@ public class FileUtils {
 			bb.flip();
 			return bb;
 		} else {
-			return ByteBuffer.allocate(0);
+			return IoUtils.emptyByteBuffer();
 		}
 	}
 

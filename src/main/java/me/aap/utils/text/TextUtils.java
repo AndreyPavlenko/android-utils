@@ -159,6 +159,15 @@ public class TextUtils {
 		return regionMatches(text, text.length() - len, seq, 0, len, ignoreCase);
 	}
 
+	public static CharSequence trim(CharSequence text) {
+		int len = text.length();
+		int start = 0;
+		int end = len;
+		for (; (start < end) && (text.charAt(start) <= ' '); start++) ;
+		for (; (start < end) && (text.charAt(end - 1) <= ' '); end--) ;
+		return ((start != 0) || (end != len)) ? text.subSequence(start, end) : text;
+	}
+
 	public static long toLong(CharSequence seq, int from, int to, long defaultValue) {
 		try {
 			return Long.parseLong(seq.subSequence(from, to).toString());
@@ -298,7 +307,7 @@ public class TextUtils {
 	public static StringBuilder appendHexString(StringBuilder sb, byte[] bytes) {
 		for (byte b : bytes) {
 			int v = b & 0xFF;
-			sb.append(HexTable._table[v >>> 4]).append(HexTable._table[v & 0xF]);
+			sb.append(HexTable.table[v >>> 4]).append(HexTable.table[v & 0xF]);
 		}
 		return sb;
 	}
@@ -316,8 +325,32 @@ public class TextUtils {
 		return bytes;
 	}
 
+	public static byte[] hexToLong(CharSequence hex) {
+		int len = hex.length();
+		byte[] bytes = new byte[len / 2];
+		int n = 0;
+
+		for (int i = 0; i < bytes.length; i++) {
+			bytes[i] = (byte) ((Character.digit(hex.charAt(n++), 16) << 4) +
+					Character.digit(hex.charAt(n++), 16));
+		}
+
+		return bytes;
+	}
+
+	public static int getNumberOfDigits(long positiveNum) {
+		long p = 10;
+
+		for (int i = 1; i < 19; i++) {
+			if (positiveNum < p) return i;
+			p = 10 * p;
+		}
+
+		return 19;
+	}
+
 	private static class HexTable {
-		static char[] _table = {'0', '1', '2', '3', '4', '5', '6', '7',
+		static char[] table = {'0', '1', '2', '3', '4', '5', '6', '7',
 				'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 	}
 }

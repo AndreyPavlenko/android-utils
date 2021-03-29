@@ -2,6 +2,8 @@ package me.aap.utils.net.http;
 
 import java.nio.ByteBuffer;
 
+import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.net.ByteBufferArraySupplier;
 import me.aap.utils.net.NetChannel;
 
@@ -22,8 +24,11 @@ public class HttpError implements ByteBufferArraySupplier {
 		return new ByteBuffer[]{ByteBuffer.wrap(data)};
 	}
 
-	public void write(NetChannel channel) {
-		channel.write(this).thenRun(channel::close);
+	public FutureSupplier<Void> write(NetChannel channel) {
+		return channel.write(this, (v, err) -> {
+			if (err != null) Log.d(err, "Failed to write HttpError");
+			channel.close();
+		});
 	}
 
 	public interface BadRequest {

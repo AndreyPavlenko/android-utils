@@ -2,9 +2,14 @@ package me.aap.utils.io;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 
+import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.log.Log;
+
+import static me.aap.utils.async.Completed.completedVoid;
 
 /**
  * @author Andrey Pavlenko
@@ -39,11 +44,127 @@ public class IoUtils {
 		return skipped;
 	}
 
-	public static ByteBuffer emptyByteBuffer() {
-		return EmptyByteBuf.instance;
+	public static void writeToStream(ByteBuffer src, OutputStream out) throws IOException {
+		int len = src.remaining();
+
+		if (src.hasArray()) {
+			byte[] a = src.array();
+			out.write(a, src.arrayOffset() + src.position(), len);
+			src.position(src.position() + len);
+		} else {
+			byte[] a = new byte[Math.min(len, 8192)];
+
+			for (int l = a.length; l > 0; l = Math.min(src.remaining(), a.length)) {
+				src.get(a, 0, l);
+				out.write(a, 0, l);
+			}
+		}
 	}
 
-	private interface EmptyByteBuf {
-		ByteBuffer instance = ByteBuffer.allocate(0);
+	public static byte[] emptyByteArray() {
+		return Empty.array;
+	}
+
+	public static ByteBuffer emptyByteBuffer() {
+		return Empty.bb;
+	}
+
+	public static ByteBuffer[] emptyByteBufferArray() {
+		return Empty.bbArray;
+	}
+
+	public static OutputStream nullOutputStream() {
+		return NullOutputStream.instance;
+	}
+
+	public static AsyncOutputStream nullAsyncOutputStream() {
+		return NullAsyncOutputStream.instance;
+	}
+
+	public static ByteBuffer ensureCapacity(ByteBuffer buf, int len, int max) throws BufferOverflowException {
+		int pos = buf.position();
+		int capacity = buf.capacity();
+		int required = pos + len;
+
+		if ((required < 0) || (required > max)) throw new BufferOverflowException();
+		if (required <= capacity) return buf;
+
+		int newCapacity = Math.max(required, capacity << 1);
+		if (newCapacity > max) newCapacity = max;
+
+		ByteBuffer b = ByteBuffer.allocate(newCapacity);
+		buf.position(0).limit(pos);
+		b.put(buf);
+		return b;
+	}
+
+	public static ByteBuffer copyOfRange(ByteBuffer bb) {
+		return copyOfRange(bb, bb.position(), bb.limit());
+	}
+
+	public static ByteBuffer copyOfRange(ByteBuffer bb, int from, int to) {
+		return copyOfRange(bb, from, to, to - from);
+	}
+
+	public static ByteBuffer copyOfRange(ByteBuffer bb, int from, int to, int capacity) {
+		if (capacity == 0) return emptyByteBuffer();
+		int len = to - from;
+		byte[] a = new byte[capacity];
+
+		if (len > 0) {
+			ByteBuffer d = bb.duplicate();
+			d.position(from);
+			d.limit(to);
+			d.get(a, 0, len);
+			bb = ByteBuffer.wrap(a);
+			bb.limit(len);
+		} else {
+			bb = ByteBuffer.wrap(a);
+			bb.limit(0);
+		}
+
+		return bb;
+	}
+
+	private interface Empty {
+		byte[] array = new byte[0];
+		ByteBuffer bb = ByteBuffer.allocate(0);
+		ByteBuffer[] bbArray = new ByteBuffer[0];
+	}
+
+	private static final class NullOutputStream extends OutputStream {
+		static final NullOutputStream instance = new NullOutputStream();
+
+		@Override
+		public void write(int b) {
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) {
+		}
+	}
+
+	private static final class NullAsyncOutputStream implements AsyncOutputStream {
+		private static final NullAsyncOutputStream instance = new NullAsyncOutputStream();
+
+		@Override
+		public FutureSupplier<Void> write(ByteBuffer src) {
+			src.position(src.limit());
+			return completedVoid();
+		}
+
+		@Override
+		public OutputStream asOutputStream() {
+			return nullOutputStream();
+		}
+
+		@Override
+		public boolean isAsync() {
+			return false;
+		}
+
+		@Override
+		public void close() {
+		}
 	}
 }

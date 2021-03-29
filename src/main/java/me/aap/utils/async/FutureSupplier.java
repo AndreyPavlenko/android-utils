@@ -53,6 +53,13 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return addConsumer(consumer);
 	}
 
+	default FutureSupplier<T> onCompletionSupply(@NonNull Completable<? super T> consumer) {
+		return onCompletion((r, err) -> {
+			if (err != null) consumer.completeExceptionally(err);
+			else consumer.complete(r);
+		});
+	}
+
 	@Nullable
 	Throwable getFailure();
 
@@ -176,6 +183,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		}
 	}
 
+	@Nullable
 	default T peek() {
 		return peek((Supplier<? extends T>) null);
 	}
@@ -429,5 +437,10 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 
 	default <U> FutureSupplier<?> and(FutureSupplier<U> second, CheckedBiConsumer<T, U, Throwable> consumer) {
 		return Async.and(this, second, consumer);
+	}
+
+	@SuppressWarnings("unchecked")
+	static <T> FutureSupplier<T> noOp() {
+		return NoOpSupplier.instance;
 	}
 }

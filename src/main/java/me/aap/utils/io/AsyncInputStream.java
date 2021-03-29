@@ -1,15 +1,15 @@
-package me.aap.utils.vfs;
+package me.aap.utils.io;
 
 import androidx.annotation.NonNull;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
-import me.aap.utils.function.Cancellable;
-import me.aap.utils.io.IoUtils;
+import me.aap.utils.log.Log;
 import me.aap.utils.net.ByteBufferSupplier;
 
 import static me.aap.utils.async.Completed.failed;
@@ -17,21 +17,44 @@ import static me.aap.utils.async.Completed.failed;
 /**
  * @author Andrey Pavlenko
  */
-public interface VirtualInputStream extends Cancellable {
+public interface AsyncInputStream extends Closeable {
 
 	FutureSupplier<ByteBuffer> read(ByteBufferSupplier dst);
 
-	default FutureSupplier<Long> available() {
-		return Completed.completed(0L);
+	default FutureSupplier<ByteBuffer> read() {
+		return read(() -> ByteBuffer.allocate(8192));
+	}
+
+	default FutureSupplier<ByteBuffer> read(ByteBuffer dst) {
+		return read(() -> dst);
+	}
+
+	default int available() {
+		return 0;
+	}
+
+	default boolean hasRemaining() {
+		return true;
 	}
 
 	default FutureSupplier<Long> skip(long n) {
 		return Completed.completed(0L);
 	}
 
-	static VirtualInputStream wrapInputStream(InputStream in, int bufferLen) {
-		return new VirtualInputStream() {
-			boolean canceled;
+	@Override
+	void close();
+
+	default boolean isAsync() {
+		return true;
+	}
+
+	static AsyncInputStream wrapInputStream(InputStream in, int bufferLen) {
+		return new AsyncInputStream() {
+
+			@Override
+			public boolean isAsync() {
+				return false;
+			}
 
 			@Override
 			public FutureSupplier<ByteBuffer> read(ByteBufferSupplier dst) {
@@ -39,18 +62,17 @@ public interface VirtualInputStream extends Cancellable {
 			}
 
 			@Override
-			public boolean cancel() {
-				if (canceled) return false;
+			public void close() {
 				IoUtils.close(in);
-				return canceled = true;
 			}
 
 			@Override
-			public FutureSupplier<Long> available() {
+			public int available() {
 				try {
-					return Completed.completed((long) in.available());
+					return in.available();
 				} catch (IOException ex) {
-					return failed(ex);
+					Log.d(ex, "InputStream.available() failed");
+					return 0;
 				}
 			}
 
@@ -74,7 +96,7 @@ public interface VirtualInputStream extends Cancellable {
 
 			if (hasArray) {
 				a = dst.array();
-				off = dst.arrayOffset();
+				off = dst.arrayOffset() + dst.position();
 				len = dst.remaining();
 			} else {
 				a = new byte[Math.min(dst.remaining(), bufferLen)];
@@ -108,13 +130,13 @@ public interface VirtualInputStream extends Cancellable {
 			public int read() throws IOException {
 				byte[] b = new byte[1];
 				int i = read(b);
-				return (i != -1) ? (int) (b[0] & 0xFF) : -1;
+				return (i != -1) ? (b[0] & 0xFF) : -1;
 			}
 
 			@Override
 			public int read(@NonNull byte[] b, int off, int len) throws IOException {
 				try {
-					ByteBuffer buf = VirtualInputStream.this.read(() -> ByteBuffer.wrap(b, off, len)).get();
+					ByteBuffer buf = AsyncInputStream.this.read(() -> ByteBuffer.wrap(b, off, len)).get();
 					int remain = buf.remaining();
 					return (remain == 0) ? -1 : remain;
 				} catch (Exception ex) {
@@ -123,18 +145,14 @@ public interface VirtualInputStream extends Cancellable {
 			}
 
 			@Override
-			public int available() throws IOException {
-				try {
-					return VirtualInputStream.this.available().get().intValue();
-				} catch (Exception ex) {
-					throw new IOException(ex);
-				}
+			public int available() {
+				return AsyncInputStream.this.available();
 			}
 
 			@Override
 			public long skip(long n) throws IOException {
 				try {
-					return VirtualInputStream.this.skip(n).get();
+					return AsyncInputStream.this.skip(n).get();
 				} catch (Exception ex) {
 					throw new IOException(ex);
 				}
@@ -142,7 +160,7 @@ public interface VirtualInputStream extends Cancellable {
 
 			@Override
 			public void close() {
-				VirtualInputStream.this.close();
+				AsyncInputStream.this.close();
 			}
 		};
 	}

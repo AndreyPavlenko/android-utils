@@ -20,7 +20,6 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -128,7 +127,7 @@ public class GdriveFileSystem implements VirtualFileSystem {
 				}));
 	}
 
-	private FutureSupplier<Drive> createDrive() throws GeneralSecurityException, IOException {
+	private FutureSupplier<Drive> createDrive() {
 		GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(App.get());
 		if (account != null) return completed(createDrive(account));
 
@@ -137,7 +136,7 @@ public class GdriveFileSystem implements VirtualFileSystem {
 		return p;
 	}
 
-	private Drive createDrive(GoogleSignInAccount account) throws GeneralSecurityException, IOException {
+	private Drive createDrive(GoogleSignInAccount account) {
 		App app = App.get();
 		GoogleAccountCredential c = GoogleAccountCredential
 				.usingOAuth2(app, Collections.singleton(DriveScopes.DRIVE));
@@ -166,7 +165,7 @@ public class GdriveFileSystem implements VirtualFileSystem {
 			Log.d("Signed in as ", account.getEmail());
 			try {
 				p.complete(createDrive(account));
-			} catch (GeneralSecurityException | IOException ex) {
+			} catch (Exception ex) {
 				Log.e(ex, "Failed to create drive");
 				p.completeExceptionally(ex);
 			}

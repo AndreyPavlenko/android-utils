@@ -7,14 +7,14 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.io.AsyncInputStream;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
-import me.aap.utils.vfs.VirtualInputStream;
 
 import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.vfs.VirtualInputStream.readInputStream;
+import static me.aap.utils.io.AsyncInputStream.readInputStream;
 
 /**
  * @author Andrey Pavlenko
@@ -38,8 +38,8 @@ class GdriveFile extends GdriveResource implements VirtualFile {
 	}
 
 	@Override
-	public VirtualInputStream getInputStream(long offset) {
-		return new VirtualInputStream() {
+	public AsyncInputStream getInputStream(long offset) {
+		return new AsyncInputStream() {
 			long pos = offset;
 			InputStream stream;
 
@@ -74,15 +74,8 @@ class GdriveFile extends GdriveResource implements VirtualFile {
 			}
 
 			@Override
-			public boolean cancel() {
-				InputStream in = stream;
-
-				if (in != null) {
-					IoUtils.close(in);
-					return true;
-				} else {
-					return false;
-				}
+			public void close() {
+				IoUtils.close(stream);
 			}
 		};
 	}

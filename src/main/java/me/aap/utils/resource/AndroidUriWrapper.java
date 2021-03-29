@@ -5,13 +5,12 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import java.util.Objects;
-
 /**
  * @author Andrey Pavlenko
  */
 class AndroidUriWrapper implements Rid {
 	private final Uri uri;
+	private int hash;
 
 	AndroidUriWrapper(Uri uri) {
 		this.uri = uri;
@@ -78,7 +77,7 @@ class AndroidUriWrapper implements Rid {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(uri);
+		return (hash == 0) ? (hash = toString().hashCode()) : hash;
 	}
 
 	@NonNull

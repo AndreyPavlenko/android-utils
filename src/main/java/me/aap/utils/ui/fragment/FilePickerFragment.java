@@ -149,7 +149,6 @@ public class FilePickerFragment extends GenericDialogFragment implements
 	}
 
 	private boolean filter(VirtualResource f) {
-		if ((state.mode == FOLDER) && !f.isFolder()) return false;
 		return (state.pattern == null) || state.pattern.matcher(f.getName()).matches();
 	}
 

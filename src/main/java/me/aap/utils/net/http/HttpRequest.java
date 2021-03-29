@@ -1,29 +1,25 @@
 package me.aap.utils.net.http;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
  * @author Andrey Pavlenko
  */
-public interface HttpRequest {
+public interface HttpRequest extends HttpMessage {
 
+	@NonNull
 	HttpMethod getMethod();
 
-	HttpVersion getVersion();
-
+	@NonNull
 	CharSequence getUri();
 
+	@NonNull
 	CharSequence getPath();
 
 	@Nullable
 	CharSequence getQuery();
 
-	CharSequence getHeaders();
-
-	long getContentLength();
-
 	@Nullable
 	Range getRange();
-
-	boolean closeConnection();
 }

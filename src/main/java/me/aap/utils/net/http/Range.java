@@ -3,6 +3,8 @@ package me.aap.utils.net.http;
 
 import androidx.annotation.NonNull;
 
+import java.nio.ByteBuffer;
+
 import static java.lang.Long.MIN_VALUE;
 import static me.aap.utils.misc.Assert.assertTrue;
 
@@ -29,11 +31,11 @@ public class Range {
 		this.end = end;
 	}
 
-	static Range parse(byte[] bytes, int off, int end) {
+	static Range parse(ByteBuffer bytes, int off, int end) {
 		if (!HttpUtils.starts(bytes, off, end, "bytes=")) return invalid;
 
 		int idx = HttpUtils.indexOfChar(bytes, off += 6, end, "-\n\r");
-		if ((idx == -1) || (bytes[idx] != '-')) return invalid;
+		if ((idx == -1) || (bytes.get(idx) != '-')) return invalid;
 
 		if (idx == off) {
 			long rangeEnd = HttpUtils.parseLong(bytes, off, end, "\n\r", MIN_VALUE);
@@ -46,7 +48,7 @@ public class Range {
 		if (rangeStart == MIN_VALUE) return invalid;
 
 
-		if ((++idx < end) && (bytes[idx] > ' ')) {
+		if ((++idx < end) && (bytes.get(idx) > ' ')) {
 			rangeEnd = HttpUtils.parseLong(bytes, idx, end, "\n\r", MIN_VALUE);
 			if (rangeEnd == MIN_VALUE) return invalid;
 		}

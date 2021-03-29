@@ -14,6 +14,12 @@ import static me.aap.utils.misc.Assert.assertTrue;
  */
 public interface Completable<T> extends Cancellable {
 
+	boolean isDone();
+
+	boolean isCancelled();
+
+	boolean isFailed();
+
 	boolean complete(@Nullable T result);
 
 	boolean completeExceptionally(@NonNull Throwable fail);

@@ -8,9 +8,16 @@ import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,8 +26,12 @@ import java.util.List;
 import java.util.Set;
 
 import me.aap.utils.app.App;
+import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.collection.CacheMap;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.io.IoUtils;
+import me.aap.utils.io.RandomAccessChannel;
 import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.resource.Rid;
@@ -35,6 +46,7 @@ import static me.aap.utils.async.Completed.completedEmptyList;
 public class LocalFileSystem implements VirtualFileSystem {
 	private static final LocalFileSystem instance = new LocalFileSystem(LocalFileSystem::androidRoots);
 	private final Supplier<Collection<File>> roots;
+	private final CacheMap<File, CachedFileChannel> fileCache = new CacheMap<>(60);
 
 	LocalFileSystem(Supplier<Collection<File>> roots) {
 		this.roots = roots;
@@ -66,12 +78,20 @@ public class LocalFileSystem implements VirtualFileSystem {
 
 	@Override
 	public FutureSupplier<VirtualFile> getFile(Rid rid) {
-		return completed(new LocalFile(new File(rid.getPath())));
+		return completed(getFile(new File(rid.getPath())));
+	}
+
+	public VirtualFile getFile(File f) {
+		return new LocalFile(f);
 	}
 
 	@Override
 	public FutureSupplier<VirtualFolder> getFolder(Rid rid) {
-		return completed(new LocalFolder(new File(rid.getPath())));
+		return completed(getFolder(new File(rid.getPath())));
+	}
+
+	public VirtualFolder getFolder(File f) {
+		return new LocalFolder(f);
 	}
 
 	@NonNull
@@ -147,6 +167,24 @@ public class LocalFileSystem implements VirtualFileSystem {
 		if ((dir.isDirectory()) && dir.canRead()) files.add(dir);
 	}
 
+	FutureSupplier<Long> getLength(File file) {
+		CachedFileChannel f = fileCache.get(file);
+		return (f != null) ? f.length : Completed.completed(file.length());
+	}
+
+	@Nullable
+	CachedFileChannel getChannel(File file) {
+		return fileCache.compute(file, (k, v) -> {
+			if (v != null) return v;
+			try {
+				return new CachedFileChannel(file);
+			} catch (Throwable ex) {
+				Log.e(ex, "Failed to open file: ", file);
+				return null;
+			}
+		});
+	}
+
 	public static final class Provider implements VirtualFileSystem.Provider {
 		private final Set<String> schemes = Collections.singleton("file");
 		private static final Provider instance = new Provider();
@@ -168,6 +206,62 @@ public class LocalFileSystem implements VirtualFileSystem {
 		@Override
 		public FutureSupplier<VirtualFileSystem> createFileSystem(PreferenceStore ps) {
 			return completed(LocalFileSystem.getInstance());
+		}
+	}
+
+	private static final class CachedFileChannel implements RandomAccessChannel {
+		private final File f;
+		private final FileInputStream in;
+		private final FileChannel ch;
+		final FutureSupplier<Long> length;
+
+		CachedFileChannel(File file) throws IOException {
+			f = file;
+			in = new FileInputStream(f);
+			ch = in.getChannel();
+			long len = f.length();
+			length = completed(len);
+		}
+
+		@Override
+		protected void finalize() {
+			Log.d("Closing cached file channel: ", f);
+			IoUtils.close(in);
+		}
+
+		@Override
+		public int read(ByteBuffer dst, long position) throws IOException {
+			return ch.read(dst, position);
+		}
+
+		@Override
+		public int write(ByteBuffer src, long position) throws IOException {
+			return ch.write(src, position);
+		}
+
+		@Override
+		public long transferTo(long position, long count, WritableByteChannel target) throws IOException {
+			return ch.transferTo(position, count, target);
+		}
+
+		@Override
+		public long transferFrom(ReadableByteChannel src, long position, long count) throws IOException {
+			return ch.transferFrom(src, position, count);
+		}
+
+		@Override
+		public long size() {
+			try {
+				return ch.size();
+			} catch (IOException ex) {
+				Log.e(ex, "Failed to get file size: ", f);
+				return 0;
+			}
+		}
+
+		@Override
+		public String toString() {
+			return "CachedFileChannel: " + f;
 		}
 	}
 }

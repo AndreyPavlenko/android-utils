@@ -1,22 +1,21 @@
-package me.aap.utils.vfs;
+package me.aap.utils.io;
 
 import androidx.annotation.NonNull;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
-import me.aap.utils.function.Cancellable;
-import me.aap.utils.io.IoUtils;
 
 import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
  */
-public interface VirtualOutputStream extends Cancellable {
+public interface AsyncOutputStream extends Closeable {
 
 	FutureSupplier<Void> write(ByteBuffer src);
 
@@ -24,13 +23,21 @@ public interface VirtualOutputStream extends Cancellable {
 	}
 
 	@Override
-	default void close() {
-		cancel();
+	void close();
+
+	default boolean isAsync() {
+		return true;
 	}
 
-	static VirtualOutputStream wrapOutputStream(OutputStream out, int bufferLen) {
-		return new VirtualOutputStream() {
-			boolean canceled;
+	default void endOfStream() {
+	}
+
+	static AsyncOutputStream wrapOutputStream(OutputStream out) {
+		return wrapOutputStream(out, 8192);
+	}
+
+	static AsyncOutputStream wrapOutputStream(OutputStream out, int bufferLen) {
+		return new AsyncOutputStream() {
 
 			@Override
 			public FutureSupplier<Void> write(ByteBuffer src) {
@@ -39,7 +46,7 @@ public interface VirtualOutputStream extends Cancellable {
 
 					if (src.hasArray()) {
 						byte[] a = src.array();
-						out.write(a, src.arrayOffset(), len);
+						out.write(a, src.arrayOffset() + src.position(), len);
 						src.position(src.position() + len);
 					} else {
 						byte[] a = new byte[Math.min(len, bufferLen)];
@@ -62,10 +69,13 @@ public interface VirtualOutputStream extends Cancellable {
 			}
 
 			@Override
-			public boolean cancel() {
-				if (canceled) return false;
+			public void close() {
 				IoUtils.close(out);
-				return canceled = true;
+			}
+
+			@Override
+			public boolean isAsync() {
+				return false;
 			}
 		};
 	}
@@ -82,7 +92,7 @@ public interface VirtualOutputStream extends Cancellable {
 			public void write(@NonNull byte[] b, int off, int len) throws IOException {
 				try {
 					ByteBuffer buf = ByteBuffer.wrap(b, off, len);
-					while (buf.hasRemaining()) VirtualOutputStream.this.write(buf).get();
+					while (buf.hasRemaining()) AsyncOutputStream.this.write(buf).get();
 				} catch (Exception ex) {
 					throw new IOException(ex);
 				}
@@ -90,12 +100,12 @@ public interface VirtualOutputStream extends Cancellable {
 
 			@Override
 			public void flush() throws IOException {
-				VirtualOutputStream.this.flush();
+				AsyncOutputStream.this.flush();
 			}
 
 			@Override
 			public void close() {
-				VirtualOutputStream.this.close();
+				AsyncOutputStream.this.close();
 			}
 		};
 	}
