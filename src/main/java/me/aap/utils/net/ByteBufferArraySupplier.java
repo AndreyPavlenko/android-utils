@@ -3,6 +3,9 @@ package me.aap.utils.net;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+
+import static me.aap.utils.io.IoUtils.emptyByteBufferArray;
 
 /**
  * @author Andrey Pavlenko
@@ -157,15 +160,15 @@ public interface ByteBufferArraySupplier {
 
 				ArrayList<ByteBuffer> l = new ArrayList<>(wrappers.length * 2);
 
-				for (int i = 0; i < wrappers.length; i++) {
-					wrappers[i].a = wrappers[i].s.getByteBufferArray();
-					l.ensureCapacity(wrappers[i].a.length);
-					for (ByteBuffer bb : wrappers[i].a) l.add(bb);
+				for (SupplierWrapper w : wrappers) {
+					w.a = w.s.getByteBufferArray();
+					l.ensureCapacity(w.a.length);
+					Collections.addAll(l, w.a);
 				}
 
 				assert l.size() > 0;
 				assert l.get(0).hasRemaining();
-				return l.toArray(new ByteBuffer[l.size()]);
+				return l.toArray(emptyByteBufferArray());
 			}
 
 			@Override
@@ -183,7 +186,7 @@ public interface ByteBufferArraySupplier {
 						released++;
 						wrappers[i].s.release();
 					} else {
-						wrappers[i].s = wrappers[i].s.retainByteBufferArray(wrappers[i].a, (from <= 0) ? 0 : from);
+						wrappers[i].s = wrappers[i].s.retainByteBufferArray(wrappers[i].a, Math.max(from, 0));
 					}
 
 					off += l;

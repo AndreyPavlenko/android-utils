@@ -10,6 +10,7 @@ import me.aap.utils.async.Async;
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.holder.BooleanHolder;
+import me.aap.utils.holder.Holder;
 import me.aap.utils.holder.LongHolder;
 import me.aap.utils.io.AsyncInputStream;
 import me.aap.utils.io.AsyncOutputStream;
@@ -20,6 +21,7 @@ import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.net.NetChannel;
 
 import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.completedVoid;
 import static me.aap.utils.async.Completed.failed;
 
 /**
@@ -94,30 +96,36 @@ public interface VirtualFile extends VirtualResource {
 	default FutureSupplier<Void> transferTo(NetChannel channel, long off, long len,
 																					@Nullable ByteBufferArraySupplier header) {
 		RandomAccessChannel rac = getChannel();
-
-		if (rac != null) {
-			return channel.send(rac, off, len, header);
-		}
+		if (rac != null) return channel.send(rac, off, len, header);
 
 		AsyncInputStream vis = null;
 
 		try {
 			AsyncInputStream in = vis = getInputStream(off);
-			LongHolder pos = new LongHolder(off);
+			LongHolder remain = new LongHolder((len < 0) ? Long.MAX_VALUE : len);
+			Holder<ByteBufferArraySupplier> hdr = (header != null) ? new Holder<>(header) : null;
 
 			return Async.iterate(() -> {
-				long remaining = (len < 0) ? Long.MAX_VALUE : (len - (pos.value - off));
-				if (remaining <= 0) return null;
+				if (remain.value <= 0) return null;
 
-				return in.read(() -> allocateInputBuffer(remaining)).then(buf -> {
+				return in.read(() -> allocateInputBuffer(remain.value)).then(buf -> {
 					int read = buf.remaining();
 
 					if (read > 0) {
-						pos.value += read;
-						return channel.write((header == null) ? () -> new ByteBuffer[]{buf} :
-								ByteBufferArraySupplier.wrap(header, () -> new ByteBuffer[]{buf}));
+						remain.value -= read;
+						ByteBufferArraySupplier bbs;
+
+						if ((hdr == null) || (hdr.value == null)) {
+							bbs = () -> new ByteBuffer[]{buf};
+						} else {
+							bbs = ByteBufferArraySupplier.wrap(hdr.value, () -> new ByteBuffer[]{buf});
+							hdr.value = null;
+						}
+
+						return channel.write(bbs);
 					} else {
-						return null;
+						remain.value = 0;
+						return completedVoid();
 					}
 				});
 			}).thenRun(vis::close);

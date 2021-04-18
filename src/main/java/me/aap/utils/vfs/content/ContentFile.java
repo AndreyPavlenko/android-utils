@@ -11,10 +11,10 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
+import me.aap.utils.io.AsyncInputStream;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.log.Log;
 import me.aap.utils.vfs.VirtualFile;
-import me.aap.utils.io.AsyncInputStream;
 
 import static me.aap.utils.async.Completed.completed;
 
@@ -26,7 +26,6 @@ class ContentFile extends ContentResource implements VirtualFile {
 	private static final AtomicReferenceFieldUpdater<ContentFile, FutureSupplier<Long>> LENGTH =
 			(AtomicReferenceFieldUpdater) AtomicReferenceFieldUpdater.newUpdater(ContentFile.class, FutureSupplier.class, "length");
 	@Keep
-	@SuppressWarnings("unused")
 	private volatile FutureSupplier<Long> length;
 
 	public ContentFile(ContentFolder parent, String name, String id) {
@@ -35,7 +34,7 @@ class ContentFile extends ContentResource implements VirtualFile {
 
 	@Override
 	public FutureSupplier<Long> getLength() {
-		FutureSupplier<Long> length = LENGTH.get(this);
+		FutureSupplier<Long> length = this.length;
 		if (length != null) return length;
 
 		Promise<Long> p = new Promise<>();
@@ -53,7 +52,7 @@ class ContentFile extends ContentResource implements VirtualFile {
 			}
 
 			p.complete(len);
-			LENGTH.set(this, completed(len));
+			this.length = completed(len);
 			return len;
 		});
 

@@ -16,6 +16,7 @@ import static java.lang.Thread.currentThread;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static me.aap.utils.concurrent.NetThread.isWriteBuffer;
 import static me.aap.utils.io.IoUtils.copyOfRange;
+import static me.aap.utils.io.IoUtils.emptyByteBufferArray;
 import static me.aap.utils.net.http.HttpHeader.CONTENT_LENGTH;
 import static me.aap.utils.net.http.HttpVersion.HTTP_1_1;
 import static me.aap.utils.text.TextUtils.getNumberOfDigits;
@@ -98,7 +99,7 @@ class HttpMessageBuilder implements HttpRequestBuilder, HttpResponseBuilder {
 
 			@Override
 			public void release() {
-				array = null;
+				array = emptyByteBufferArray();
 			}
 		};
 	}
