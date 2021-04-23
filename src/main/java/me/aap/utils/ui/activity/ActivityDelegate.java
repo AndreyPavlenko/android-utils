@@ -403,8 +403,10 @@ public abstract class ActivityDelegate extends Fragment implements
 	}
 
 	public void setFullScreen(boolean fullScreen) {
+		AppActivity a = getAppActivity();
+		if (a == null) return;
 		this.fullScreen = fullScreen;
-		View decor = getAppActivity().getWindow().getDecorView();
+		View decor = a.getWindow().getDecorView();
 		decor.setSystemUiVisibility(fullScreen ? FULLSCREEN_FLAGS : SYSTEM_UI_FLAG_VISIBLE);
 	}
 

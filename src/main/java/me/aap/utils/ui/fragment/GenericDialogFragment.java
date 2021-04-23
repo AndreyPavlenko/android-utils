@@ -103,10 +103,11 @@ public class GenericDialogFragment extends GenericFragment {
 		@Override
 		default void onActivityEvent(ToolBarView tb, ActivityDelegate a, long e) {
 			if (e == FRAGMENT_CONTENT_CHANGED) {
-				GenericDialogFragment p = (GenericDialogFragment) a.getActiveFragment();
-				if (p == null) return;
+				ActivityFragment f = a.getActiveFragment();
+				if (!(f instanceof GenericDialogFragment)) return;
 
 				ImageButton b = tb.findViewById(getBackButtonId());
+				GenericDialogFragment p = (GenericDialogFragment) f;
 				b.setVisibility(getBackButtonVisibility(p));
 
 				b = tb.findViewById(getOkButtonId());

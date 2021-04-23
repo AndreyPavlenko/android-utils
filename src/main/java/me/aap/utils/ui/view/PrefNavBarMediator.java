@@ -37,7 +37,8 @@ public abstract class PrefNavBarMediator extends CustomizableNavBarMediator impl
 
 	protected void reload(NavBarView nb) {
 		super.disable(nb);
-		super.enable(nb, ActivityDelegate.get(nb.getContext()).getActiveFragment());
+		ActivityDelegate a = ActivityDelegate.get(nb.getContext());
+		if (a != null) super.enable(nb, a.getActiveFragment());
 	}
 
 	@Override
