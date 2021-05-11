@@ -58,7 +58,7 @@ public class NavButtonView extends LinearLayoutCompat {
 	@Override
 	public void setSelected(boolean selected) {
 		super.setSelected(selected);
-		getIcon().setAlpha(selected ? 1f : 0.3f);
+		getIcon().setAlpha(selected ? 1f : 0.5f);
 		if (isCompact()) getText().setVisibility(GONE);
 		else getText().setVisibility(selected ? VISIBLE : GONE);
 	}
