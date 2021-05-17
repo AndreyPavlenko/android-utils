@@ -35,11 +35,11 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 	public static final int POSITION_BOTTOM = 0;
 	public static final int POSITION_LEFT = 1;
 	public static final int POSITION_RIGHT = 2;
-	private final int position;
 	@ColorInt
 	private final int bgColor;
 	@ColorInt
 	private final int tint;
+	private int position;
 	private Mediator mediator;
 
 	public NavBarView(@NonNull Context context, @Nullable AttributeSet attrs) {
@@ -69,6 +69,13 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 
 	public int getPosition() {
 		return position;
+	}
+
+	public void setPosition(int pos) {
+		position = pos;
+		setOrientation((pos == POSITION_BOTTOM) ? HORIZONTAL : VERTICAL);
+		setMediator((ActivityFragment) null);
+		setMediator(getActivity().getActiveFragment());
 	}
 
 	public void showMenu() {

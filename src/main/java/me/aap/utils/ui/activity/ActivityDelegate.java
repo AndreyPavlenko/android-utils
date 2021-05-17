@@ -169,7 +169,7 @@ public abstract class ActivityDelegate extends Fragment implements
 		if (BuildConfig.DEBUG) {
 			removeBroadcastListeners(l -> {
 				if (l instanceof View) {
-					throw new IllegalStateException("View has not removed from activity listeners: " + l);
+					throw new IllegalStateException("View has not been removed from activity listeners: " + l);
 				}
 				return false;
 			});

@@ -11,7 +11,6 @@
         android:layout_height="wrap_content"
         android:focusable="false"
         android:gravity="center_vertical"
-        android:layoutDirection="rtl"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/pref_title"
