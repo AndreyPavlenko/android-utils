@@ -20,13 +20,13 @@ public interface VirtualFileSystem {
 	Provider getProvider();
 
 	@NonNull
-	FutureSupplier<VirtualResource> getResource(Rid rid);
+	FutureSupplier<? extends VirtualResource> getResource(Rid rid);
 
-	default FutureSupplier<VirtualFile> getFile(Rid rid) {
+	default FutureSupplier<? extends VirtualFile> getFile(Rid rid) {
 		return getResource(rid).map(r -> (r instanceof VirtualFile) ? (VirtualFile) r : null);
 	}
 
-	default FutureSupplier<VirtualFolder> getFolder(Rid rid) {
+	default FutureSupplier<? extends VirtualFolder> getFolder(Rid rid) {
 		return getResource(rid).map(r -> (r instanceof VirtualFile) ? (VirtualFolder) r : null);
 	}
 

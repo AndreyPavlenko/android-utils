@@ -159,19 +159,23 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 
 		SSLEngineResult unwrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
 			assert engine.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING;
+			int srcPos = src.position();
+			int dstPos = dst.position();
 			SSLEngineResult r = engine.unwrap(src, dst);
 			if (r.getStatus() != SSLEngineResult.Status.OK) return r;
-
-			if (r.bytesProduced() == 0) {
-				return new SSLEngineResult(SSLEngineResult.Status.BUFFER_UNDERFLOW,
-						r.getHandshakeStatus(), r.bytesConsumed(), 0);
-			}
+			if ((r.bytesProduced() != 0) && !src.hasRemaining()) return r;
 
 			while (src.hasRemaining()) {
-				if (engine.unwrap(src, dst).getStatus() != SSLEngineResult.Status.OK) return r;
+				if (engine.unwrap(src, dst).getStatus() != SSLEngineResult.Status.OK) break;
 			}
 
-			return r;
+			if (dstPos == dst.position()) {
+				return new SSLEngineResult(SSLEngineResult.Status.BUFFER_UNDERFLOW,
+						HandshakeStatus.NOT_HANDSHAKING, src.position() - srcPos, 0);
+			} else {
+				return new SSLEngineResult(SSLEngineResult.Status.OK,
+						HandshakeStatus.NOT_HANDSHAKING, src.position() - srcPos, dst.position() - dstPos);
+			}
 		}
 
 		@Override

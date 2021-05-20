@@ -414,7 +414,7 @@ public class HttpConnection extends HttpResponseEncoder implements HttpResponseH
 
 			if (t != null) {
 				timer = null;
-				apply(null, new TimeoutException("Request timeout"));
+				apply(null, new TimeoutException("Request timeout: " + o.url));
 			}
 		}
 

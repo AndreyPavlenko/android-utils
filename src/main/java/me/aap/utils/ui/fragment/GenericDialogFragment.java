@@ -2,6 +2,7 @@ package me.aap.utils.ui.fragment;
 
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.TextView;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
@@ -26,6 +27,7 @@ import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED
 public class GenericDialogFragment extends GenericFragment {
 	private BooleanConsumer consumer;
 	private BooleanSupplier validator;
+	private BooleanSupplier backHandler;
 
 	public GenericDialogFragment() {
 		this(ToolBarMediator.instance);
@@ -49,6 +51,10 @@ public class GenericDialogFragment extends GenericFragment {
 		this.validator = validator;
 	}
 
+	public void setBackHandler(BooleanSupplier backHandler) {
+		this.backHandler = backHandler;
+	}
+
 	@Override
 	public int getFragmentId() {
 		return R.id.generic_dialog_fragment;
@@ -57,6 +63,12 @@ public class GenericDialogFragment extends GenericFragment {
 	@Override
 	public void switchingTo(@NonNull ActivityFragment newFragment) {
 		super.switchingTo(newFragment);
+	}
+
+	@Override
+	public boolean onBackPressed() {
+		if ((backHandler != null) && backHandler.getAsBoolean()) return true;
+		return super.onBackPressed();
 	}
 
 	protected void onOkButtonClick() {
@@ -112,6 +124,9 @@ public class GenericDialogFragment extends GenericFragment {
 
 				b = tb.findViewById(getOkButtonId());
 				setOkButtonVisibility(b, getOkButtonVisibility(p));
+
+				TextView t = tb.findViewById(getTitleId());
+				t.setText(f.getTitle());
 			}
 		}
 

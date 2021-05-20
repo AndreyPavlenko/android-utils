@@ -238,6 +238,11 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		});
 	}
 
+	@SuppressWarnings("unchecked")
+	default <R> FutureSupplier<R> cast() {
+		return (FutureSupplier<R>) this;
+	}
+
 	default FutureSupplier<T> ifFail(CheckedFunction<Throwable, ? extends T, Throwable> onFail) {
 		if (isDone()) {
 			if (isFailed()) {

@@ -53,9 +53,13 @@ public class FileUtils {
 	}
 
 	public static String getFileExtension(String fileName) {
+		return getFileExtension(fileName, null);
+	}
+
+	public static String getFileExtension(String fileName, String defaultValue) {
 		if (fileName == null) return null;
 		int idx = fileName.lastIndexOf('.');
-		return ((idx == -1) || (idx == (fileName.length() - 1))) ? null : fileName.substring(idx + 1);
+		return ((idx == -1) || (idx == (fileName.length() - 1))) ? defaultValue : fileName.substring(idx + 1);
 	}
 
 	public static String getMimeType(String fileName) {
@@ -127,7 +131,7 @@ public class FileUtils {
 		}
 
 		File dir = toFile.getParentFile();
-		mkdirs(dir);
+		if (dir != null) mkdirs(dir);
 
 		try (FileInputStream in = new FileInputStream(fromFile);
 				 FileOutputStream out = new FileOutputStream(toFile);
@@ -187,7 +191,7 @@ public class FileUtils {
 			}
 
 			File dir = toFile.getParentFile();
-			mkdirs(dir);
+			if (dir != null) mkdirs(dir);
 
 			if (!fromFile.renameTo(toFile)) {
 				copy(fromFile, toFile);
