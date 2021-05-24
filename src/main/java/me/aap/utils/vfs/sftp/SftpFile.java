@@ -52,12 +52,10 @@ class SftpFile extends SftpResource implements VirtualFile {
 				InputStream in = stream;
 
 				if (in != null) {
-					FutureSupplier<ByteBuffer> r = readInputStream(in, dst.getByteBuffer(), getInputBufferLen());
-
-					if (!r.isFailed()) {
-						pos += r.peek().remaining();
-						return r;
-					}
+					ByteBuffer b = dst.getByteBuffer();
+					FutureSupplier<ByteBuffer> r = readInputStream(in, b, b.remaining());
+					if (!r.isFailed()) pos += r.getOrThrow().remaining();
+					return r;
 				}
 
 				return session.then(s -> {
@@ -65,8 +63,9 @@ class SftpFile extends SftpResource implements VirtualFile {
 					if (session == null) return completed(emptyByteBuffer());
 
 					InputStream is = stream = session.getChannel().get(getPath(), null, pos);
-					FutureSupplier<ByteBuffer> r = readInputStream(is, dst.getByteBuffer(), getInputBufferLen());
-					pos += r.peek().remaining();
+					ByteBuffer b = dst.getByteBuffer();
+					FutureSupplier<ByteBuffer> r = readInputStream(is, b, b.remaining());
+					if (!r.isFailed()) pos += r.getOrThrow().remaining();
 					return r;
 				});
 			}

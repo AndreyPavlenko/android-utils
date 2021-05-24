@@ -21,7 +21,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:focusable="true"
-        android:maxLines="1"
         android:textAppearance="?attr/textAppearanceListItem"
         android:textColorHint="?android:attr/textColorHint"
         app:layout_constraintBottom_toBottomOf="parent"

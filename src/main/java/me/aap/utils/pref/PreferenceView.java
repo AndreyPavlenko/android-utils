@@ -155,6 +155,7 @@ public class PreferenceView extends ConstraintLayout {
 		setPreference(layout, o);
 		EditText t = findViewById(R.id.pref_footer);
 		boolean[] ignoreChange = new boolean[1];
+		t.setMaxLines(o.maxLines);
 		t.setOnKeyListener(UiUtils::dpadFocusHelper);
 		t.setText(o.store.getStringPref(o.pref));
 		t.addTextChangedListener(new TextWatcher() {
@@ -524,6 +525,7 @@ public class PreferenceView extends ConstraintLayout {
 		@StringRes
 		public int hint = ID_NULL;
 		public String stringHint;
+		public int maxLines = 1;
 	}
 
 	public static class NumberOpts<S> extends PrefOpts<S> {

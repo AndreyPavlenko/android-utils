@@ -294,7 +294,6 @@ class SelectorHandler implements NetHandler, Runnable {
 					Object a = k.attachment();
 					if (a instanceof SelectableNetChannel)
 						((SelectableNetChannel) a).closeIfInactive(timeout);
-					else k.channel().close();
 				} catch (Throwable ignore) {
 				}
 			}
@@ -689,7 +688,7 @@ class SelectorHandler implements NetHandler, Runnable {
 					if (buf.length == 0) {
 						assert p == peekNode();
 						poll();
-						if(!p.isDone()) p.complete(null);
+						if (!p.isDone()) p.complete(null);
 						continue;
 					}
 
