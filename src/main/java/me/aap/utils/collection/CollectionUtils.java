@@ -122,6 +122,17 @@ public class CollectionUtils {
 		}
 	}
 
+	public static <K, V> V computeIfAbsent(Map<K, V> m, K key, Function<? super K, ? extends V> f) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+			return m.computeIfAbsent(key, f::apply);
+		} else {
+			V v = m.get(key);
+			if (v != null) return v;
+			m.put(key, v = f.apply(key));
+			return v;
+		}
+	}
+
 	public static <K, V> V getOrDefault(Map<K, V> m, K key, V defaultValue) {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
 			return m.getOrDefault(key, defaultValue);

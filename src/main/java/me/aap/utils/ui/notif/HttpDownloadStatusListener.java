@@ -83,7 +83,7 @@ public class HttpDownloadStatusListener implements HttpFileDownloader.StatusList
 	@Override
 	public void onFailure(Status status) {
 		if (failureTitle != null) builder.setContentTitle(failureTitle.apply(status));
-		else builder.setContentTitle("Failed to download " + status.getSource());
+		else builder.setContentTitle("Failed to download " + status.getUrl());
 		mgr.notify(channelId, id, builder.build());
 	}
 

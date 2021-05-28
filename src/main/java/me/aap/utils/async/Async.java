@@ -69,7 +69,7 @@ public class Async {
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
-	public static FutureSupplier<Void> all(FutureSupplier<?> first, FutureSupplier<?>... next) {
+	public static FutureSupplier<?> all(FutureSupplier<?> first, FutureSupplier<?>... next) {
 		return iterate((FutureSupplier) first, Arrays.asList((FutureSupplier[]) next));
 	}
 

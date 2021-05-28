@@ -210,7 +210,7 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 			assert retainedReadBuf == null;
 			assertSslReadBuffer(bb);
 			retainedReadBuf = copyOfRange(bb);
-			Log.d("Retaining SSL read buffer ", retainedReadBuf, ". Channel: ", SslChannelImpl.this);
+			// Log.d("Retaining SSL read buffer ", retainedReadBuf, ". Channel: ", SslChannelImpl.this);
 			return this;
 		}
 
@@ -224,7 +224,7 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 			assert retainedWriteBuf == null;
 			assertSslWriteBuffer(bb[0]);
 			retainedWriteBuf = copyOfRange(bb[0]);
-			Log.d("Retaining SSL write buffer: ", retainedWriteBuf, ". Channel: ", SslChannelImpl.this);
+			// Log.d("Retaining SSL write buffer: ", retainedWriteBuf, ". Channel: ", SslChannelImpl.this);
 			return this;
 		}
 
@@ -232,7 +232,7 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 		public void releaseByteBuffer(ByteBuffer bb) {
 			assert !bb.hasRemaining();
 			if (bb == retainedReadBuf) {
-				Log.d("Releasing retained SSL read buffer ", bb, ". Channel: ", SslChannelImpl.this);
+				// Log.d("Releasing retained SSL read buffer ", bb, ". Channel: ", SslChannelImpl.this);
 				retainedReadBuf = null;
 			} else if (BuildConfig.DEBUG) {
 				assertSslReadBuffer(bb);
@@ -247,7 +247,7 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 
 			if (bb[0] == retainedWriteBuf) {
 				assert !bb[0].hasRemaining();
-				Log.d("Releasing retained SSL write buffer ", bb[0], ". Channel: ", SslChannelImpl.this);
+				// Log.d("Releasing retained SSL write buffer ", bb[0], ". Channel: ", SslChannelImpl.this);
 				retainedWriteBuf = null;
 			} else if (BuildConfig.DEBUG) {
 				assertSslWriteBuffer(bb[0]);
@@ -545,7 +545,7 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 		}
 
 		private void done(ByteBuffer result, Throwable fail) {
-			assert readState == 1;
+			assert readState == 1 : "Unexpected readState: " + readState;
 			bbs.release();
 
 			try {

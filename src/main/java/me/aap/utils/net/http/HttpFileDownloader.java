@@ -1,12 +1,16 @@
 package me.aap.utils.net.http;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.InflaterInputStream;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
@@ -113,11 +117,11 @@ public class HttpFileDownloader {
 	}
 
 	private void completeExceptionally(Promise<Status> p, Throwable err, DownloadStatus status, StatusListener listener) {
-		Log.e("Failed to download ", status.getSource(), " to ", status.getDestination());
+		Log.e("Failed to download ", status.getUrl(), " to ", status.getFile());
 
-		if (returnExistingOnFail && status.getDestination().isFile()) {
-			Log.e(err, "Failed to download: ", status.getSource(), ". Returning existing file: ",
-					status.getDestination());
+		if (returnExistingOnFail && status.getFile().isFile()) {
+			Log.e(err, "Failed to download: ", status.getUrl(), ". Returning existing file: ",
+					status.getFile());
 			status.failure = err;
 			if (listener != null) listener.onSuccess(status);
 			p.complete(status);
@@ -164,9 +168,9 @@ public class HttpFileDownloader {
 
 	public interface Status {
 
-		URL getSource();
+		URL getUrl();
 
-		File getDestination();
+		File getFile();
 
 		long getTotalSize();
 
@@ -179,6 +183,26 @@ public class HttpFileDownloader {
 		String getEncoding();
 
 		Throwable getFailure();
+
+		default InputStream getFileStream(boolean decode) throws IOException {
+			InputStream in = new FileInputStream(getFile());
+
+			if (decode) {
+				String enc = getEncoding();
+
+				if (enc != null) {
+					if ("gzip".equals(enc)) {
+						return new GZIPInputStream(in);
+					} else if ("deflate".equals(enc)) {
+						return new InflaterInputStream(in);
+					} else {
+						throw new IOException("Unsupported encoding: " + enc);
+					}
+				}
+			}
+
+			return in;
+		}
 	}
 
 	public interface StatusListener {
@@ -191,8 +215,8 @@ public class HttpFileDownloader {
 	}
 
 	private static final class DownloadStatus implements Status {
-		private final URL source;
-		private final File destination;
+		private final URL url;
+		private final File file;
 		private final long totalSize;
 		String etag;
 		String charset;
@@ -200,20 +224,20 @@ public class HttpFileDownloader {
 		long downloadedSize;
 		Throwable failure;
 
-		public DownloadStatus(URL source, File destination, long totalSize) {
-			this.source = source;
-			this.destination = destination;
+		public DownloadStatus(URL url, File file, long totalSize) {
+			this.url = url;
+			this.file = file;
 			this.totalSize = totalSize;
 		}
 
 		@Override
-		public URL getSource() {
-			return source;
+		public URL getUrl() {
+			return url;
 		}
 
 		@Override
-		public File getDestination() {
-			return destination;
+		public File getFile() {
+			return file;
 		}
 
 		@Override
@@ -261,8 +285,8 @@ public class HttpFileDownloader {
 		@Override
 		public String toString() {
 			return "DownloadStatus {" +
-					"\n  source=" + source +
-					"\n  destination=" + destination +
+					"\n  source=" + url +
+					"\n  destination=" + file +
 					"\n  totalSize=" + totalSize +
 					"\n  etag='" + etag + '\'' +
 					"\n  charset='" + charset + '\'' +
