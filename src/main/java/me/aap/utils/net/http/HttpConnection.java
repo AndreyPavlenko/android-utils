@@ -136,7 +136,13 @@ public class HttpConnection extends HttpResponseEncoder implements HttpResponseH
 		}
 
 		if ((o.responseTimeout != 0) && (o.connectTimeout == 0)) o.connectTimeout = o.responseTimeout;
-		return handler.connect(o).map(HttpConnection::new);
+
+		if (Log.isLoggableD()) {
+			return handler.connect(o).onFailure(err -> Log.e(err, "Connection failed: ", o.url))
+					.map(HttpConnection::new);
+		} else {
+			return handler.connect(o).map(HttpConnection::new);
+		}
 	}
 
 	private static void sendRequest(HttpConnection c, Opts o, Throwable err,

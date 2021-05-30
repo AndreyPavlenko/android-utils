@@ -15,6 +15,7 @@ import java.util.zip.InflaterInputStream;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.function.IntSupplier;
+import me.aap.utils.function.LongSupplier;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.log.Log;
@@ -33,6 +34,8 @@ public class HttpFileDownloader {
 	public static final Pref<Supplier<String>> CHARSET = Pref.s("CHARSET", "UTF-8");
 	public static final Pref<Supplier<String>> ENCODING = Pref.s("ENCODING");
 	public static final Pref<IntSupplier> RESP_TIMEOUT = Pref.i("RESP_TIMEOUT", 10);
+	public static final Pref<LongSupplier> TIMESTAMP = Pref.l("TIMESTAMP", 0);
+	public static final Pref<IntSupplier> MAX_AGE = Pref.i("MAX_AGE", 0);
 	private StatusListener statusListener;
 	private boolean returnExistingOnFail;
 
@@ -53,15 +56,32 @@ public class HttpFileDownloader {
 	}
 
 	public FutureSupplier<Status> download(URL src, File dst, PreferenceStore prefs) {
+		boolean exist = dst.isFile();
 		Promise<Status> p = new Promise<>();
 		StatusListener listener = statusListener;
 		Log.d("Downloading ", src, " to ", dst);
+
+		if (exist) {
+			long stamp = prefs.getLongPref(TIMESTAMP);
+			int age = prefs.getIntPref(MAX_AGE);
+
+			if ((stamp + (age * 1000)) > System.currentTimeMillis()) {
+				DownloadStatus status = new DownloadStatus(src, dst, dst.length());
+				status.setEtag(prefs.getStringPref(ETAG));
+				status.setCharset(prefs.getStringPref(CHARSET));
+				status.setEncoding(prefs.getStringPref(ENCODING));
+				Log.i("File age is less than ", age, ". Returning existing file: ", dst);
+				if (listener != null) listener.onSuccess(status);
+				p.complete(status);
+				return p;
+			}
+		}
 
 		HttpConnection.connect(o -> {
 			o.url = src;
 			o.responseTimeout = prefs.getIntPref(RESP_TIMEOUT);
 			o.userAgent = prefs.getStringPref(AGENT);
-			if (dst.isFile()) o.ifNonMatch = prefs.getStringPref(ETAG);
+			if (exist) o.ifNonMatch = prefs.getStringPref(ETAG);
 		}, (resp, err) -> {
 			if (err != null) {
 				completeExceptionally(p, err, new DownloadStatus(src, dst, 0), listener);
@@ -81,12 +101,6 @@ public class HttpFileDownloader {
 				return completedVoid();
 			}
 
-			try (PreferenceStore.Edit edit = prefs.editPreferenceStore()) {
-				edit.setStringPref(ETAG, status.getEtag());
-				edit.setStringPref(CHARSET, status.getCharset());
-				edit.setStringPref(ENCODING, status.getEncoding());
-			}
-
 			File tmp = null;
 			try {
 				tmp = File.createTempFile(dst.getName(), ".incomplete", dst.getParentFile());
@@ -101,8 +115,15 @@ public class HttpFileDownloader {
 					//noinspection ResultOfMethodCallIgnored
 					incomplete.delete();
 				} else if (incomplete.renameTo(dst)) {
-					if (listener != null) listener.onSuccess(status);
+					try (PreferenceStore.Edit edit = prefs.editPreferenceStore()) {
+						edit.setStringPref(ETAG, status.getEtag());
+						edit.setStringPref(CHARSET, status.getCharset());
+						edit.setStringPref(ENCODING, status.getEncoding());
+						edit.setLongPref(TIMESTAMP, System.currentTimeMillis());
+					}
+
 					Log.d("Downloaded ", src, " to ", dst);
+					if (listener != null) listener.onSuccess(status);
 					p.complete(status);
 				} else {
 					completeExceptionally(p, new IOException("Failed to rename file " + incomplete + " to " + dst),

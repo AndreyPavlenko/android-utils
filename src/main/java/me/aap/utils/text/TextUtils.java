@@ -8,6 +8,9 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 
 import me.aap.utils.log.Log;
 
@@ -201,6 +204,28 @@ public class TextUtils {
 			appendTime(sb, h);
 			sb.append(':');
 			timeToString(sb, seconds - (h * 3600));
+		}
+	}
+
+	public static void dateToTimeString(TextBuilder tb, long date, boolean seconds) {
+		dateToTimeString(tb.getStringBuilder(), date, seconds);
+	}
+
+	public static void dateToTimeString(StringBuilder sb, long date, boolean seconds) {
+		Calendar c = GregorianCalendar.getInstance();
+		c.setTime(new Date(date));
+		int v = c.get(Calendar.HOUR_OF_DAY);
+		if (v < 10) sb.append('0');
+		sb.append(v).append(':');
+		v = c.get(Calendar.MINUTE);
+		if (v < 10) sb.append('0');
+		sb.append(v);
+
+		if (seconds) {
+			sb.append(':');
+			v = c.get(Calendar.SECOND);
+			if (v < 10) sb.append('0');
+			sb.append(v);
 		}
 	}
 

@@ -2,6 +2,7 @@ package me.aap.utils.collection;
 
 import android.os.Build;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.reflect.Array;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import me.aap.utils.function.BiFunction;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Function;
 import me.aap.utils.function.IntBiConsumer;
@@ -130,6 +132,25 @@ public class CollectionUtils {
 			if (v != null) return v;
 			m.put(key, v = f.apply(key));
 			return v;
+		}
+	}
+
+	public static <K, V> V compute(Map<K, V> m, K key,
+																 @NonNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+			return m.compute(key, remappingFunction::apply);
+		} else {
+			V oldValue = m.get(key);
+			V newValue = remappingFunction.apply(key, oldValue);
+
+			if (newValue == null) {
+				if (oldValue != null) m.remove(key);
+				return null;
+			} else {
+				m.put(key, newValue);
+				return newValue;
+			}
 		}
 	}
 
