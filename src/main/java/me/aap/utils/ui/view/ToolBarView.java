@@ -36,6 +36,7 @@ import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEF
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.RIGHT;
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET;
+import static me.aap.utils.ui.UiUtils.isVisible;
 import static me.aap.utils.ui.UiUtils.toIntPx;
 import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
 
@@ -120,6 +121,17 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 		return listeners;
 	}
 
+	public View focusSearch() {
+		View v = findViewById(R.id.tool_bar_back_button);
+		return ((v != null) && isVisible(v)) ? v : this;
+	}
+
+	@Override
+	public View focusSearch(View focused, int direction) {
+		View v = getMediator().focusSearch(this, focused, direction);
+		return (v != null) ? v : super.focusSearch(focused, direction);
+	}
+
 	public interface Listener {
 		byte FILTER_CHANGED = 1;
 
@@ -140,6 +152,14 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 
 		default boolean onBackPressed(ToolBarView tb) {
 			return false;
+		}
+
+		@Nullable
+		default View focusSearch(ToolBarView tb, View focused, int direction) {
+			if (direction != FOCUS_UP) return null;
+			ActivityDelegate a = ActivityDelegate.get(tb.getContext());
+			NavBarView nb = a.getNavBar();
+			return nb.isBottom() && isVisible(nb) ? nb.focusSearch() : null;
 		}
 
 		default void addView(ToolBarView tb, View v, @IdRes int id) {

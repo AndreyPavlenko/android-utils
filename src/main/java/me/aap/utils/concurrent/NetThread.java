@@ -160,19 +160,19 @@ public class NetThread extends PooledThread {
 	}
 
 	public static void assertReadBuffer(ByteBuffer bb) {
-		if (BuildConfig.DEBUG) assertSame(((NetThread) Thread.currentThread()).readBuffer, bb);
+		if (BuildConfig.D) assertSame(((NetThread) Thread.currentThread()).readBuffer, bb);
 	}
 
 	public static void assertWriteBuffer(ByteBuffer bb) {
-		if (BuildConfig.DEBUG) assertSame(((NetThread) Thread.currentThread()).writeBuffer, bb);
+		if (BuildConfig.D) assertSame(((NetThread) Thread.currentThread()).writeBuffer, bb);
 	}
 
 	public static void assertSslReadBuffer(ByteBuffer bb) {
-		if (BuildConfig.DEBUG) assertSame(((NetThread) Thread.currentThread()).sslReadBuffer, bb);
+		if (BuildConfig.D) assertSame(((NetThread) Thread.currentThread()).sslReadBuffer, bb);
 	}
 
 	public static void assertSslWriteBuffer(ByteBuffer bb) {
-		if (BuildConfig.DEBUG) assertSame(((NetThread) Thread.currentThread()).sslWriteBuffer, bb);
+		if (BuildConfig.D) assertSame(((NetThread) Thread.currentThread()).sslWriteBuffer, bb);
 	}
 
 	protected ByteBuffer createReadBuffer() {

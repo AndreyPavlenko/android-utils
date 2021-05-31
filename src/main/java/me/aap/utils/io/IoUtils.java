@@ -98,7 +98,7 @@ public class IoUtils {
 		return b;
 	}
 
-	public static ByteBuffer copyOfRange(ByteBuffer bb) {
+	public static ByteBuffer copyOf(ByteBuffer bb) {
 		return copyOfRange(bb, bb.position(), bb.limit());
 	}
 
@@ -116,6 +116,33 @@ public class IoUtils {
 			d.position(from);
 			d.limit(to);
 			d.get(a, 0, len);
+			bb = ByteBuffer.wrap(a);
+			bb.limit(len);
+		} else {
+			bb = ByteBuffer.wrap(a);
+			bb.limit(0);
+		}
+
+		return bb;
+	}
+
+	public static ByteBuffer getFrom(ByteBuffer bb) {
+		return getRangeFrom(bb, bb.position(), bb.limit());
+	}
+
+	public static ByteBuffer getRangeFrom(ByteBuffer bb, int from, int to) {
+		return getRangeFrom(bb, from, to, to - from);
+	}
+
+	public static ByteBuffer getRangeFrom(ByteBuffer bb, int from, int to, int capacity) {
+		if (capacity == 0) return emptyByteBuffer();
+		int len = to - from;
+		byte[] a = new byte[capacity];
+
+		if (len > 0) {
+			bb.position(from);
+			bb.limit(to);
+			bb.get(a, 0, len);
 			bb = ByteBuffer.wrap(a);
 			bb.limit(len);
 		} else {

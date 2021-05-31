@@ -38,6 +38,10 @@ import static android.view.KeyEvent.KEYCODE_DPAD_UP;
 public class UiUtils {
 	public static final byte ID_NULL = 0;
 
+	public static boolean isVisible(View v) {
+		return v.getVisibility() == View.VISIBLE;
+	}
+
 	public static float toPx(Context ctx, int dp) {
 		return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
 	}

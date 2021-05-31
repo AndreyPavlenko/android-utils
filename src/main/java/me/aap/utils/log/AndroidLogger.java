@@ -107,17 +107,17 @@ public class AndroidLogger extends Logger {
 
 	@Override
 	protected boolean addThreadName() {
-		return BuildConfig.DEBUG || (logFile != null);
+		return BuildConfig.D || (logFile != null);
 	}
 
 	@Override
 	protected boolean addCallerLocation() {
-		return BuildConfig.DEBUG || (logFile != null);
+		return BuildConfig.D || (logFile != null);
 	}
 
 	@Override
 	protected boolean addCallerName() {
-		return BuildConfig.DEBUG || (logFile != null);
+		return BuildConfig.D || (logFile != null);
 	}
 
 	private String fileLog(StringBuilder msg, Throwable ex) {

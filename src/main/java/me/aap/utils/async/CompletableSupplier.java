@@ -20,13 +20,13 @@ import me.aap.utils.concurrent.ConcurrentUtils;
 import me.aap.utils.function.CheckedBiFunction;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.ProgressiveResultConsumer;
+import me.aap.utils.function.ResultConsumer;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.log.Log;
 import me.aap.utils.misc.TestUtils;
 
 import static java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater;
 import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_DONE;
-import static me.aap.utils.function.ResultConsumer.Cancel.isCancellation;
 import static me.aap.utils.misc.Assert.assertNotEquals;
 import static me.aap.utils.misc.Assert.assertNotNull;
 import static me.aap.utils.misc.Assert.assertTrue;
@@ -41,6 +41,11 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 	@Keep
 	@SuppressWarnings("unused")
 	private volatile Object state = Incomplete.INITIAL;
+	private final Throwable trace;
+
+	public CompletableSupplier() {
+		trace = BuildConfig.FUTURE_TRACE ? new Throwable() : null;
+	}
 
 	protected abstract S map(C value) throws Throwable;
 
@@ -103,7 +108,7 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 	@Override
 	public boolean completeExceptionally(@NonNull Throwable ex) {
-		if (BuildConfig.DEBUG && TestUtils.logExceptions()) {
+		if (BuildConfig.D && TestUtils.logExceptions()) {
 			Log.d(ex, "Completed exceptionally");
 		}
 		return supply(null, ex, PROGRESS_DONE, PROGRESS_DONE);
@@ -111,7 +116,11 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
-		return supply(null, Cancelled.CANCELLED.fail, PROGRESS_DONE, PROGRESS_DONE);
+		if (BuildConfig.D) {
+			return supply(null, new CancellationException(), PROGRESS_DONE, PROGRESS_DONE);
+		} else {
+			return supply(null, Cancelled.CANCELLED.fail, PROGRESS_DONE, PROGRESS_DONE);
+		}
 	}
 
 	@Override
@@ -121,7 +130,15 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 	@Override
 	public boolean isCancelled() {
-		return STATE.get(this) == Cancelled.CANCELLED;
+		return isCancelled(STATE.get(this));
+	}
+
+	private static boolean isCancelled(Object st) {
+		if (BuildConfig.D) {
+			return (st instanceof Failed) && (((Failed) st).fail instanceof CancellationException);
+		} else {
+			return st == Cancelled.CANCELLED;
+		}
 	}
 
 	@Override
@@ -153,7 +170,7 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 		if (!(st instanceof Incomplete)) {
 			if (st instanceof Failed) {
-				if (st == Cancelled.CANCELLED) throw new CancellationException();
+				if (isCancelled(st)) throw new CancellationException();
 				throw new ExecutionException(((Failed) st).fail);
 			} else {
 				return (S) st;
@@ -171,7 +188,7 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 			if (!(st instanceof Incomplete)) {
 				if (st instanceof Failed) {
-					if (st == Cancelled.CANCELLED) throw new CancellationException();
+					if (isCancelled(st)) throw new CancellationException();
 					throw new ExecutionException(((Failed) st).fail);
 				} else {
 					return (S) st;
@@ -189,7 +206,7 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 		if (!(st instanceof Incomplete)) {
 			if (st instanceof Failed) {
-				if (st == Cancelled.CANCELLED) throw new CancellationException();
+				if (isCancelled(st)) throw new CancellationException();
 				throw new ExecutionException(((Failed) st).fail);
 			} else {
 				return (S) st;
@@ -209,7 +226,7 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 			if (!(st instanceof Incomplete)) {
 				if (st instanceof Failed) {
-					if (st == Cancelled.CANCELLED) throw new CancellationException();
+					if (isCancelled(st)) throw new CancellationException();
 					throw new ExecutionException(((Failed) st).fail);
 				} else {
 					return (S) st;
@@ -249,6 +266,10 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 	private void supply(ProgressiveResultConsumer<? super S> consumer, S result, Throwable fail,
 											int progress, int total, @Nullable Executor executor) {
+		if (BuildConfig.FUTURE_TRACE && (fail != null)) {
+			Log.d(trace, "FutureSupplier failed");
+		}
+
 		try {
 			if ((executor == null) || (consumer instanceof WaitingConsumer)) {
 				consumer.accept(result, fail, progress, total);
@@ -284,7 +305,8 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 			} else if (progress == PROGRESS_DONE) {
 				Object r;
 
-				if (fail != null) r = isCancellation(fail) ? Cancelled.CANCELLED : new Failed(fail);
+				if (fail != null)
+					r = ResultConsumer.Cancel.isCancellation(fail) ? Cancelled.get() : new Failed(fail);
 				else r = result;
 
 				if (!STATE.compareAndSet(this, st, r)) continue;
@@ -311,7 +333,7 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 				Object r;
 
 				if (p.fail != null) {
-					if (p.fail == Cancelled.CANCELLED.fail) r = Cancelled.CANCELLED;
+					if (Cancelled.isCancellation(p.fail)) r = Cancelled.get();
 					else r = new Failed(p.fail);
 				} else {
 					r = p.result;
@@ -359,6 +381,14 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 	interface Cancelled {
 		Failed CANCELLED = new Failed(new CancellationException());
+
+		static Failed get() {
+			return BuildConfig.D ? new Failed(new CancellationException()) : CANCELLED;
+		}
+
+		static boolean isCancellation(Throwable ex) {
+			return BuildConfig.D ? (ex instanceof CancellationException) : (ex == CANCELLED.fail);
+		}
 	}
 
 	private static final class Incomplete<T> implements Iterable<ProgressiveResultConsumer<? super T>> {

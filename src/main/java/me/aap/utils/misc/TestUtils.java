@@ -9,7 +9,7 @@ public class TestUtils {
 	static volatile boolean logExceptions = true;
 
 	public static boolean isTestMode() {
-		return BuildConfig.DEBUG && TestMode.isTestMode;
+		return BuildConfig.D && TestMode.isTestMode;
 	}
 
 	public static void enableTestMode() {

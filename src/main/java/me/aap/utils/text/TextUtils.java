@@ -162,7 +162,13 @@ public class TextUtils {
 		return regionMatches(text, text.length() - len, seq, 0, len, ignoreCase);
 	}
 
+	@SuppressWarnings("StatementWithEmptyBody")
+	public static String trim(String text) {
+		return (text == null) ? null : text.trim();
+	}
+
 	public static CharSequence trim(CharSequence text) {
+		if (text == null) return null;
 		int len = text.length();
 		int start = 0;
 		int end = len;
@@ -177,6 +183,20 @@ public class TextUtils {
 		} catch (NumberFormatException ignore) {
 			return defaultValue;
 		}
+	}
+
+	public static boolean isInt(CharSequence seq) {
+		int len = seq.length();
+		if (len > 11) return false;
+
+		for (int i = 0; i < len; i++) {
+			char c = seq.charAt(i);
+			if ((c >= '0') && (c <= '9')) continue;
+			if ((c == '-') && (i == 0)) continue;
+			return false;
+		}
+
+		return true;
 	}
 
 	public static String timeToString(int seconds) {

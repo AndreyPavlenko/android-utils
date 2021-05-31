@@ -6,12 +6,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 
+import me.aap.utils.app.App;
 import me.aap.utils.function.CheckedBiConsumer;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.CheckedSupplier;
 import me.aap.utils.holder.BiHolder;
 import me.aap.utils.log.Log;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.completedNull;
 import static me.aap.utils.async.Completed.completedVoid;
@@ -272,5 +274,23 @@ public class Async {
 				}
 			});
 		});
+	}
+
+	public static <T> FutureSupplier<T> scheduleAt(CheckedSupplier<FutureSupplier<T>, Throwable> s,
+																								 long time) {
+		return schedule(s, time - System.currentTimeMillis());
+	}
+
+	public static <T> FutureSupplier<T> schedule(CheckedSupplier<FutureSupplier<T>, Throwable> s,
+																							 long delay) {
+		Promise<T> p = new Promise<>();
+		App.get().getScheduler().schedule(() -> {
+			try {
+				s.get().thenComplete(p);
+			} catch (Throwable ex) {
+				p.completeExceptionally(ex);
+			}
+		}, delay, MILLISECONDS);
+		return p;
 	}
 }

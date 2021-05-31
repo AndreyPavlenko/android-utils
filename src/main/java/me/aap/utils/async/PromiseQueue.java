@@ -1,9 +1,14 @@
 package me.aap.utils.async;
 
+import androidx.annotation.Nullable;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import javax.annotation.Nonnull;
+
+import me.aap.utils.app.App;
 import me.aap.utils.concurrent.ConcurrentQueueBase;
 import me.aap.utils.function.CheckedSupplier;
 import me.aap.utils.function.Consumer;
@@ -13,17 +18,29 @@ import me.aap.utils.function.Consumer;
  */
 public class PromiseQueue {
 	private final AtomicInteger state = new AtomicInteger();
+	@SuppressWarnings("rawtypes")
 	private final Q queue = new Q();
+	@Nullable
 	private final Executor exec;
 
-	public PromiseQueue(Executor exec) {
+	public PromiseQueue() {
+		this(null);
+	}
+
+	public PromiseQueue(@Nullable Executor exec) {
 		this.exec = exec;
 	}
 
+	@Nonnull
+	public Executor getExecutor() {
+		return (exec != null) ? exec : App.get().getExecutor();
+	}
+
+	@SuppressWarnings("unchecked")
 	public <T> FutureSupplier<T> enqueue(CheckedSupplier<T, Throwable> task) {
 		QueuedPromise<T> p = new QueuedPromise<>(task);
 		queue.offerNode(p);
-		if (queue.peekNode() == p) exec.execute(this::processQueue);
+		if (queue.peekNode() == p) getExecutor().execute(this::processQueue);
 		return p;
 	}
 
@@ -82,6 +99,7 @@ public class PromiseQueue {
 			}
 		}
 
+		@SuppressWarnings({"rawtypes", "unchecked"})
 		@Override
 		public QueuedPromise getNext() {
 			return next;

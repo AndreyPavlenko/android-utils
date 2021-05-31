@@ -21,6 +21,7 @@ import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.concurrent.ConcurrentQueueBase;
 import me.aap.utils.function.ProgressiveResultConsumer.Completion;
+import me.aap.utils.io.IoUtils;
 import me.aap.utils.log.Log;
 
 import static me.aap.utils.async.Completed.failed;
@@ -209,7 +210,7 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 
 			assert retainedReadBuf == null;
 			assertSslReadBuffer(bb);
-			retainedReadBuf = copyOfRange(bb);
+			retainedReadBuf = IoUtils.copyOf(bb);
 			// Log.d("Retaining SSL read buffer ", retainedReadBuf, ". Channel: ", SslChannelImpl.this);
 			return this;
 		}
@@ -223,7 +224,7 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 
 			assert retainedWriteBuf == null;
 			assertSslWriteBuffer(bb[0]);
-			retainedWriteBuf = copyOfRange(bb[0]);
+			retainedWriteBuf = IoUtils.copyOf(bb[0]);
 			// Log.d("Retaining SSL write buffer: ", retainedWriteBuf, ". Channel: ", SslChannelImpl.this);
 			return this;
 		}
@@ -234,7 +235,7 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 			if (bb == retainedReadBuf) {
 				// Log.d("Releasing retained SSL read buffer ", bb, ". Channel: ", SslChannelImpl.this);
 				retainedReadBuf = null;
-			} else if (BuildConfig.DEBUG) {
+			} else if (BuildConfig.D) {
 				assertSslReadBuffer(bb);
 			}
 		}
@@ -249,7 +250,7 @@ class SslChannelImpl extends ConcurrentQueueBase<SslChannelImpl.Write, SslChanne
 				assert !bb[0].hasRemaining();
 				// Log.d("Releasing retained SSL write buffer ", bb[0], ". Channel: ", SslChannelImpl.this);
 				retainedWriteBuf = null;
-			} else if (BuildConfig.DEBUG) {
+			} else if (BuildConfig.D) {
 				assertSslWriteBuffer(bb[0]);
 			}
 

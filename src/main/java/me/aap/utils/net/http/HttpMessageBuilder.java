@@ -10,6 +10,7 @@ import me.aap.utils.concurrent.NetThread;
 import me.aap.utils.function.CheckedConsumer;
 import me.aap.utils.function.Function;
 import me.aap.utils.io.ByteBufferOutputStream;
+import me.aap.utils.io.IoUtils;
 import me.aap.utils.net.ByteBufferArraySupplier;
 
 import static java.lang.Thread.currentThread;
@@ -72,7 +73,7 @@ class HttpMessageBuilder implements HttpRequestBuilder, HttpResponseBuilder {
 					HttpMessageBuilder b = new HttpMessageBuilder(true);
 					array = builder.apply(b);
 					responseBuf = b.responseBuf;
-					if (BuildConfig.DEBUG && responseBuf)
+					if (BuildConfig.D && responseBuf)
 						((NetThread) currentThread()).assertWriteBuffer(array[0]);
 				}
 
@@ -86,8 +87,8 @@ class HttpMessageBuilder implements HttpRequestBuilder, HttpResponseBuilder {
 
 				if (responseBuf) {
 					if (fromIndex == 0) {
-						if (BuildConfig.DEBUG) ((NetThread) currentThread()).assertWriteBuffer(array[0]);
-						array[0] = copyOfRange(array[0]);
+						if (BuildConfig.D) ((NetThread) currentThread()).assertWriteBuffer(array[0]);
+						array[0] = IoUtils.copyOf(array[0]);
 					}
 
 					responseBuf = false;

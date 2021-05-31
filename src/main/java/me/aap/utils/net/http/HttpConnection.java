@@ -324,7 +324,8 @@ public class HttpConnection extends HttpResponseEncoder implements HttpResponseH
 				b.setRequest(tb, o.method, o.version);
 
 				tb.setLength(0);
-				tb.append(o.host).append(':').append(o.port);
+				tb.append(o.host);
+				if ((o.port != 80) && (o.port != 443)) tb.append(':').append(o.port);
 				b.addHeader(HttpHeader.HOST, tb);
 
 				if (o.userAgent != null) {

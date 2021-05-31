@@ -63,6 +63,10 @@ public class NavButtonView extends LinearLayoutCompat {
 		else getText().setVisibility(selected ? VISIBLE : GONE);
 	}
 
+	public NavBarView getNavBar() {
+		return (NavBarView) getParent();
+	}
+
 	public ImageView getIcon() {
 		return (ImageView) getChildAt(0);
 	}
@@ -91,7 +95,7 @@ public class NavButtonView extends LinearLayoutCompat {
 			if (!hasExt) return;
 
 			Context ctx = getContext();
-			NavBarView nb = (NavBarView) getParent();
+			NavBarView nb = getNavBar();
 			super.onDraw(canvas);
 
 			float w = toPx(ctx, 2);

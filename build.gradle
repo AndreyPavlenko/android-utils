@@ -2,17 +2,17 @@ buildscript {
 
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.2'
+        classpath 'com.android.tools.build:gradle:4.2.1'
     }
 }
 
 repositories {
     google()
-    jcenter()
+    mavenCentral()
 }
 
 apply plugin: 'com.android.library'
@@ -38,11 +38,15 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            buildConfigField "boolean", 'D', 'false'
+            buildConfigField "boolean", 'FUTURE_TRACE', 'false'
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
 
         debug {
             debuggable true
+            buildConfigField "boolean", 'D', 'true'
+            buildConfigField "boolean", 'FUTURE_TRACE', 'false'
         }
     }
 }
@@ -56,7 +60,7 @@ dependencies {
     implementation 'com.jcraft:jsch:0.1.55'
     implementation 'com.hierynomus:smbj:0.10.0'
 
-    implementation 'com.google.gms:google-services:4.3.5'
+    implementation 'com.google.gms:google-services:4.3.8'
     implementation 'com.google.android.gms:play-services-auth:19.0.0'
     implementation 'com.google.http-client:google-http-client-gson:1.39.0'
     implementation('com.google.api-client:google-api-client-android:1.31.3') {

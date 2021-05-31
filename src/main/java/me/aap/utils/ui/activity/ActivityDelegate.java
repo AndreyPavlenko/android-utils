@@ -166,7 +166,7 @@ public abstract class ActivityDelegate extends Fragment implements
 		activeFragmentId = ID_NULL;
 		activeNavItemId = ID_NULL;
 
-		if (BuildConfig.DEBUG) {
+		if (BuildConfig.D) {
 			removeBroadcastListeners(l -> {
 				if (l instanceof View) {
 					throw new IllegalStateException("View has not been removed from activity listeners: " + l);

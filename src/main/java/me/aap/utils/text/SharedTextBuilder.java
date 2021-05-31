@@ -50,7 +50,7 @@ public class SharedTextBuilder implements TextBuilder, AutoCloseable {
 		}
 
 		if (sb.inUse) {
-			if (BuildConfig.DEBUG) {
+			if (BuildConfig.D) {
 				new AssertionError("SharedStringBuilder is in use", sb.usedBy).printStackTrace();
 			}
 
@@ -58,7 +58,7 @@ public class SharedTextBuilder implements TextBuilder, AutoCloseable {
 			sb.inUse = true;
 		} else {
 			sb.inUse = true;
-			if (BuildConfig.DEBUG) sb.usedBy = new Throwable("Used by");
+			if (BuildConfig.D) sb.usedBy = new Throwable("Used by");
 		}
 
 		if (minCapacity > 0) sb.sb.ensureCapacity(minCapacity);
@@ -69,13 +69,13 @@ public class SharedTextBuilder implements TextBuilder, AutoCloseable {
 	public String releaseString() {
 		assertTrue(inUse);
 		inUse = false;
-		if (BuildConfig.DEBUG) usedBy = null;
+		if (BuildConfig.D) usedBy = null;
 		return sb.toString();
 	}
 
 	public void release() {
 		assertTrue(inUse);
-		if (BuildConfig.DEBUG) usedBy = null;
+		if (BuildConfig.D) usedBy = null;
 		inUse = false;
 	}
 

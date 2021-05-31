@@ -29,7 +29,8 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 
 	@SuppressWarnings("unchecked")
 	public static <T> FutureSupplier<T> cancelled() {
-		return Cancelled.instance;
+		if (BuildConfig.D) return failed(new CancellationException());
+		else return Cancelled.instance;
 	}
 
 	public static <T> FutureSupplier<T> failed(Throwable fail) {
@@ -179,7 +180,7 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 		private final Throwable fail;
 
 		Failed(Throwable fail) {
-			if (BuildConfig.DEBUG && TestUtils.logExceptions()) Log.d(fail, "Completed failure");
+			if (BuildConfig.D && TestUtils.logExceptions()) Log.d(fail, "Completed failure");
 			this.fail = fail;
 		}
 

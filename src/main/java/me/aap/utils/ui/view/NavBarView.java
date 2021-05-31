@@ -26,6 +26,7 @@ import me.aap.utils.ui.fragment.ActivityFragment;
 import me.aap.utils.ui.fragment.ViewFragmentMediator;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static me.aap.utils.ui.UiUtils.isVisible;
 import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
 
 /**
@@ -76,6 +77,18 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 		setOrientation((pos == POSITION_BOTTOM) ? HORIZONTAL : VERTICAL);
 		setMediator((ActivityFragment) null);
 		setMediator(getActivity().getActiveFragment());
+	}
+
+	public boolean isBottom() {
+		return getPosition() == POSITION_BOTTOM;
+	}
+
+	public boolean isLeft() {
+		return getPosition() == POSITION_LEFT;
+	}
+
+	public boolean isRight() {
+		return getPosition() == POSITION_RIGHT;
 	}
 
 	public void showMenu() {
@@ -137,6 +150,17 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 
 	protected int getTint() {
 		return tint;
+	}
+
+	@Override
+	public View focusSearch(View focused, int direction) {
+		View v = getMediator().focusSearch(this, focused, direction);
+		return (v != null) ? v : super.focusSearch(focused, direction);
+	}
+
+	public View focusSearch() {
+		View v = findViewById(getActivity().getActiveNavItemId());
+		return isVisible(v) ? v : this;
 	}
 
 	public interface Mediator extends ViewFragmentMediator<NavBarView>, OnClickListener {
@@ -206,6 +230,11 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 			}
 
 			itemSelected(item, id, a);
+		}
+
+		@Nullable
+		default View focusSearch(NavBarView nb, View focused, int direction) {
+			return null;
 		}
 
 		default void addView(NavBarView nb, View v, @IdRes int id) {

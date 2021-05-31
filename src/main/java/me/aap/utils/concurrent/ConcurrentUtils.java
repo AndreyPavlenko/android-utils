@@ -21,12 +21,12 @@ public class ConcurrentUtils {
 	}
 
 	public static void ensureMainThread(boolean debug) {
-		if (debug && !BuildConfig.DEBUG) return;
+		if (debug && !BuildConfig.D) return;
 		if (!isMainThread()) throw new AssertionError("Not the main thread");
 	}
 
 	public static void ensureNotMainThread(boolean debug) {
-		if (debug && !BuildConfig.DEBUG) return;
+		if (debug && !BuildConfig.D) return;
 		if (isMainThread()) throw new AssertionError("Main thread");
 	}
 
@@ -38,21 +38,21 @@ public class ConcurrentUtils {
 	}
 
 	public static void wait(Object monitor) throws InterruptedException {
-		if (BuildConfig.DEBUG && isMainThread()) {
+		if (BuildConfig.D && isMainThread()) {
 			new IllegalStateException("Waiting on the main thread!").printStackTrace();
 		}
 		monitor.wait();
 	}
 
 	public static void wait(Object monitor, long timeout) throws InterruptedException {
-		if (BuildConfig.DEBUG && isMainThread()) {
+		if (BuildConfig.D && isMainThread()) {
 			new IllegalStateException("Waiting on the main thread!").printStackTrace();
 		}
 		monitor.wait(timeout);
 	}
 
 	public static void park() {
-		if (BuildConfig.DEBUG && isMainThread()) {
+		if (BuildConfig.D && isMainThread()) {
 			new IllegalStateException("Parking on the main thread!").printStackTrace();
 		}
 
@@ -60,7 +60,7 @@ public class ConcurrentUtils {
 	}
 
 	public static void parkNanos(long nanos) {
-		if (BuildConfig.DEBUG && isMainThread()) {
+		if (BuildConfig.D && isMainThread()) {
 			new IllegalStateException("Parking on the main thread!").printStackTrace();
 		}
 

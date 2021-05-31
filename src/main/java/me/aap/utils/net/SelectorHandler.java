@@ -1037,7 +1037,7 @@ class SelectorHandler implements NetHandler, Runnable {
 		private static final ChannelClosed instance = new ChannelClosed();
 
 		public static ChannelClosed get() {
-			return (BuildConfig.DEBUG) ? new ChannelClosed() : instance;
+			return (BuildConfig.D) ? new ChannelClosed() : instance;
 		}
 
 		@NonNull

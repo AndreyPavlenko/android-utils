@@ -31,7 +31,7 @@ abstract class HttpMessageEncoder<M extends HttpMessage> implements ByteBufferSu
 
 	void readMessage(NetChannel channel) {
 		channel.read(this, (bb, fail) -> {
-			if (BuildConfig.DEBUG && (bb != null)) assertLocalBuffer(bb);
+			if (BuildConfig.D && (bb != null)) assertLocalBuffer(bb);
 			read(channel, bb, fail);
 		});
 	}
@@ -77,7 +77,7 @@ abstract class HttpMessageEncoder<M extends HttpMessage> implements ByteBufferSu
 
 	@Override
 	public void releaseByteBuffer(ByteBuffer bb) {
-		if (BuildConfig.DEBUG) {
+		if (BuildConfig.D) {
 			assertLocalBuffer(bb);
 		}
 	}
@@ -202,7 +202,7 @@ abstract class HttpMessageEncoder<M extends HttpMessage> implements ByteBufferSu
 
 	ByteBufferSupplier retainBuf(ByteBuffer buf, int start, int end) {
 		ByteBuffer b = copyOfRange(buf, start, end);
-		Log.d("Retaining buffer: ", b);
+		// Log.d("Retaining buffer: ", b);
 
 		return () -> {
 			b.position(0);

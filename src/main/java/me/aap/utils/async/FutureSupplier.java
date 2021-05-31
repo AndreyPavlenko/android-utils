@@ -6,21 +6,26 @@ import androidx.annotation.Nullable;
 import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import me.aap.utils.BuildConfig;
 import me.aap.utils.app.App;
 import me.aap.utils.concurrent.HandlerExecutor;
 import me.aap.utils.function.Cancellable;
 import me.aap.utils.function.CheckedBiConsumer;
 import me.aap.utils.function.CheckedFunction;
 import me.aap.utils.function.CheckedSupplier;
+import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Function;
 import me.aap.utils.function.ProgressiveResultConsumer;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.holder.BiHolder;
 import me.aap.utils.log.Log;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.failed;
 import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
@@ -165,6 +170,42 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return withExecutor(App.get().getHandler(), false);
 	}
 
+	default FutureSupplier<T> fork() {
+		if (isDone()) return this;
+		Promise<T> p = new Promise<>();
+		onCompletionSupply(p);
+		return p;
+	}
+
+	default FutureSupplier<T> timeout(long millis) {
+		return timeout(millis, () -> {
+			throw new TimeoutException();
+		});
+	}
+
+	default FutureSupplier<T> timeout(long millis, CheckedSupplier<T, Throwable> onTimeout) {
+		if (isDone()) return this;
+		Throwable trace = BuildConfig.FUTURE_TRACE ? new TimeoutException() : null;
+		Promise<T> p = new Promise<>();
+		ScheduledFuture<?> t = App.get().getScheduler().schedule(() -> {
+			if (p.isDone()) return;
+			if (BuildConfig.FUTURE_TRACE) Log.d(trace, "FutureSupplier timed out");
+
+			try {
+				p.complete(onTimeout.get());
+			} catch (Throwable ex) {
+				p.completeExceptionally(ex);
+			}
+		}, millis, MILLISECONDS);
+
+		onCompletion((r, err) -> {
+			t.cancel(false);
+			p.complete(r, err);
+		});
+
+		return p;
+	}
+
 	default T get(@Nullable Supplier<? extends T> onError) {
 		try {
 			return get();
@@ -257,6 +298,34 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		}
 
 		return ProxySupplier.create(this, t -> t, onFail);
+	}
+
+	default FutureSupplier<T> ifNull(Consumer<T> f) {
+		if (isDone()) {
+			if (!isFailed()) {
+				T v = peek();
+				if (v == null) f.accept(v);
+			}
+			return this;
+		} else {
+			return onSuccess(v -> {
+				if (v != null) f.accept(v);
+			});
+		}
+	}
+
+	default FutureSupplier<T> ifNotNull(Consumer<T> f) {
+		if (isDone()) {
+			if (!isFailed()) {
+				T v = peek();
+				if (v != null) f.accept(v);
+			}
+			return this;
+		} else {
+			return onSuccess(v -> {
+				if (v != null) f.accept(v);
+			});
+		}
 	}
 
 	@SuppressWarnings("unchecked")

@@ -15,6 +15,7 @@ import me.aap.utils.function.BiFunction;
 import me.aap.utils.function.ProgressiveResultConsumer.Completion;
 import me.aap.utils.io.AsyncOutputStream;
 import me.aap.utils.io.ByteBufferInputStream;
+import me.aap.utils.io.IoUtils;
 import me.aap.utils.io.MemOutputStream;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.net.http.HttpError.PayloadTooLarge;
@@ -202,7 +203,7 @@ abstract class HttpMessageBase implements HttpMessage {
 		releaseBuf();
 
 		if (available > 0) {
-			FutureSupplier<Void> w = out.write(out.isAsync() ? copyOfRange(payload) : payload);
+			FutureSupplier<Void> w = out.write(out.isAsync() ? IoUtils.copyOf(payload) : payload);
 			if (available == len) return w.thenRun(out::endOfStream);
 			return w.then(v -> {
 				WritePayloadPromise p = new WritePayloadPromise(out, len - available);
@@ -257,7 +258,7 @@ abstract class HttpMessageBase implements HttpMessage {
 	}
 
 	void checkReleased() {
-		if (BuildConfig.DEBUG && released) throw new IllegalStateException();
+		if (BuildConfig.D && released) throw new IllegalStateException();
 	}
 
 	static <T> FutureSupplier<T> decode(BiFunction<ByteBuffer, Throwable, FutureSupplier<T>> consumer,
@@ -422,7 +423,7 @@ abstract class HttpMessageBase implements HttpMessage {
 					try {
 						bb.position(idx + 1);
 						assert !buf.hasRemaining();
-						buf = bb.hasRemaining() ? (isReadBuffer(bb) ? copyOfRange(bb) : bb) : emptyByteBuffer();
+						buf = bb.hasRemaining() ? (isReadBuffer(bb) ? IoUtils.getFrom(bb) : bb) : emptyByteBuffer();
 						ByteBuffer payload = getPayload();
 						this.payload = null;
 						done(payload);
@@ -540,7 +541,7 @@ abstract class HttpMessageBase implements HttpMessage {
 			int available = result.remaining();
 			int limit = result.limit();
 			if (available > remaining) result.limit(result.position() + (int) remaining);
-			ByteBuffer src = out.isAsync() ? copyOfRange(result) : result;
+			ByteBuffer src = out.isAsync() ? IoUtils.copyOf(result) : result;
 
 			out.write(src).onCompletion((v, err) -> {
 				if (err != null) {
@@ -548,7 +549,7 @@ abstract class HttpMessageBase implements HttpMessage {
 				} else if (available >= remaining) {
 					result.limit(limit).position((int) remaining);
 					assert !buf.hasRemaining();
-					if (result.hasRemaining()) buf = copyOfRange(result);
+					if (result.hasRemaining()) buf = IoUtils.getFrom(result);
 					out.endOfStream();
 					complete(null);
 				} else {
@@ -624,7 +625,7 @@ abstract class HttpMessageBase implements HttpMessage {
 			if (available >= remaining) {
 				assert !buf.hasRemaining();
 				result.position(result.position() + (int) remaining);
-				if (result.hasRemaining()) buf = copyOfRange(result);
+				if (result.hasRemaining()) buf = IoUtils.getFrom(result);
 				complete(null);
 			} else {
 				remaining -= available;

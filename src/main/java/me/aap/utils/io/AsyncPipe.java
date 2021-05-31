@@ -130,7 +130,7 @@ public class AsyncPipe implements AsyncInputStream, AsyncOutputStream {
 			return completedVoid();
 		}
 
-		if (!reuseWriteBuf) src = copyOfRange(src);
+		if (!reuseWriteBuf) src = IoUtils.copyOf(src);
 		WritePromise wp = null;
 
 		for (Object p = promise; ; p = promise) {

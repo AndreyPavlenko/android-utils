@@ -16,7 +16,7 @@ public abstract class Log {
 	private static final Logger impl = isAndroid() ? new AndroidLogger() : new PrintStreamLogger(System.out);
 
 	public static void d(Object... msg) {
-		if (!BuildConfig.DEBUG) return;
+		if (!BuildConfig.D) return;
 
 		try (SharedTextBuilder tb = SharedTextBuilder.get()) {
 			StringBuilder sb = tb.getStringBuilder();
@@ -26,7 +26,7 @@ public abstract class Log {
 	}
 
 	public static void d(Throwable err, Object... msg) {
-		if (!BuildConfig.DEBUG) return;
+		if (!BuildConfig.D) return;
 
 		try (SharedTextBuilder tb = SharedTextBuilder.get()) {
 			StringBuilder sb = tb.getStringBuilder();
@@ -84,7 +84,7 @@ public abstract class Log {
 	}
 
 	public static boolean isLoggableD() {
-		return BuildConfig.DEBUG;
+		return BuildConfig.D;
 	}
 
 	public static boolean isLoggableI() {

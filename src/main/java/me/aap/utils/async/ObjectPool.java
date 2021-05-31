@@ -305,7 +305,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 
 		@Override
 		protected void finalize() {
-			if (BuildConfig.DEBUG && (ref != null)) {
+			if (BuildConfig.D && (ref != null)) {
 				Log.w("Pooled object has not been properly released: " + ref);
 			}
 

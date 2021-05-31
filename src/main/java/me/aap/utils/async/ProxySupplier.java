@@ -3,6 +3,9 @@ package me.aap.utils.async;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.concurrent.CancellationException;
+
+import me.aap.utils.BuildConfig;
 import me.aap.utils.function.CheckedFunction;
 
 import static me.aap.utils.async.CompletableSupplier.Cancelled.CANCELLED;
@@ -69,7 +72,8 @@ public abstract class ProxySupplier<C, S> extends CompletableSupplier<C, S> impl
 			@Override
 			public boolean cancel(boolean mayInterruptIfRunning) {
 				try {
-					return complete(onFail.apply(CANCELLED.fail));
+					Throwable err = BuildConfig.D ? new CancellationException() : CANCELLED.fail;
+					return complete(onFail.apply(err));
 				} catch (Throwable ex) {
 					return super.completeExceptionally(ex);
 				}
