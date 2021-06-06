@@ -43,6 +43,10 @@ public class CollectionUtils {
 		return -1;
 	}
 
+	public static boolean contains(int[] array, int value) {
+		return indexOf(array, value) != -1;
+	}
+
 	public static <T> boolean contains(T[] array, T value) {
 		return indexOf(array, value) != -1;
 	}

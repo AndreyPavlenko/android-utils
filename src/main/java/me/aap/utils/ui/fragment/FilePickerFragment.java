@@ -65,6 +65,7 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		return R.id.file_picker;
 	}
 
+	@SuppressWarnings({"unchecked", "rawtypes"})
 	@Override
 	public void setInput(Object input) {
 		if (input instanceof FutureSupplier) {

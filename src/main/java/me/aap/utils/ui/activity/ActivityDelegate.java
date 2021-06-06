@@ -2,6 +2,8 @@ package me.aap.utils.ui.activity;
 
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
+import android.content.res.Resources;
 import android.content.res.Resources.Theme;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -22,9 +24,12 @@ import androidx.fragment.app.FragmentTransaction;
 import java.util.Collection;
 import java.util.LinkedList;
 
+import javax.annotation.Nonnull;
+
 import me.aap.utils.BuildConfig;
 import me.aap.utils.R;
 import me.aap.utils.app.App;
+import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.event.EventBroadcaster;
 import me.aap.utils.function.Function;
 import me.aap.utils.function.IntObjectFunction;
@@ -49,7 +54,6 @@ import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
 import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
 import static android.view.View.SYSTEM_UI_FLAG_VISIBLE;
-import static me.aap.utils.collection.CollectionUtils.forEach;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_DESTROY;
 import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_FINISH;
@@ -58,9 +62,8 @@ import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
 /**
  * @author Andrey Pavlenko
  */
-public abstract class ActivityDelegate extends Fragment implements
-		EventBroadcaster<ActivityListener>, Thread.UncaughtExceptionHandler {
-	private static Function<Context, ActivityDelegate> contextToDelegate;
+public abstract class ActivityDelegate implements EventBroadcaster<ActivityListener>,
+		Thread.UncaughtExceptionHandler {
 	private static final int FULLSCREEN_FLAGS = SYSTEM_UI_FLAG_LAYOUT_STABLE |
 			SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
 			SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
@@ -69,17 +72,18 @@ public abstract class ActivityDelegate extends Fragment implements
 			SYSTEM_UI_FLAG_HIDE_NAVIGATION |
 			SYSTEM_UI_FLAG_IMMERSIVE |
 			SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+	private static Function<Context, ActivityDelegate> contextToDelegate;
 	private final Collection<ListenerRef<ActivityListener>> listeners = new LinkedList<>();
-	private AppActivity activity;
+	@Nonnull
+	private final AppActivity activity;
 	private OverlayMenu activeMenu;
-	private boolean recreate;
 	private boolean fullScreen;
 	private boolean backPressed;
 	private int activeFragmentId = ID_NULL;
 	private int activeNavItemId = ID_NULL;
 
-	public ActivityDelegate() {
-		this.recreate = true;
+	public ActivityDelegate(@Nonnull AppActivity activity) {
+		this.activity = activity;
 	}
 
 	@IdRes
@@ -88,78 +92,74 @@ public abstract class ActivityDelegate extends Fragment implements
 	@StringRes
 	protected abstract int getExitMsg();
 
-	@SuppressWarnings("unchecked")
-	public static <D extends ActivityDelegate> D create(Supplier<D> constructor, AppActivity activity) {
-		FragmentManager fm = activity.getSupportFragmentManager();
-		ActivityDelegate delegate = (ActivityDelegate) fm.findFragmentByTag("ActivityDelegate");
-
-		if ((delegate == null) || delegate.recreate) {
-			delegate = constructor.get();
-			delegate.recreate = false;
-			delegate.activity = activity;
-			FragmentTransaction tr = fm.beginTransaction();
-			forEach(fm.getFragments(), tr::remove);
-			tr.add(delegate, "ActivityDelegate");
-			tr.commit();
-		} else {
-			delegate.activity = activity;
-		}
-
-		return (D) delegate;
-	}
-
 	public static void setContextToDelegate(Function<Context, ActivityDelegate> contextToDelegate) {
 		ActivityDelegate.contextToDelegate = contextToDelegate;
 	}
 
+	@NonNull
 	public static ActivityDelegate get(Context ctx) {
 		if (ctx instanceof AppActivity) {
-			return ((AppActivity) ctx).getActivityDelegate();
+			return ((AppActivity) ctx).getActivityDelegate().peek();
 		} else if (ctx instanceof ContextWrapper) {
 			do {
 				ctx = ((ContextWrapper) ctx).getBaseContext();
-				if (ctx instanceof AppActivity) return ((AppActivity) ctx).getActivityDelegate();
+				if (ctx instanceof AppActivity) return ((AppActivity) ctx).getActivityDelegate().peek();
 			} while (ctx instanceof ContextWrapper);
 		}
 
-		if (contextToDelegate != null) {
-			return contextToDelegate.apply(ctx);
-		} else {
-			throw new IllegalArgumentException("Unsupported context: " + ctx);
+		Function<Context, ActivityDelegate> f = contextToDelegate;
+
+		if (f != null) {
+			ActivityDelegate d = f.apply(ctx);
+			if (d != null) return d;
 		}
+
+		IllegalArgumentException ex = new IllegalArgumentException("Unsupported context: " + ctx);
+		Log.e(ex, "Activity delegate not found");
+		throw ex;
 	}
 
-	@Override
-	public void onCreate(@Nullable Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setRetainInstance(true);
+	@Nonnull
+	public AppActivity getAppActivity() {
+		return activity;
+	}
+
+	@Nonnull
+	public Context getContext() {
+		return getAppActivity().getContext();
 	}
 
 	protected void onActivityCreate(Bundle savedInstanceState) {
+		Log.d("onActivityCreate");
 		Thread.setDefaultUncaughtExceptionHandler(this);
 		setTheme();
 	}
 
 	protected void onActivityStart() {
+		Log.d("onActivityStart");
 	}
 
 	protected void onActivityResume() {
+		Log.d("onActivityResume");
 		setSystemUiVisibility();
 	}
 
 	protected void onActivityPause() {
+		Log.d("onActivityPause");
 	}
 
 	@SuppressWarnings("unused")
 	protected void onActivitySaveInstanceState(@NonNull Bundle outState) {
+		Log.d("onActivitySaveInstanceState");
 	}
 
 	protected void onActivityStop() {
+		Log.d("onActivityStop");
 	}
 
 	protected void onActivityDestroy() {
+		Log.d("onActivityDestroy");
 		fireBroadcastEvent(ACTIVITY_DESTROY);
-		activity = null;
 		activeMenu = null;
 		fullScreen = false;
 		backPressed = false;
@@ -177,6 +177,7 @@ public abstract class ActivityDelegate extends Fragment implements
 	}
 
 	protected void onActivityFinish() {
+		Log.d("onActivityFinish");
 	}
 
 	public void finish() {
@@ -190,18 +191,8 @@ public abstract class ActivityDelegate extends Fragment implements
 		Log.e(err);
 	}
 
-	public AppActivity getAppActivity() {
-		return activity;
-	}
-
 	public Theme getTheme() {
 		return getAppActivity().getTheme();
-	}
-
-	@Override
-	public Context getContext() {
-		AppActivity a = getAppActivity();
-		return (a == null) ? super.getContext() : a.getContext();
 	}
 
 	public Window getWindow() {
@@ -404,7 +395,6 @@ public abstract class ActivityDelegate extends Fragment implements
 
 	public void setFullScreen(boolean fullScreen) {
 		AppActivity a = getAppActivity();
-		if (a == null) return;
 		this.fullScreen = fullScreen;
 		View decor = a.getWindow().getDecorView();
 		decor.setSystemUiVisibility(fullScreen ? FULLSCREEN_FLAGS : SYSTEM_UI_FLAG_VISIBLE);
@@ -431,5 +421,32 @@ public abstract class ActivityDelegate extends Fragment implements
 
 	public boolean onKeyLongPress(int keyCode, KeyEvent keyEvent, IntObjectFunction<KeyEvent, Boolean> next) {
 		return next.apply(keyCode, keyEvent);
+	}
+
+	public void startActivity(Intent intent) {
+		startActivity(intent, null);
+	}
+
+	public void startActivity(Intent intent, @Nullable Bundle options) {
+		getAppActivity().startActivity(intent, options);
+	}
+
+	public FutureSupplier<Intent> startActivityForResult(Supplier<Intent> intent) {
+		return getAppActivity().startActivityForResult(intent);
+	}
+
+	@NonNull
+	public Resources getResources() {
+		return getContext().getResources();
+	}
+
+	@NonNull
+	public final String getString(@StringRes int resId) {
+		return getResources().getString(resId);
+	}
+
+	@NonNull
+	public final String getString(@StringRes int resId, @Nullable Object... formatArgs) {
+		return getResources().getString(resId, formatArgs);
 	}
 }

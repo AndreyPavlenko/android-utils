@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 
+import androidx.activity.result.contract.ActivityResultContract;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,24 +23,25 @@ import me.aap.utils.async.Completable;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.log.Log;
 
 import static android.app.NotificationManager.IMPORTANCE_LOW;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
  */
 public abstract class ActivityBase extends AppCompatActivity implements AppActivity {
-	private static final int START_ACTIVITY_REQ = 0;
 	private static final int GRANT_PERM_REQ = 1;
 	private static ActivityBase instance;
 	private static Completable<AppActivity> pendingConsumer;
-	private Promise<Intent> startActivity;
 	private Promise<int[]> checkPermissions;
-	private ActivityDelegate delegate;
+	@NonNull
+	private FutureSupplier<? extends ActivityDelegate> delegate = NO_DELEGATE;
 
-	protected abstract Supplier<? extends ActivityDelegate> getConstructor();
+	protected abstract FutureSupplier<? extends ActivityDelegate> createDelegate(AppActivity a);
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	public static <A extends ActivityBase> FutureSupplier<A> create(
@@ -74,89 +76,96 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 		}
 	}
 
+	@NonNull
 	@Override
-	public ActivityDelegate getActivityDelegate() {
+	public FutureSupplier<? extends ActivityDelegate> getActivityDelegate() {
 		return delegate;
 	}
 
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		delegate = ActivityDelegate.create(getConstructor(), this);
-		delegate.onActivityCreate(savedInstanceState);
-		instance = this;
+		assert delegate == NO_DELEGATE;
 
-		if (pendingConsumer != null) {
-			Completable<AppActivity> c = pendingConsumer;
-			pendingConsumer = null;
-			c.complete(this);
-		}
+		delegate = createDelegate(this).main().onCompletion((d, err) -> {
+			if (err != null) {
+				Log.e(err, "Failed to create activity delegate");
+				delegate = failed(err);
+			} else {
+				delegate = completed(d);
+				d.onActivityCreate(savedInstanceState);
+				instance = this;
+			}
+
+			if (pendingConsumer != null) {
+				Completable<AppActivity> c = pendingConsumer;
+				pendingConsumer = null;
+				if (err != null) c.completeExceptionally(err);
+				else c.complete(this);
+			}
+		});
 	}
 
 	@Override
 	protected void onStart() {
 		super.onStart();
-		delegate.onActivityStart();
+		delegate.onSuccess(ActivityDelegate::onActivityStart);
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		delegate.onActivityResume();
+		delegate.onSuccess(ActivityDelegate::onActivityResume);
 	}
 
 	@Override
 	protected void onPause() {
-		delegate.onActivityPause();
+		delegate.onSuccess(ActivityDelegate::onActivityPause);
 		super.onPause();
 	}
 
 	@Override
 	protected void onSaveInstanceState(@NonNull Bundle outState) {
 		super.onSaveInstanceState(outState);
-		delegate.onActivitySaveInstanceState(outState);
+		delegate.onSuccess(d -> d.onActivitySaveInstanceState(outState));
 	}
 
 	@Override
 	protected void onStop() {
-		delegate.onActivityStop();
+		delegate.onSuccess(ActivityDelegate::onActivityStop);
 		super.onStop();
 	}
 
 	@Override
 	protected void onDestroy() {
-		delegate.onActivityDestroy();
+		delegate.onSuccess(ActivityDelegate::onActivityDestroy);
 		super.onDestroy();
-		delegate = null;
+		delegate = NO_DELEGATE;
 		instance = null;
 	}
 
 	@Override
 	public void finish() {
-		delegate.onActivityFinish();
+		delegate.onSuccess(ActivityDelegate::onActivityFinish);
 		super.finish();
 	}
 
-	public FutureSupplier<Intent> startActivityForResult(Intent intent) {
-		if (startActivity != null) {
-			startActivity.cancel();
-			startActivity = null;
-		}
+	public FutureSupplier<Intent> startActivityForResult(Supplier<Intent> intent) {
+		Promise<Intent> p = new Promise<>();
+		registerForActivityResult(new ActivityResultContract<Intent, Intent>() {
 
-		Promise<Intent> p = startActivity = new Promise<>();
-		super.startActivityForResult(intent, START_ACTIVITY_REQ, null);
+			@NonNull
+			@Override
+			public Intent createIntent(@NonNull Context context, Intent input) {
+				return intent.get();
+			}
+
+			@Override
+			public Intent parseResult(int resultCode, @Nullable Intent intent) {
+				return intent;
+			}
+		}, p::complete);
 		return p;
-	}
-
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-		if ((requestCode == START_ACTIVITY_REQ) && (startActivity != null)) {
-			Promise<Intent> p = startActivity;
-			startActivity = null;
-			p.complete(data);
-		} else {
-			super.onActivityResult(requestCode, resultCode, data);
-		}
 	}
 
 	public FutureSupplier<int[]> checkPermissions(String... perms) {
@@ -193,19 +202,22 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 
 	@Override
 	public boolean onKeyUp(int keyCode, KeyEvent keyEvent) {
-		return (delegate != null) ? delegate.onKeyUp(keyCode, keyEvent, super::onKeyUp)
+		ActivityDelegate d = delegate.peek();
+		return (d != null) ? d.onKeyUp(keyCode, keyEvent, super::onKeyUp)
 				: super.onKeyUp(keyCode, keyEvent);
 	}
 
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent keyEvent) {
-		return (delegate != null) ? delegate.onKeyDown(keyCode, keyEvent, super::onKeyDown)
+		ActivityDelegate d = delegate.peek();
+		return (d != null) ? d.onKeyDown(keyCode, keyEvent, super::onKeyDown)
 				: super.onKeyDown(keyCode, keyEvent);
 	}
 
 	@Override
 	public boolean onKeyLongPress(int keyCode, KeyEvent keyEvent) {
-		return (delegate != null) ? delegate.onKeyLongPress(keyCode, keyEvent, super::onKeyLongPress)
+		ActivityDelegate d = delegate.peek();
+		return (d != null) ? d.onKeyLongPress(keyCode, keyEvent, super::onKeyLongPress)
 				: super.onKeyLongPress(keyCode, keyEvent);
 	}
 }

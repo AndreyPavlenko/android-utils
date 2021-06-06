@@ -115,11 +115,11 @@ public class GdriveFileSystem implements VirtualFileSystem {
 				ex -> {
 					if (ex instanceof UserRecoverableAuthException) {
 						return activitySupplier.get().get()
-								.startActivityForResult(((UserRecoverableAuthException) ex).getIntent())
+								.startActivityForResult(((UserRecoverableAuthException) ex)::getIntent)
 								.then(i -> App.get().execute(() -> func.apply(d)));
 					} else if (ex instanceof UserRecoverableAuthIOException) {
 						return activitySupplier.get().get()
-								.startActivityForResult(((UserRecoverableAuthIOException) ex).getIntent())
+								.startActivityForResult(((UserRecoverableAuthIOException) ex)::getIntent)
 								.then(i -> App.get().execute(() -> func.apply(d)));
 					} else {
 						return failed(ex);
@@ -150,7 +150,7 @@ public class GdriveFileSystem implements VirtualFileSystem {
 		GoogleSignInOptions o = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
 				.requestIdToken(requestToken).requestEmail().build();
 		GoogleSignInClient client = GoogleSignIn.getClient(activity.getContext(), o);
-		activity.startActivityForResult(client.getSignInIntent()).onCompletion((r, f) -> {
+		activity.startActivityForResult(client::getSignInIntent).onCompletion((r, f) -> {
 			if (f != null) {
 				Log.e(f);
 				p.completeExceptionally(new LoginException("Google sign in failed"));

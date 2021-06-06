@@ -300,16 +300,30 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return ProxySupplier.create(this, t -> t, onFail);
 	}
 
-	default FutureSupplier<T> ifNull(Consumer<T> f) {
+	default FutureSupplier<T> ifNull(CheckedSupplier<T, Throwable> f) {
 		if (isDone()) {
 			if (!isFailed()) {
 				T v = peek();
-				if (v == null) f.accept(v);
+				if (v == null) {
+					try {
+						return completed(f.get());
+					} catch (Throwable ex) {
+						return failed(ex);
+					}
+				}
 			}
 			return this;
 		} else {
-			return onSuccess(v -> {
-				if (v != null) f.accept(v);
+			return then(v->{
+				if (v == null) {
+					try {
+						return completed(f.get());
+					} catch (Throwable ex) {
+						return failed(ex);
+					}
+				} else {
+					return completed(v);
+				}
 			});
 		}
 	}
