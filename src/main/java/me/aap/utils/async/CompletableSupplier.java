@@ -108,7 +108,7 @@ public abstract class CompletableSupplier<C, S> implements Completable<C>, Futur
 
 	@Override
 	public boolean completeExceptionally(@NonNull Throwable ex) {
-		if (BuildConfig.D && TestUtils.logExceptions()) {
+		if (BuildConfig.D && TestUtils.logExceptions() && !isDone()) {
 			Log.d(ex, "Completed exceptionally");
 		}
 		return supply(null, ex, PROGRESS_DONE, PROGRESS_DONE);

@@ -5,7 +5,9 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.content.res.Resources.Theme;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Looper;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -21,6 +23,9 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -30,11 +35,13 @@ import me.aap.utils.BuildConfig;
 import me.aap.utils.R;
 import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.async.Promise;
 import me.aap.utils.event.EventBroadcaster;
 import me.aap.utils.function.Function;
 import me.aap.utils.function.IntObjectFunction;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.log.Log;
+import me.aap.utils.text.TextUtils;
 import me.aap.utils.ui.fragment.ActivityFragment;
 import me.aap.utils.ui.fragment.FilePickerFragment;
 import me.aap.utils.ui.fragment.GenericDialogFragment;
@@ -54,6 +61,7 @@ import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
 import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
 import static android.view.View.SYSTEM_UI_FLAG_VISIBLE;
+import static me.aap.utils.async.Completed.completedVoid;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_DESTROY;
 import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_FINISH;
@@ -99,11 +107,12 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 	@NonNull
 	public static ActivityDelegate get(Context ctx) {
 		if (ctx instanceof AppActivity) {
-			return ((AppActivity) ctx).getActivityDelegate().peek();
+			return ((AppActivity) ctx).getActivityDelegate().getOrThrow();
 		} else if (ctx instanceof ContextWrapper) {
 			do {
 				ctx = ((ContextWrapper) ctx).getBaseContext();
-				if (ctx instanceof AppActivity) return ((AppActivity) ctx).getActivityDelegate().peek();
+				if (ctx instanceof AppActivity)
+					return ((AppActivity) ctx).getActivityDelegate().getOrThrow();
 			} while (ctx instanceof ContextWrapper);
 		}
 
@@ -115,7 +124,7 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		}
 
 		IllegalArgumentException ex = new IllegalArgumentException("Unsupported context: " + ctx);
-		Log.e(ex, "Activity delegate not found");
+		Log.e(ex, "Activity delegate not found. contextToDelegate = ", f);
 		throw ex;
 	}
 
@@ -129,10 +138,14 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		return getAppActivity().getContext();
 	}
 
-	protected void onActivityCreate(Bundle savedInstanceState) {
+	protected void onActivityCreate(@Nullable Bundle savedInstanceState) {
 		Log.d("onActivityCreate");
-		Thread.setDefaultUncaughtExceptionHandler(this);
+		setUncaughtExceptionHandler();
 		setTheme();
+	}
+
+	protected void setUncaughtExceptionHandler() {
+		Thread.setDefaultUncaughtExceptionHandler(this);
 	}
 
 	protected void onActivityStart() {
@@ -185,10 +198,62 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		getAppActivity().finish();
 	}
 
+	public void recreate() {
+		Log.d("Recreating");
+		getAppActivity().recreate();
+	}
+
 	@Override
-	public void uncaughtException(@NonNull Thread t, @NonNull Throwable ex) {
-		RuntimeException err = new RuntimeException("Uncaught exception in thread " + t, ex);
-		Log.e(err);
+	public void uncaughtException(@NonNull Thread t, @NonNull Throwable err) {
+		Log.e(err, "Uncaught exception in thread ", t);
+		sendCrashReport(err);
+	}
+
+	protected FutureSupplier<Void> sendCrashReport(Throwable err) {
+		App app = App.get();
+		String email = app.getCrashReportEmail();
+		if (email == null) return completedVoid();
+		CharSequence appName = getString(App.get().getApplicationInfo().labelRes);
+		String subj = appName + " crash report";
+		String body = TextUtils.toString(err);
+		String uri = "mailto:" + email +
+				"?subject=" + Uri.encode(subj) +
+				"&body=" + Uri.encode(body);
+		Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse(uri));
+		Context ctx = getContext();
+		if (i.resolveActivity(ctx.getPackageManager()) == null) return completedVoid();
+
+		Promise<Void> p = new Promise<>();
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				Looper.prepare();
+				new MaterialAlertDialogBuilder(ctx)
+						.setTitle(appName)
+						.setMessage(appName + " has been crashed.\nSend crash report?")
+						.setNegativeButton(android.R.string.cancel, (d, w) -> p.cancel())
+						.setPositiveButton(android.R.string.ok, (d, w) -> p.complete(null))
+						.setCancelable(false)
+						.show();
+				Looper.loop();
+			}
+		};
+
+		t.start();
+		p.onSuccess(v -> {
+			File logFile = app.getLogFile();
+			if (logFile != null)
+				i.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + logFile.getAbsolutePath()));
+			i.putExtra(Intent.EXTRA_SUBJECT, subj);
+			i.putExtra(Intent.EXTRA_TEXT, body);
+			startActivity(Intent.createChooser(i, "Send crash report"));
+		}).thenRun(() -> {
+			finish();
+			Looper l = Looper.myLooper();
+			if (l != null) l.quitSafely();
+		});
+
+		return p;
 	}
 
 	public Theme getTheme() {
@@ -314,11 +379,8 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 	}
 
 	public boolean isRootPage() {
-		int navId = getActiveNavItemId();
-		if (navId == ID_NULL) return true;
-
 		ActivityFragment f = getActiveFragment();
-		return (f != null) && f.isRootPage() && (navId == f.getFragmentId());
+		return (f != null) && f.isRootPage() && (getActiveNavItemId() == f.getFragmentId());
 	}
 
 	public void onBackPressed() {

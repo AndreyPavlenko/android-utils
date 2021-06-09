@@ -9,7 +9,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContract;
+import androidx.annotation.CallSuper;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -38,6 +41,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 	private static ActivityBase instance;
 	private static Completable<AppActivity> pendingConsumer;
 	private Promise<int[]> checkPermissions;
+	private ActivityResultLauncher<StartActivityPromise> activityLauncher;
 	@NonNull
 	private FutureSupplier<? extends ActivityDelegate> delegate = NO_DELEGATE;
 
@@ -82,6 +86,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 		return delegate;
 	}
 
+	@CallSuper
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -104,38 +109,47 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 				else c.complete(this);
 			}
 		});
+
+		StartActivityContract c = new StartActivityContract();
+		activityLauncher = registerForActivityResult(c, c);
 	}
 
+	@CallSuper
 	@Override
 	protected void onStart() {
 		super.onStart();
 		delegate.onSuccess(ActivityDelegate::onActivityStart);
 	}
 
+	@CallSuper
 	@Override
 	protected void onResume() {
 		super.onResume();
 		delegate.onSuccess(ActivityDelegate::onActivityResume);
 	}
 
+	@CallSuper
 	@Override
 	protected void onPause() {
 		delegate.onSuccess(ActivityDelegate::onActivityPause);
 		super.onPause();
 	}
 
+	@CallSuper
 	@Override
 	protected void onSaveInstanceState(@NonNull Bundle outState) {
 		super.onSaveInstanceState(outState);
 		delegate.onSuccess(d -> d.onActivitySaveInstanceState(outState));
 	}
 
+	@CallSuper
 	@Override
 	protected void onStop() {
 		delegate.onSuccess(ActivityDelegate::onActivityStop);
 		super.onStop();
 	}
 
+	@CallSuper
 	@Override
 	protected void onDestroy() {
 		delegate.onSuccess(ActivityDelegate::onActivityDestroy);
@@ -144,6 +158,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 		instance = null;
 	}
 
+	@CallSuper
 	@Override
 	public void finish() {
 		delegate.onSuccess(ActivityDelegate::onActivityFinish);
@@ -151,20 +166,8 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 	}
 
 	public FutureSupplier<Intent> startActivityForResult(Supplier<Intent> intent) {
-		Promise<Intent> p = new Promise<>();
-		registerForActivityResult(new ActivityResultContract<Intent, Intent>() {
-
-			@NonNull
-			@Override
-			public Intent createIntent(@NonNull Context context, Intent input) {
-				return intent.get();
-			}
-
-			@Override
-			public Intent parseResult(int resultCode, @Nullable Intent intent) {
-				return intent;
-			}
-		}, p::complete);
+		StartActivityPromise p = new StartActivityPromise(intent);
+		activityLauncher.launch(p);
 		return p;
 	}
 
@@ -219,5 +222,41 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 		ActivityDelegate d = delegate.peek();
 		return (d != null) ? d.onKeyLongPress(keyCode, keyEvent, super::onKeyLongPress)
 				: super.onKeyLongPress(keyCode, keyEvent);
+	}
+
+	private static final class StartActivityPromise extends Promise<Intent> {
+		final Supplier<Intent> supplier;
+
+		StartActivityPromise(Supplier<Intent> supplier) {
+			this.supplier = supplier;
+		}
+	}
+
+	private static final class StartActivityContract
+			extends ActivityResultContract<StartActivityPromise, Intent>
+			implements ActivityResultCallback<Intent> {
+		private StartActivityPromise promise;
+
+
+		@NonNull
+		@Override
+		public Intent createIntent(@NonNull Context context, StartActivityPromise input) {
+			StartActivityPromise p = promise;
+			if (p != null) p.cancel();
+			promise = input;
+			return input.supplier.get();
+		}
+
+		@Override
+		public Intent parseResult(int resultCode, @Nullable Intent intent) {
+			return intent;
+		}
+
+		@Override
+		public void onActivityResult(Intent result) {
+			StartActivityPromise p = promise;
+			promise = null;
+			if (p != null) p.complete(result);
+		}
 	}
 }

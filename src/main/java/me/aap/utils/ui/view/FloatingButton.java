@@ -125,6 +125,9 @@ public class FloatingButton extends FloatingActionButton implements ActivityList
 
 			Mediator m = getMediator();
 			if (m != null) m.onActivityEvent(this, a, e);
+		} else {
+			Mediator m = getMediator();
+			if (m != null) m.disable(this);
 		}
 	}
 
@@ -273,11 +276,8 @@ public class FloatingButton extends FloatingActionButton implements ActivityList
 
 			@Override
 			default void onActivityEvent(FloatingButton fb, ActivityDelegate a, long e) {
-				switch ((int) e) {
-					case FRAGMENT_CHANGED:
-					case FRAGMENT_CONTENT_CHANGED:
-						fb.setImageResource(getIcon(fb));
-						break;
+				if ((e & (FRAGMENT_CHANGED | FRAGMENT_CONTENT_CHANGED)) != 0) {
+					fb.setImageResource(getIcon(fb));
 				}
 			}
 

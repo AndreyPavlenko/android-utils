@@ -131,6 +131,9 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 
 			Mediator m = getMediator();
 			if (m != null) m.onActivityEvent(this, a, e);
+		} else {
+			Mediator m = getMediator();
+			if (m != null) m.disable(this);
 		}
 	}
 

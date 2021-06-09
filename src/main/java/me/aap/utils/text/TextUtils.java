@@ -1,5 +1,7 @@
 package me.aap.utils.text;
 
+import java.io.CharArrayWriter;
+import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -182,6 +184,14 @@ public class TextUtils {
 			return Long.parseLong(seq.subSequence(from, to).toString());
 		} catch (NumberFormatException ignore) {
 			return defaultValue;
+		}
+	}
+
+	public static String toString(Throwable ex) {
+		try (CharArrayWriter cw = new CharArrayWriter(); PrintWriter w = new PrintWriter(cw)) {
+			ex.printStackTrace(w);
+			w.flush();
+			return cw.toString();
 		}
 	}
 

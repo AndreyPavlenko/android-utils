@@ -12,7 +12,8 @@ import me.aap.utils.ui.fragment.ActivityFragment;
 /**
  * @author Andrey Pavlenko
  */
-public abstract class PrefNavBarMediator extends CustomizableNavBarMediator implements PreferenceStore.Listener {
+public abstract class PrefNavBarMediator extends CustomizableNavBarMediator
+		implements PreferenceStore.Listener {
 
 	protected abstract PreferenceStore getPreferenceStore(NavBarView nb);
 
@@ -37,8 +38,7 @@ public abstract class PrefNavBarMediator extends CustomizableNavBarMediator impl
 
 	protected void reload(NavBarView nb) {
 		super.disable(nb);
-		ActivityDelegate a = ActivityDelegate.get(nb.getContext());
-		if (a != null) super.enable(nb, a.getActiveFragment());
+		super.enable(nb, ActivityDelegate.get(nb.getContext()).getActiveFragment());
 	}
 
 	@Override

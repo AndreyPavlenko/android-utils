@@ -115,9 +115,6 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 			return;
 		}
 
-		ActivityDelegate a = ActivityDelegate.get(v.getContext());
-		if (a == null) return;
-
 		NavBarView nb = (NavBarView) v.getParent();
 		OverlayMenuView menu = createOverlayMenu(nb);
 		ColorStateList tint = extButton.getIcon().getImageTintList();

@@ -63,6 +63,11 @@ public class App extends android.app.Application {
 		return null;
 	}
 
+	@Nullable
+	public String getCrashReportEmail() {
+		return null;
+	}
+
 	public int getLogFlushDelay() {
 		return 1;
 	}

@@ -121,14 +121,18 @@ public class LocalFileSystem implements VirtualFileSystem {
 			addRoot(files, ctx.getDataDir());
 
 			if (sm != null) {
-				Class<?> c = StorageVolume.class;
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+					for (StorageVolume v : sm.getStorageVolumes()) addRoot(files, v.getDirectory());
+				} else {
+					Class<?> c = StorageVolume.class;
 
-				try {
-					Method m = c.getDeclaredMethod("getPathFile");
-					m.setAccessible(true);
-					for (StorageVolume v : sm.getStorageVolumes()) files.add((File) m.invoke(v));
-				} catch (Throwable ex) {
-					Log.e(ex, "StorageVolume.getPathFile() failed");
+					try {
+						Method m = c.getDeclaredMethod("getPathFile");
+						m.setAccessible(true);
+						for (StorageVolume v : sm.getStorageVolumes()) addRoot(files, (File) m.invoke(v));
+					} catch (Throwable ex) {
+						Log.e(ex, "StorageVolume.getPathFile() failed");
+					}
 				}
 			}
 		}

@@ -124,6 +124,10 @@ public class MemOutputStream extends OutputStream {
 		off = 0;
 	}
 
+	@Override
+	public void close() {
+	}
+
 	@Nonnull
 	@Override
 	public String toString() {

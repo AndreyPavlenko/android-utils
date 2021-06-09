@@ -3,6 +3,7 @@ package me.aap.utils.pref;
 import android.content.res.Resources;
 import android.view.View;
 
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -19,8 +20,10 @@ import me.aap.utils.ui.menu.OverlayMenu;
  */
 public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	final List<Supplier<? extends PreferenceView.Opts>> preferences = new ArrayList<>();
+	private final int id;
 	private final PreferenceSet parent;
 	private final Consumer<PreferenceView.Opts> builder;
+	private int idCounter = 1;
 	private PreferenceViewAdapter adapter;
 
 	public PreferenceSet() {
@@ -28,12 +31,36 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	}
 
 	private PreferenceSet(PreferenceSet parent, Consumer<PreferenceView.Opts> builder) {
+		int id = 1;
+		for (PreferenceSet p = parent; p != null; p = p.parent) {
+			if (p.parent == null) {
+				id = ++p.idCounter;
+				break;
+			}
+		}
+		this.id = id;
 		this.parent = parent;
 		this.builder = builder;
 	}
 
+	public int getId() {
+		return id;
+	}
+
 	public PreferenceSet getParent() {
 		return parent;
+	}
+
+	@Nullable
+	public PreferenceSet find(int id) {
+		if (id == getId()) return this;
+		for (Supplier<? extends PreferenceView.Opts> s : preferences) {
+			if (s instanceof PreferenceSet) {
+				PreferenceSet p = ((PreferenceSet) s).find(id);
+				if (p != null) return p;
+			}
+		}
+		return null;
 	}
 
 	List<Supplier<? extends PreferenceView.Opts>> getPreferences() {

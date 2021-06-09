@@ -23,8 +23,9 @@ import androidx.annotation.IdRes;
 import androidx.annotation.StringRes;
 
 import me.aap.utils.R;
+import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.async.Promise;
 import me.aap.utils.concurrent.ConcurrentUtils;
-import me.aap.utils.function.Consumer;
 import me.aap.utils.ui.activity.ActivityDelegate;
 
 import static android.graphics.Bitmap.Config.ARGB_8888;
@@ -50,10 +51,6 @@ public class UiUtils {
 		return (int) toPx(ctx, dp);
 	}
 
-	public static void queryText(Context ctx, @StringRes int title, Consumer<CharSequence> result) {
-		queryText(ctx, title, "", result);
-	}
-
 	public static void showAlert(Context ctx, @StringRes int msg) {
 		showAlert(ctx, ctx.getString(msg));
 	}
@@ -77,16 +74,33 @@ public class UiUtils {
 				.show();
 	}
 
-	public static void queryText(Context ctx, @StringRes int title, CharSequence initText,
-															 Consumer<CharSequence> result) {
+	public static FutureSupplier<Void> showQuestion(Context ctx, CharSequence title, CharSequence msg) {
+		Promise<Void> p = new Promise<>();
+		ActivityDelegate.get(ctx).createDialogBuilder(ctx)
+				.setTitle(null, title)
+				.setMessage(msg)
+				.setNegativeButton(android.R.string.cancel, (d, w) -> p.cancel())
+				.setPositiveButton(android.R.string.ok, (d, w) -> p.complete(null))
+				.show();
+		return p;
+	}
+
+	public static FutureSupplier<String> queryText(Context ctx, @StringRes int title) {
+		return queryText(ctx, title, "");
+	}
+
+	public static FutureSupplier<String> queryText(Context ctx, @StringRes int title, CharSequence initText) {
+		Promise<String> p = new Promise<>();
 		ActivityDelegate a = ActivityDelegate.get(ctx);
 		EditText text = a.createEditText(ctx);
 		text.setSingleLine();
 		text.setText(initText);
 		a.createDialogBuilder(ctx)
 				.setTitle(title).setView(text)
-				.setNegativeButton(android.R.string.cancel, (d, i) -> result.accept(null))
-				.setPositiveButton(android.R.string.ok, (d, i) -> result.accept(text.getText())).show();
+				.setNegativeButton(android.R.string.cancel, (d, i) -> p.cancel())
+				.setPositiveButton(android.R.string.ok, (d, i) -> p.complete(text.getText().toString()))
+				.show();
+		return p;
 	}
 
 	public static boolean dpadFocusHelper(View v, int keyCode, KeyEvent event) {
