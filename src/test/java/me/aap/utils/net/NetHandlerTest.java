@@ -59,7 +59,7 @@ public class NetHandlerTest extends Assertions {
 		AtomicBoolean failed = new AtomicBoolean();
 
 		NetServer server = handler.bind(o ->
-				o.handler = ch -> ch.write(ByteBuffer.wrap(data)).thenRun(ch::close)).getOrThrow();
+				o.handler = ch -> ch.write(ByteBuffer.wrap(data)).thenRun(ch::close)).get();
 		SocketAddress addr = server.getBindAddress();
 
 		FutureSupplier<?>[] tasks = new FutureSupplier[nclients];
@@ -98,7 +98,7 @@ public class NetHandlerTest extends Assertions {
 	}
 
 	@Test
-	public void testTimeout() throws InterruptedException, TimeoutException {
+	public void testTimeout() throws Exception {
 		try {
 			handler.connect(o -> {
 				o.host = "10.21.2.2";
@@ -118,14 +118,14 @@ public class NetHandlerTest extends Assertions {
 						e.printStackTrace();
 					}
 					ch.write(ByteBuffer.wrap(data)).thenRun(ch::close);
-				}).getOrThrow();
+				}).get();
 		SocketAddress addr = server.getBindAddress();
 
 		NetChannel ch = handler.connect(o -> {
 			o.address = addr;
 			o.readTimeout = 1;
 			o.writeTimeout = 2;
-		}).getOrThrow();
+		}).get();
 
 		try {
 			ch.read().get(1500, TimeUnit.MILLISECONDS);

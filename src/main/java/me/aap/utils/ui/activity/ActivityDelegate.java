@@ -31,7 +31,6 @@ import java.util.LinkedList;
 
 import javax.annotation.Nonnull;
 
-import me.aap.utils.BuildConfig;
 import me.aap.utils.R;
 import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
@@ -141,7 +140,6 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 	protected void onActivityCreate(@Nullable Bundle savedInstanceState) {
 		Log.d("onActivityCreate");
 		setUncaughtExceptionHandler();
-		setTheme();
 	}
 
 	protected void setUncaughtExceptionHandler() {
@@ -178,15 +176,14 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		backPressed = false;
 		activeFragmentId = ID_NULL;
 		activeNavItemId = ID_NULL;
+		removeListeners(this);
+	}
 
-		if (BuildConfig.D) {
-			removeBroadcastListeners(l -> {
-				if (l instanceof View) {
-					throw new IllegalStateException("View has not been removed from activity listeners: " + l);
-				}
-				return false;
-			});
-		}
+	protected static <T> void removeListeners(EventBroadcaster<T> b) {
+		b.removeBroadcastListeners(l -> {
+			Log.d(new IllegalStateException(), "Listener ", l, " has not been removed from ", b);
+			return true;
+		});
 	}
 
 	protected void onActivityFinish() {

@@ -202,6 +202,38 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 			lp.resolveLayoutDirection(LAYOUT_DIRECTION_LTR);
 		}
 
+		default void addViewAt(ToolBarView tb, View v, @IdRes int id, int idx) {
+			ConstraintLayout.LayoutParams lp = null;
+			tb.addView(v, idx);
+			int count = tb.getChildCount();
+			v.setId(id);
+
+			if (idx > 0) {
+				View lv = tb.getChildAt(idx - 1);
+				lp = (ConstraintLayout.LayoutParams) lv.getLayoutParams();
+				lp.endToStart = id;
+				lp.endToEnd = UNSET;
+				lp.resolveLayoutDirection(LAYOUT_DIRECTION_LTR);
+				lp = (ConstraintLayout.LayoutParams) v.getLayoutParams();
+				lp.startToEnd = lv.getId();
+				lp.startToStart = UNSET;
+			}
+			if (idx < count - 1) {
+				View rv = tb.getChildAt(idx + 1);
+				lp = (ConstraintLayout.LayoutParams) rv.getLayoutParams();
+				lp.startToEnd = id;
+				lp.startToStart = UNSET;
+				lp.resolveLayoutDirection(LAYOUT_DIRECTION_LTR);
+				lp = (ConstraintLayout.LayoutParams) v.getLayoutParams();
+				lp.endToStart = rv.getId();
+				lp.endToEnd = UNSET;
+			}
+
+			assert lp != null;
+			lp.topToTop = lp.bottomToBottom = PARENT_ID;
+			lp.resolveLayoutDirection(LAYOUT_DIRECTION_LTR);
+		}
+
 		default ImageButton addButton(ToolBarView tb, @DrawableRes int icon, OnClickListener onClick,
 																	@IdRes int id) {
 			return addButton(tb, icon, onClick, id, RIGHT);
@@ -342,6 +374,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 				t.setEllipsize(TextUtils.TruncateAt.END);
 				ConstraintLayout.LayoutParams lp = setLayoutParams(t, 0, WRAP_CONTENT);
 				lp.horizontalWeight = 2;
+				lp.endToEnd = PARENT_ID;
 				return t;
 			}
 
@@ -387,39 +420,74 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 			};
 
 			@Override
-			default void enable(ToolBarView tb, ActivityFragment f) {
-				EditText t = createFilter(tb);
-				t.setVisibility(GONE);
-				addView(tb, t, getFilterId(), LEFT);
+			default void enable(ToolBarView tb, ActivityFragment fr) {
+				EditText f = createFilter(tb);
+				f.setVisibility(GONE);
+				addView(tb, f, getFilterId(), LEFT);
 
-				BackTitle.super.enable(tb, f);
+				BackTitle.super.enable(tb, fr);
 
 				ForcedVisibilityButton b = createFilterButton(tb);
 				addView(tb, b, getFilterButtonId());
+				setFilterVisibility(tb, false);
+			}
 
-				ConstraintLayout.LayoutParams lp = (ConstraintLayout.LayoutParams) tb.findViewById(getTitleId()).getLayoutParams();
-				lp.startToEnd = getBackButtonId();
-				lp.endToStart = getFilterId();
 
-				lp = (ConstraintLayout.LayoutParams) t.getLayoutParams();
-				lp.startToEnd = getTitleId();
-				lp.endToStart = getFilterButtonId();
+			default void setFilterVisibility(ToolBarView tb, boolean visible) {
+				EditText f = tb.findViewById(getFilterId());
+				TextView t = tb.findViewById(getTitleId());
+				ForcedVisibilityButton bb = tb.findViewById(getBackButtonId());
+				ForcedVisibilityButton fb = tb.findViewById(getFilterButtonId());
+				ConstraintLayout.LayoutParams flp = (ConstraintLayout.LayoutParams) f.getLayoutParams();
+				ConstraintLayout.LayoutParams tlp = (ConstraintLayout.LayoutParams) t.getLayoutParams();
+
+				if (visible) {
+					bb.forceVisibility(true);
+					fb.setVisibility(GONE);
+					t.setVisibility(GONE);
+					f.setVisibility(VISIBLE);
+					f.requestFocus();
+
+					flp.horizontalWeight = 2;
+					flp.startToEnd = getBackButtonId();
+					flp.endToStart = getFilterButtonId();
+					flp.startToStart = UNSET;
+					flp.endToEnd = UNSET;
+
+					tlp.horizontalWeight = 0;
+					tlp.startToStart = UNSET;
+					tlp.startToEnd = UNSET;
+					tlp.endToStart = UNSET;
+					tlp.endToEnd = UNSET;
+				} else {
+					bb.forceVisibility(false);
+					fb.setVisibility(VISIBLE);
+					t.setVisibility(VISIBLE);
+					f.setVisibility(GONE);
+					f.setText("");
+					f.clearFocus();
+
+					tlp.horizontalWeight = 2;
+					tlp.startToEnd = getBackButtonId();
+					tlp.endToStart = getFilterButtonId();
+					tlp.startToStart = UNSET;
+					tlp.endToEnd = UNSET;
+
+					flp.horizontalWeight = 0;
+					flp.startToStart = UNSET;
+					flp.startToEnd = UNSET;
+					flp.endToStart = UNSET;
+					flp.endToEnd = UNSET;
+				}
+
+				tlp.resolveLayoutDirection(LAYOUT_DIRECTION_LTR);
+				flp.resolveLayoutDirection(LAYOUT_DIRECTION_LTR);
 			}
 
 			@Override
 			default void onClick(View v) {
 				if (v.getId() == getFilterButtonId()) {
-					ActivityDelegate a = ActivityDelegate.get(v.getContext());
-					ToolBarView tb = a.getToolBar();
-					TextView t = tb.findViewById(getTitleId());
-					EditText f = tb.findViewById(getFilterId());
-					ForcedVisibilityButton b = tb.findViewById(getBackButtonId());
-					b.forceVisibility(true);
-					tb.findViewById(getTitleId()).setVisibility(GONE);
-					t.setVisibility(GONE);
-					v.setVisibility(GONE);
-					f.setVisibility(VISIBLE);
-					f.requestFocus();
+					setFilterVisibility((ToolBarView) v.getParent(), true);
 				} else {
 					BackTitle.super.onClick(v);
 				}
@@ -427,30 +495,19 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 
 			@Override
 			default boolean onBackPressed(ToolBarView tb) {
-				return hideEditText(tb);
-			}
-
-			@Override
-			default void onActivityEvent(ToolBarView tb, ActivityDelegate a, long e) {
-				BackTitle.super.onActivityEvent(tb, a, e);
-				if (e == FRAGMENT_CHANGED) hideEditText(a.getToolBar());
-			}
-
-			default boolean hideEditText(ToolBarView tb) {
-				EditText t = tb.findViewById(getFilterId());
-
-				if (t.getVisibility() != GONE) {
-					ForcedVisibilityButton b = tb.findViewById(getBackButtonId());
-					t.setText("");
-					t.clearFocus();
-					t.setVisibility(GONE);
-					b.forceVisibility(false);
-					tb.findViewById(getTitleId()).setVisibility(VISIBLE);
-					tb.findViewById(getFilterButtonId()).setVisibility(VISIBLE);
+				EditText f = tb.findViewById(getFilterId());
+				if (f.getVisibility() == VISIBLE) {
+					setFilterVisibility(tb, false);
 					return true;
 				} else {
 					return false;
 				}
+			}
+
+			@Override
+			default void onActivityEvent(ToolBarView tb, ActivityDelegate a, long e) {
+				if (e == FRAGMENT_CHANGED) setFilterVisibility(tb, false);
+				BackTitle.super.onActivityEvent(tb, a, e);
 			}
 
 			@IdRes
@@ -460,14 +517,13 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 
 			default EditText createFilter(ToolBarView tb) {
 				EditText t = createEditText(tb);
-				ConstraintLayout.LayoutParams lp = setLayoutParams(t, 0, WRAP_CONTENT);
 				TextChangedListener l = s -> tb.fireBroadcastEvent(r -> r.onToolBarEvent(tb, Listener.FILTER_CHANGED));
 				t.addTextChangedListener(l);
 				t.setBackgroundResource(R.drawable.tool_bar_edittext_bg);
 				t.setOnKeyListener(UiUtils::dpadFocusHelper);
 				t.setMaxLines(1);
-				lp.horizontalWeight = 2;
 				setFilterPadding(t);
+				setLayoutParams(t, 0, WRAP_CONTENT);
 				return t;
 			}
 

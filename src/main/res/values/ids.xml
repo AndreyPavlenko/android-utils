@@ -11,6 +11,10 @@
     <item name="overlay_menu_title" type="id" />
     <item name="generic_fragment" type="id" />
     <item name="generic_dialog_fragment" type="id" />
+    <item name="left" type="id" />
+    <item name="right" type="id" />
+    <item name="up" type="id" />
+    <item name="down" type="id" />
 
     <item name="array_item_id_0" type="id" />
     <item name="array_item_id_1" type="id" />

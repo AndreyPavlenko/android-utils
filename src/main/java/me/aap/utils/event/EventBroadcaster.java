@@ -6,9 +6,11 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import me.aap.utils.BuildConfig;
 import me.aap.utils.app.App;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Predicate;
+import me.aap.utils.log.Log;
 
 /**
  * @author Andrey Pavlenko
@@ -32,13 +34,21 @@ public interface EventBroadcaster<L> {
 
 			if (l == null) {
 				it.remove();
+				Log.d("Listener has been garbage collected!");
 			} else if (l == listener) {
-				if (ref.mask != eventMask) it.remove();
-				else add = false;
+				if (ref.mask != eventMask) {
+					it.remove();
+					if (BuildConfig.D) ListenerLeakDetector.remove(this, listener);
+				} else {
+					add = false;
+				}
 			}
 		}
 
-		if (add) listeners.add(new ListenerRef<>(listener, eventMask));
+		if (add) {
+			listeners.add(new ListenerRef<>(listener, eventMask));
+			if (BuildConfig.D) ListenerLeakDetector.add(this, listener);
+		}
 	}
 
 	default void removeBroadcastListener(L listener) {
@@ -48,7 +58,14 @@ public interface EventBroadcaster<L> {
 	default void removeBroadcastListeners(Predicate<L> matcher) {
 		for (Iterator<ListenerRef<L>> it = getBroadcastEventListeners().iterator(); it.hasNext(); ) {
 			L l = it.next().get();
-			if ((l == null) || (matcher.test(l))) it.remove();
+
+			if (l == null) {
+				it.remove();
+				Log.d("Listener has been garbage collected!");
+			} else if (matcher.test(l)) {
+				it.remove();
+				if (BuildConfig.D) ListenerLeakDetector.remove(this, l);
+			}
 		}
 	}
 

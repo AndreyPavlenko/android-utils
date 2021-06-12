@@ -6,6 +6,7 @@ import android.graphics.drawable.Drawable;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.StringRes;
+import androidx.appcompat.content.res.AppCompatResources;
 
 /**
  * @author Andrey Pavlenko
@@ -22,7 +23,7 @@ public interface NavBarItem {
 	boolean isPinned();
 
 	static NavBarItem create(Context ctx, @IdRes int id, @DrawableRes int icon, @StringRes int text, boolean pinned) {
-		Drawable i = ctx.getDrawable(icon);
+		Drawable i = AppCompatResources.getDrawable(ctx, icon);
 		CharSequence t = ctx.getString(text);
 		return new NavBarItem() {
 			@Override

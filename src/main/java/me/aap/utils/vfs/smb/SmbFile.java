@@ -61,7 +61,7 @@ class SmbFile extends SmbResource implements VirtualFile {
 					FutureSupplier<ByteBuffer> r = readInputStream(in, dst.getByteBuffer(), getInputBufferLen());
 
 					if (!r.isFailed()) {
-						pos += r.peek().remaining();
+						pos += r.getOrThrow().remaining();
 						return r;
 					}
 				}
@@ -79,7 +79,7 @@ class SmbFile extends SmbResource implements VirtualFile {
 					InputStream is = stream = file.getInputStream();
 					IoUtils.skip(in, pos);
 					FutureSupplier<ByteBuffer> r = readInputStream(is, dst.getByteBuffer(), getInputBufferLen());
-					pos += r.peek().remaining();
+					pos += r.getOrThrow().remaining();
 					return r;
 				});
 			}

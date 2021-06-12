@@ -1,6 +1,7 @@
 package me.aap.utils.pref;
 
 import android.content.Context;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -53,7 +54,18 @@ public class PreferenceViewAdapter extends RecyclerView.Adapter<PreferenceViewAd
 
 	@Override
 	public void onViewRecycled(@NonNull PrefViewHolder holder) {
+		holder.getPreferenceView().cleanUp();
 		holder.getPreferenceView().setPreference(this, null);
+	}
+
+	public void onDestroy() {
+		RecyclerView view = recyclerView;
+		if (view == null) return;
+
+		for (int i = 0, n = view.getChildCount(); i < n; i++) {
+			View v = view.getChildAt(i);
+			if (v instanceof PreferenceView) ((PreferenceView) v).cleanUp();
+		}
 	}
 
 	@Override

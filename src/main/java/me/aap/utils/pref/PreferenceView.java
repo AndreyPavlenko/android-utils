@@ -72,8 +72,7 @@ public class PreferenceView extends ConstraintLayout {
 		super(ctx, attrs, android.R.attr.preferenceStyle);
 	}
 
-	public void setPreference(PreferenceViewAdapter adapter,
-														@Nullable Supplier<? extends PreferenceView.Opts> supplier) {
+	void cleanUp() {
 		if (this.opts != null) {
 			if (opts.visibility != null) opts.visibility.setListener(null);
 			if ((this.opts instanceof PrefOpts<?>) && (this.prefListener != null)) {
@@ -84,6 +83,11 @@ public class PreferenceView extends ConstraintLayout {
 		this.prefListener = null;
 		this.condListener = null;
 		setOnClickListener(null);
+	}
+
+	public void setPreference(PreferenceViewAdapter adapter,
+														@Nullable Supplier<? extends PreferenceView.Opts> supplier) {
+		cleanUp();
 
 		if (supplier == null) {
 			this.opts = null;

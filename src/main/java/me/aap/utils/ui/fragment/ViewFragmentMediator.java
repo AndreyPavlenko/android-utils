@@ -51,12 +51,7 @@ public interface ViewFragmentMediator<V extends View> {
 
 		setCurrent.accept(m);
 		if (current != null) current.disable(v);
-
-		if (m != null) {
-			m.enable(v, f);
-			f.getActivityDelegate().addBroadcastListener(v, m.getActivityEventMask() | DEFAULT_EVENT_MASK);
-		}
-
+		if (m != null) m.enable(v, f);
 		return true;
 	}
 

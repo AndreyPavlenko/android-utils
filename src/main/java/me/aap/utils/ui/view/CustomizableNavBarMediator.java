@@ -5,13 +5,16 @@ import android.content.res.ColorStateList;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.IdRes;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.widget.TextViewCompat;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import me.aap.utils.R;
 import me.aap.utils.ui.activity.ActivityDelegate;
 import me.aap.utils.ui.fragment.ActivityFragment;
 import me.aap.utils.ui.menu.OverlayMenuItem;
@@ -23,16 +26,26 @@ import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.UiUtils.toPx;
+import static me.aap.utils.ui.view.NavBarView.POSITION_BOTTOM;
 
 /**
  * @author Andrey Pavlenko
  */
-public abstract class CustomizableNavBarMediator implements NavBarView.Mediator {
+public abstract class CustomizableNavBarMediator implements NavBarView.Mediator,
+		View.OnLongClickListener {
 	private final List<NavBarItem> ext = new ArrayList<>();
 	private NavButtonView.Ext extButton;
 	protected NavBarView navBar;
 
 	protected abstract Collection<NavBarItem> getItems(NavBarView nb);
+
+	protected boolean swap(NavBarView nb, @IdRes int id1, @IdRes int id2) {
+		return false;
+	}
+
+	protected boolean canSwap(NavBarView nb) {
+		return false;
+	}
 
 	@Override
 	public void enable(NavBarView nb, ActivityFragment f) {
@@ -46,7 +59,6 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 
 		NavButtonView first = null;
 		NavButtonView last = null;
-
 
 		for (NavBarItem i : getItems(nb)) {
 			if (i.isPinned()) {
@@ -91,7 +103,7 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 
 	private void setFocus(NavBarView nb, View first, View last) {
 		if ((first != null) && (last != null)) {
-			if (nb.getPosition() == NavBarView.POSITION_BOTTOM) {
+			if (nb.getPosition() == POSITION_BOTTOM) {
 				first.setNextFocusLeftId(last.getId());
 				last.setNextFocusRightId(first.getId());
 			} else {
@@ -109,6 +121,12 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 	}
 
 	@Override
+	public void addView(NavBarView nb, View v, int id, View.OnClickListener onClick) {
+		if (canSwap(nb)) v.setOnLongClickListener(this);
+		NavBarView.Mediator.super.addView(nb, v, id, onClick);
+	}
+
+	@Override
 	public void onClick(View v) {
 		if ((v != extButton) || (ext.size() <= 1)) {
 			NavBarView.Mediator.super.onClick(v);
@@ -116,10 +134,9 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 		}
 
 		NavBarView nb = (NavBarView) v.getParent();
-		OverlayMenuView menu = createOverlayMenu(nb);
+		OverlayMenuView menu = createOverlayMenu(nb, false);
 		ColorStateList tint = extButton.getIcon().getImageTintList();
 		ColorStateList textColor = extButton.getText().getTextColors();
-		menu.setBackgroundColor(nb.getBgColor());
 		menu.show(b -> {
 			int selectedId = extButton.getId();
 			OverlayMenuItemView selected = null;
@@ -129,7 +146,7 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 				OverlayMenuItemView item = (OverlayMenuItemView) b.addItem(id,
 						i.getIcon(), i.getText()).setData(i);
 				item.setTextColor(textColor);
-				item.setCompoundDrawableTintList(tint);
+				TextViewCompat.setCompoundDrawableTintList(item, tint);
 				if (id == selectedId) selected = item;
 			}
 
@@ -139,24 +156,75 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator 
 		});
 	}
 
-	protected OverlayMenuView createOverlayMenu(NavBarView nb) {
+	@Override
+	public boolean onLongClick(View v) {
+		NavBarView nb = (NavBarView) v.getParent();
+		NavButtonView btn = (NavButtonView) v;
+		int idx = nb.indexOfChild(v);
+		int count = nb.getChildCount();
+		OverlayMenuView menu = createOverlayMenu(nb, true);
+		ColorStateList tint = btn.getIcon().getImageTintList();
+		ColorStateList textColor = btn.getText().getTextColors();
+		menu.show(b -> {
+			if (nb.getPosition() == POSITION_BOTTOM) {
+				if (idx != 0) {
+					OverlayMenuItemView item = (OverlayMenuItemView)
+							b.addItem(R.id.left, R.drawable.move_left, R.string.move_left);
+					item.setHandler(i -> swap(nb, btn.getId(), nb.getChildAt(idx - 1).getId()));
+					item.setTextColor(textColor);
+					TextViewCompat.setCompoundDrawableTintList(item, tint);
+				}
+				if (idx != (count - 1)) {
+					OverlayMenuItemView item = (OverlayMenuItemView)
+							b.addItem(R.id.right, R.drawable.move_right, R.string.move_right);
+					item.setHandler(i -> swap(nb, btn.getId(), nb.getChildAt(idx + 1).getId()));
+					item.setTextColor(textColor);
+					TextViewCompat.setCompoundDrawableTintList(item, tint);
+				}
+			} else {
+				if (idx != 0) {
+					OverlayMenuItemView item = (OverlayMenuItemView)
+							b.addItem(R.id.up, R.drawable.move_up, R.string.move_up);
+					item.setHandler(i -> swap(nb, btn.getId(), nb.getChildAt(idx - 1).getId()));
+					item.setTextColor(textColor);
+					TextViewCompat.setCompoundDrawableTintList(item, tint);
+				}
+				if (idx != (count - 1)) {
+					OverlayMenuItemView item = (OverlayMenuItemView)
+							b.addItem(R.id.down, R.drawable.move_down, R.string.move_down);
+					item.setHandler(i -> swap(nb, btn.getId(), nb.getChildAt(idx + 1).getId()));
+					item.setTextColor(textColor);
+					TextViewCompat.setCompoundDrawableTintList(item, tint);
+				}
+			}
+			b.setCloseHandlerHandler(m -> ((ViewGroup) (nb.getParent())).removeView((View) m));
+		});
+
+		return true;
+	}
+
+	protected OverlayMenuView createOverlayMenu(NavBarView nb, boolean center) {
 		Context ctx = nb.getContext();
 		ViewGroup parent = (ViewGroup) nb.getParent();
 		OverlayMenuView menu = new OverlayMenuView(ctx, null);
 		parent.addView(menu);
 		ViewGroup.LayoutParams lp = menu.getLayoutParams();
 		menu.setElevation(toPx(ctx, 10));
+		menu.setBackgroundColor(nb.getBgColor());
 
 		if (lp instanceof ConstraintLayout.LayoutParams) {
 			ConstraintLayout.LayoutParams clp = (ConstraintLayout.LayoutParams) lp;
 
-			if (nb.getPosition() == NavBarView.POSITION_BOTTOM) {
+			if (nb.getPosition() == POSITION_BOTTOM) {
+				if (center) clp.startToStart = PARENT_ID;
 				clp.endToEnd = PARENT_ID;
 				clp.bottomToTop = nb.getId();
 			} else if (nb.getPosition() == NavBarView.POSITION_LEFT) {
+				if (center) clp.topToTop = PARENT_ID;
 				clp.startToEnd = nb.getId();
 				clp.bottomToBottom = PARENT_ID;
 			} else {
+				if (center) clp.topToTop = PARENT_ID;
 				clp.endToStart = nb.getId();
 				clp.bottomToBottom = PARENT_ID;
 			}

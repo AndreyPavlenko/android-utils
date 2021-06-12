@@ -146,7 +146,7 @@ public class HttpHandlerTest extends Assertions {
 			o.backlog = nclients * 10;
 			o.ssl = useSsl;
 			o.opt.put(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
-		}).getOrThrow();
+		}).get();
 
 		SocketAddress addr = server.getBindAddress();
 		FutureSupplier<?>[] tasks = new FutureSupplier[nclients];
@@ -234,7 +234,7 @@ public class HttpHandlerTest extends Assertions {
 			o.handler = http;
 			o.backlog = nclients;
 			o.ssl = useSsl;
-		}).getOrThrow();
+		}).get();
 		SocketAddress addr = server.getBindAddress();
 		FutureSupplier<?>[] tasks = new FutureSupplier[nclients];
 
@@ -349,7 +349,7 @@ public class HttpHandlerTest extends Assertions {
 			o.backlog = nreq;
 			o.ssl = useSsl;
 			o.opt.put(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
-		}).getOrThrow();
+		}).get();
 		SocketAddress addr = server.getBindAddress();
 
 		for (int n = 0; n < nclients; n++) {
@@ -615,7 +615,7 @@ public class HttpHandlerTest extends Assertions {
 			o.opt.put(StandardSocketOptions.SO_RCVBUF, 65536);
 //			o.readTimeout = 1;
 //			o.writeTimeout = 1;
-		}).getOrThrow();
+		}).get();
 
 		Thread.sleep(600000);
 	}
@@ -673,7 +673,7 @@ public class HttpHandlerTest extends Assertions {
 			o.handler = http;
 			o.backlog = 1000;
 			o.ssl = true;
-		}).getOrThrow();
+		}).get();
 		Thread.sleep(1000000000);
 	}
 
@@ -692,7 +692,7 @@ public class HttpHandlerTest extends Assertions {
 			o.backlog = 10000;
 			o.opt.put(StandardSocketOptions.SO_SNDBUF, 65536);
 			o.opt.put(StandardSocketOptions.SO_RCVBUF, 65536);
-		}).getOrThrow();
+		}).get();
 
 		Thread.sleep(600000);
 	}

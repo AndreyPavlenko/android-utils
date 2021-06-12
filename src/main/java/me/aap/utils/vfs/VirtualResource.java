@@ -54,7 +54,7 @@ public interface VirtualResource extends Comparable<VirtualResource> {
 	}
 
 	default boolean hasParent() {
-		return getParent().getOrThrow() != null;
+		return getParent().peek() != null;
 	}
 
 	@NonNull

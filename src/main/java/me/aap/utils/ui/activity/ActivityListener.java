@@ -13,15 +13,6 @@ public interface ActivityListener {
 
 	void onActivityEvent(ActivityDelegate a, long e);
 
-	default boolean handleActivityFinishEvent(ActivityDelegate a, long e) {
-		if (e == ACTIVITY_FINISH) {
-			a.removeBroadcastListener(this);
-			return true;
-		} else {
-			return false;
-		}
-	}
-
 	default boolean handleActivityDestroyEvent(ActivityDelegate a, long e) {
 		if (e == ACTIVITY_DESTROY) {
 			a.removeBroadcastListener(this);

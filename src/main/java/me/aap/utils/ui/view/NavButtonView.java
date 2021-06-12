@@ -44,15 +44,15 @@ public class NavButtonView extends LinearLayoutCompat {
 		setFocusable(true);
 	}
 
-	public void setCompact(boolean compact) {
+	boolean isCompact() {
+		return compact;
+	}
+
+	void setCompact(boolean compact) {
 		this.compact = compact;
 		int pad = toIntPx(getContext(), compact ? 12 : 0);
 		setPadding(pad, 0, pad, 0);
 		setSelected(isSelected());
-	}
-
-	public boolean isCompact() {
-		return compact;
 	}
 
 	@Override
