@@ -11,6 +11,7 @@ import me.aap.utils.app.App;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Predicate;
 import me.aap.utils.log.Log;
+import me.aap.utils.ui.activity.ActivityDestroyedException;
 
 /**
  * @author Andrey Pavlenko
@@ -89,7 +90,14 @@ public interface EventBroadcaster<L> {
 		}
 
 		for (L listener : list) {
-			broadcaster.accept(listener);
+			try {
+				broadcaster.accept(listener);
+			} catch (ActivityDestroyedException ex) {
+				Log.e(ex, "Listener attempted to use destroyed activity. Removing listener: ", listener);
+				removeBroadcastListener(listener);
+			} catch (Throwable ex) {
+				Log.e(ex, "Listener failed: ", listener);
+			}
 		}
 	}
 

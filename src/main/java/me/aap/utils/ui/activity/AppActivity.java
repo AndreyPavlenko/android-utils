@@ -1,5 +1,7 @@
 package me.aap.utils.ui.activity;
 
+import static me.aap.utils.async.Completed.failed;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources.Theme;
@@ -23,14 +25,11 @@ import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.ui.view.DialogBuilder;
 
-import static me.aap.utils.async.Completed.failed;
-
 /**
  * @author Andrey Pavlenko
  */
 public interface AppActivity {
-	FutureSupplier<? extends ActivityDelegate> NO_DELEGATE =
-			failed(new IllegalStateException("Activity delegate is not yet created"));
+	FutureSupplier<? extends ActivityDelegate> NO_DELEGATE = failed(new ActivityDestroyedException());
 
 	@Nonnull
 	FutureSupplier<? extends ActivityDelegate> getActivityDelegate();

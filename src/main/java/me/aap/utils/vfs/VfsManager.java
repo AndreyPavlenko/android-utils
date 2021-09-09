@@ -19,11 +19,13 @@ import me.aap.utils.async.FutureRef;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.collection.CollectionUtils;
 import me.aap.utils.collection.LruMap;
+import me.aap.utils.log.Log;
 import me.aap.utils.net.NetHandler;
 import me.aap.utils.net.NetServer;
 import me.aap.utils.net.http.HttpConnectionHandler;
 import me.aap.utils.resource.Rid;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static me.aap.utils.async.Completed.completedNull;
 import static me.aap.utils.vfs.VfsHttpHandler.HTTP_PATH;
 import static me.aap.utils.vfs.VfsHttpHandler.HTTP_QUERY;
@@ -181,7 +183,13 @@ public class VfsManager {
 	}
 
 	public Rid getHttpRid(Rid rid) {
-		int port = getNetServer().getOrThrow().getPort();
+		int port = 8080;
+		try {
+			port = getNetServer().get(5, SECONDS).getPort();
+		} catch (Exception ex) {
+			Log.e(ex, "HttpServer not started in 5 seconds");
+		}
+
 		CharSequence encoded = Rid.encode(rid.toString());
 		return Rid.create("http://localhost:" + port + HTTP_PATH + "?" + HTTP_QUERY + encoded);
 	}

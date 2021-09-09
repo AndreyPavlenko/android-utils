@@ -29,6 +29,7 @@ import me.aap.utils.function.Supplier;
 import me.aap.utils.log.Log;
 
 import static android.app.NotificationManager.IMPORTANCE_LOW;
+import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.failed;
@@ -74,7 +75,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 			NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, channelId);
 			b.setSmallIcon(icon).setContentTitle(title).setContentText(text);
 			Intent intent = new Intent(ctx, c);
-			b.setFullScreenIntent(PendingIntent.getActivity(ctx, 0, intent, 0), true);
+			b.setFullScreenIntent(PendingIntent.getActivity(ctx, 0, intent, FLAG_IMMUTABLE), true);
 			NotificationManagerCompat.from(ctx).notify(0, b.build());
 			return p;
 		}

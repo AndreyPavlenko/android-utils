@@ -7,6 +7,7 @@ import android.content.res.Resources;
 import android.content.res.Resources.Theme;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -247,7 +248,7 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		}).thenRun(() -> {
 			finish();
 			Looper l = Looper.myLooper();
-			if (l != null) l.quitSafely();
+			if (l != null) new Handler(l).post(l::quitSafely);
 		});
 
 		return p;

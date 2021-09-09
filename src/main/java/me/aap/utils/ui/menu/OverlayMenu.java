@@ -8,6 +8,7 @@ import android.view.View;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.StringRes;
+import androidx.core.content.res.ResourcesCompat;
 
 import java.util.List;
 
@@ -53,7 +54,7 @@ public interface OverlayMenu {
 		default OverlayMenuItem addItem(int id, @DrawableRes int icon, @StringRes int title) {
 			Context ctx = getMenu().getContext();
 			Resources r = ctx.getResources();
-			return addItem(id, r.getDrawable(icon, ctx.getTheme()), r.getString(title));
+			return addItem(id, ResourcesCompat.getDrawable(r, icon, ctx.getTheme()), r.getString(title));
 		}
 
 		default OverlayMenuItem addItem(int id, Drawable icon, @StringRes int title) {
@@ -63,7 +64,7 @@ public interface OverlayMenu {
 		default OverlayMenuItem addItem(int id, @DrawableRes int icon, CharSequence title) {
 			Context ctx = getMenu().getContext();
 			Resources r = ctx.getResources();
-			return addItem(id, r.getDrawable(icon, ctx.getTheme()), title);
+			return addItem(id, ResourcesCompat.getDrawable(r, icon, ctx.getTheme()), title);
 		}
 
 		default OverlayMenuItem addItem(int id, @StringRes int title) {
@@ -77,7 +78,7 @@ public interface OverlayMenu {
 		default OverlayMenuItem addItem(int id, @DrawableRes int icon, @StringRes int title, int relativeToId, boolean after) {
 			Context ctx = getMenu().getContext();
 			Resources r = ctx.getResources();
-			return addItem(id, r.getDrawable(icon, ctx.getTheme()), r.getString(title), relativeToId, after);
+			return addItem(id, ResourcesCompat.getDrawable(r, icon, ctx.getTheme()), r.getString(title), relativeToId, after);
 		}
 
 		default OverlayMenuItem addItem(int id, Drawable icon, @StringRes int title, int relativeToId, boolean after) {
@@ -87,7 +88,7 @@ public interface OverlayMenu {
 		default OverlayMenuItem addItem(int id, @DrawableRes int icon, CharSequence title, int relativeToId, boolean after) {
 			Context ctx = getMenu().getContext();
 			Resources r = ctx.getResources();
-			return addItem(id, r.getDrawable(icon, ctx.getTheme()), title, relativeToId, after);
+			return addItem(id, ResourcesCompat.getDrawable(r, icon, ctx.getTheme()), title, relativeToId, after);
 		}
 
 		default OverlayMenuItem addItem(int id, @StringRes int title, int relativeToId, boolean after) {

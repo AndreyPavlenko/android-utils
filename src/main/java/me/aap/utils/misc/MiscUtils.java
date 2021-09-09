@@ -3,8 +3,8 @@ package me.aap.utils.misc;
 import android.content.Context;
 import android.content.pm.PackageManager;
 
-import me.aap.utils.BuildConfig;
-import me.aap.utils.app.App;
+import androidx.annotation.NonNull;
+
 import me.aap.utils.function.Supplier;
 
 /**
@@ -12,11 +12,11 @@ import me.aap.utils.function.Supplier;
  */
 public class MiscUtils {
 
-	public static <T> T ifNull(T check, T otherwise) {
+	public static <T> T ifNull(T check, @NonNull T otherwise) {
 		return (check != null) ? check : otherwise;
 	}
 
-	public static <T> T ifNull(T check, Supplier<? extends T> otherwise) {
+	public static <T> T ifNull(T check, @NonNull Supplier<? extends T> otherwise) {
 		return (check != null) ? check : otherwise.get();
 	}
 

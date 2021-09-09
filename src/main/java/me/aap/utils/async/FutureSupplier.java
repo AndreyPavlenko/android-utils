@@ -1,5 +1,11 @@
 package me.aap.utils.async;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
+import static me.aap.utils.function.ResultConsumer.Cancel.isCancellation;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -24,12 +30,6 @@ import me.aap.utils.function.ProgressiveResultConsumer;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.holder.BiHolder;
 import me.aap.utils.log.Log;
-
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.failed;
-import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
-import static me.aap.utils.function.ResultConsumer.Cancel.isCancellation;
 
 /**
  * @author Andrey Pavlenko
@@ -288,6 +288,10 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			if (isCancellation(ex)) FutureSupplier.this.cancel();
 			throw ex;
 		});
+	}
+
+	default <R> FutureSupplier<R> mapIfNotNull(CheckedFunction<? super T, ? extends R, Throwable> map) {
+		return map(v -> (v != null) ? map.apply(v) : null);
 	}
 
 	@SuppressWarnings("unchecked")
