@@ -1,5 +1,11 @@
 package me.aap.utils.ui.activity;
 
+import static android.app.NotificationManager.IMPORTANCE_LOW;
+import static android.app.PendingIntent.FLAG_IMMUTABLE;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.failed;
+
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -27,12 +33,6 @@ import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.log.Log;
-
-import static android.app.NotificationManager.IMPORTANCE_LOW;
-import static android.app.PendingIntent.FLAG_IMMUTABLE;
-import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko

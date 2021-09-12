@@ -1,5 +1,20 @@
 package me.aap.utils.ui.activity;
 
+import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
+import static android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+import static android.view.View.SYSTEM_UI_FLAG_IMMERSIVE;
+import static android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
+import static android.view.View.SYSTEM_UI_FLAG_VISIBLE;
+import static me.aap.utils.async.Completed.completedVoid;
+import static me.aap.utils.ui.UiUtils.ID_NULL;
+import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_DESTROY;
+import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_FINISH;
+import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
+
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -51,21 +66,6 @@ import me.aap.utils.ui.menu.OverlayMenuView;
 import me.aap.utils.ui.view.DialogBuilder;
 import me.aap.utils.ui.view.NavBarView;
 import me.aap.utils.ui.view.ToolBarView;
-
-import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
-import static android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
-import static android.view.View.SYSTEM_UI_FLAG_IMMERSIVE;
-import static android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
-import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
-import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
-import static android.view.View.SYSTEM_UI_FLAG_VISIBLE;
-import static me.aap.utils.async.Completed.completedVoid;
-import static me.aap.utils.ui.UiUtils.ID_NULL;
-import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_DESTROY;
-import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_FINISH;
-import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
 
 /**
  * @author Andrey Pavlenko

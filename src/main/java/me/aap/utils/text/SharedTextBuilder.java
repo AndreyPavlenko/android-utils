@@ -1,5 +1,9 @@
 package me.aap.utils.text;
 
+import static me.aap.utils.misc.Assert.assertSame;
+import static me.aap.utils.misc.Assert.assertTrue;
+import static me.aap.utils.os.OsUtils.isAndroid;
+
 import android.os.Looper;
 
 import androidx.annotation.NonNull;
@@ -7,10 +11,7 @@ import androidx.annotation.Nullable;
 
 import me.aap.utils.BuildConfig;
 import me.aap.utils.concurrent.PooledThread;
-
-import static me.aap.utils.misc.Assert.assertSame;
-import static me.aap.utils.misc.Assert.assertTrue;
-import static me.aap.utils.os.OsUtils.isAndroid;
+import me.aap.utils.function.Function;
 
 /**
  * @author Andrey Pavlenko
@@ -35,6 +36,12 @@ public class SharedTextBuilder implements TextBuilder, AutoCloseable {
 
 	public static SharedTextBuilder get() {
 		return get(0);
+	}
+
+	public static <T> T apply(Function<SharedTextBuilder, T> f) {
+		try (SharedTextBuilder tb = get()) {
+			return f.apply(tb);
+		}
 	}
 
 	public static SharedTextBuilder get(int minCapacity) {

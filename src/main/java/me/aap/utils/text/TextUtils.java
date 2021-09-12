@@ -1,5 +1,9 @@
 package me.aap.utils.text;
 
+import static java.lang.Character.isLowerCase;
+import static java.lang.Character.toLowerCase;
+import static java.lang.Character.toUpperCase;
+
 import java.io.CharArrayWriter;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
@@ -15,10 +19,6 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 
 import me.aap.utils.log.Log;
-
-import static java.lang.Character.isLowerCase;
-import static java.lang.Character.toLowerCase;
-import static java.lang.Character.toUpperCase;
 
 /**
  * @author Andrey Pavlenko
@@ -292,6 +292,17 @@ public class TextUtils {
 		}
 
 		return false;
+	}
+
+	public static boolean isBlank(CharSequence s) {
+		for (int i = 0, n = s.length(); i < n; i++) {
+			if (s.charAt(i) > ' ') return false;
+		}
+		return true;
+	}
+
+	public static boolean isNullOrBlank(CharSequence s) {
+		return (s == null) || isBlank(s);
 	}
 
 	private static boolean isSepChar(char c) {
