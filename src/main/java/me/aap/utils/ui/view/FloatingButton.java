@@ -1,5 +1,7 @@
 package me.aap.utils.ui.view;
 
+import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -25,8 +27,6 @@ import me.aap.utils.ui.activity.ActivityDelegate;
 import me.aap.utils.ui.activity.ActivityListener;
 import me.aap.utils.ui.fragment.ActivityFragment;
 import me.aap.utils.ui.fragment.ViewFragmentMediator;
-
-import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
 
 /**
  * @author Andrey Pavlenko
@@ -209,12 +209,25 @@ public class FloatingButton extends FloatingActionButton implements ActivityList
 		super.setOnLongClickListener(l);
 	}
 
+	@Override
+	public View focusSearch(int direction) {
+		Mediator m = getMediator();
+		if (m == null) return super.focusSearch(direction);
+		View v = m.focusSearch(this, direction);
+		return (v != null) ? v : super.focusSearch(direction);
+	}
+
 	public interface Mediator extends ViewFragmentMediator<FloatingButton> {
 
 		@Override
 		default void disable(FloatingButton fb) {
 			fb.setOnClickListener(null);
 			fb.setOnLongClickListener(null);
+		}
+
+		@Nullable
+		default View focusSearch(FloatingButton fb, int direction) {
+			return null;
 		}
 
 		interface Back extends Mediator, OnClickListener {
