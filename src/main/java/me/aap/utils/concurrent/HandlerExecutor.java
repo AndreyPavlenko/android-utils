@@ -94,7 +94,6 @@ public class HandlerExecutor extends Handler implements Executor {
 			Runnable t = remove();
 			if (t == null) return false;
 			removeCallbacks(this);
-			Log.d("Delayed task has been canceled: ", t);
 			return true;
 		}
 

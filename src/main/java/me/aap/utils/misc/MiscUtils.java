@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 
 import androidx.annotation.NonNull;
 
+import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Supplier;
 
 /**
@@ -18,6 +19,15 @@ public class MiscUtils {
 
 	public static <T> T ifNull(T check, @NonNull Supplier<? extends T> otherwise) {
 		return (check != null) ? check : otherwise.get();
+	}
+
+	public static <T> boolean ifNotNull(T check, @NonNull Consumer<T> c) {
+		if (check != null) {
+			c.accept(check);
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	public static boolean isPackageInstalled(Context ctx, String pkgName) {
