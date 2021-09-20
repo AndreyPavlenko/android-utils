@@ -1,5 +1,10 @@
 package me.aap.utils.app;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.collection.CollectionUtils.forEach;
+import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
+
 import android.annotation.SuppressLint;
 
 import androidx.annotation.Nullable;
@@ -16,11 +21,6 @@ import me.aap.utils.concurrent.ThreadPool;
 import me.aap.utils.function.CheckedRunnable;
 import me.aap.utils.function.CheckedSupplier;
 import me.aap.utils.net.NetHandler;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.failed;
-import static me.aap.utils.collection.CollectionUtils.forEach;
-import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
 
 /**
  * @author Andrey Pavlenko
@@ -48,6 +48,8 @@ public class App extends android.app.Application {
 	public void onTerminate() {
 		super.onTerminate();
 		instance = null;
+		HandlerExecutor h = handler;
+		if (h != null) h.close();
 		ExecutorService e = executor;
 		if (e != null) e.shutdown();
 		ScheduledExecutorService s = scheduler;

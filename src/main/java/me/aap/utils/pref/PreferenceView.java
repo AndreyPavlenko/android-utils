@@ -1,5 +1,12 @@
 package me.aap.utils.pref;
 
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.ui.UiUtils.ID_NULL;
+import static me.aap.utils.ui.UiUtils.toIntPx;
+import static me.aap.utils.ui.UiUtils.toPx;
+import static me.aap.utils.ui.fragment.FilePickerFragment.FILE_OR_FOLDER;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Configuration;
@@ -47,12 +54,6 @@ import me.aap.utils.ui.menu.OverlayMenuItem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
 import me.aap.utils.vfs.local.LocalFileSystem;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.ui.UiUtils.ID_NULL;
-import static me.aap.utils.ui.UiUtils.toIntPx;
-import static me.aap.utils.ui.UiUtils.toPx;
-import static me.aap.utils.ui.fragment.FilePickerFragment.FILE_OR_FOLDER;
 
 /**
  * @author Andrey Pavlenko
@@ -463,7 +464,15 @@ public class PreferenceView extends ConstraintLayout {
 		}
 
 		if (opts.visibility != null) {
-			setVisibility(opts.visibility.get() ? VISIBLE : GONE);
+			if (opts.visibility.get()) {
+				setVisibility(VISIBLE);
+				getLayoutParams().height = WRAP_CONTENT;
+			} else {
+				setVisibility(GONE);
+				getLayoutParams().height = 0;
+			}
+
+			requestLayout();
 			setCondListener(c -> reconfigure());
 		} else {
 			setVisibility(VISIBLE);

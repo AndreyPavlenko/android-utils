@@ -1,5 +1,10 @@
 package me.aap.utils.async;
 
+import static me.aap.utils.async.CompletableSupplier.Cancelled.CANCELLED;
+import static me.aap.utils.function.ResultConsumer.Cancel.isCancellation;
+import static me.aap.utils.function.ResultConsumer.Cancel.newCancellation;
+import static me.aap.utils.misc.Assert.assertTrue;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -16,11 +21,6 @@ import me.aap.utils.function.ProgressiveResultConsumer;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.log.Log;
 import me.aap.utils.misc.TestUtils;
-
-import static me.aap.utils.async.CompletableSupplier.Cancelled.CANCELLED;
-import static me.aap.utils.function.ResultConsumer.Cancel.isCancellation;
-import static me.aap.utils.function.ResultConsumer.Cancel.newCancellation;
-import static me.aap.utils.misc.Assert.assertTrue;
 
 /**
  * @author Andrey Pavlenko
@@ -166,6 +166,17 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 
 		@Override
 		public final T get(@Nullable Supplier<? extends T> onError, long timeout, @NonNull TimeUnit unit) {
+			return get();
+		}
+
+		@Nullable
+		@Override
+		public T peek() {
+			return get();
+		}
+
+		@Override
+		public T peek(@Nullable Supplier<? extends T> ifNotDone) {
 			return get();
 		}
 

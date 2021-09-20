@@ -1,5 +1,7 @@
 package me.aap.utils.collection;
 
+import static java.util.Objects.requireNonNull;
+
 import android.os.Build;
 
 import androidx.annotation.NonNull;
@@ -21,8 +23,7 @@ import me.aap.utils.function.Function;
 import me.aap.utils.function.IntBiConsumer;
 import me.aap.utils.function.IntFunction;
 import me.aap.utils.function.Predicate;
-
-import static java.util.Objects.requireNonNull;
+import me.aap.utils.function.ToIntFunction;
 
 /**
  * @author Andrey Pavlenko
@@ -224,8 +225,8 @@ public class CollectionUtils {
 	}
 
 	public static <T> void addAll(Collection<T> c, @Nullable T[] values) {
-		if(values == null) return;
-		for(int i = 0; i < values.length; i++) c.add(values[i]);
+		if (values == null) return;
+		Collections.addAll(c, values);
 	}
 
 	public static <T, R, TC extends Collection<? extends T>, RC extends Collection<R>>
@@ -242,5 +243,20 @@ public class CollectionUtils {
 		for (T t : it) {
 			action.accept(t);
 		}
+	}
+
+	public static <T> int binarySearch(List<? extends T> l, ToIntFunction<T> comparator) {
+		int low = 0;
+		int high = l.size() - 1;
+
+		while (low <= high) {
+			int mid = (low + high) >>> 1;
+			int cmp = comparator.applyAsInt(l.get(mid));
+			if (cmp < 0) low = mid + 1;
+			else if (cmp > 0) high = mid - 1;
+			else return mid;
+		}
+
+		return -(low + 1);
 	}
 }
