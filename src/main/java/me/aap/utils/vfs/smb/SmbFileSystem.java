@@ -51,7 +51,7 @@ public class SmbFileSystem extends NetFileSystemBase {
 		return r.useShare(s -> {
 			if (s == null) return null;
 			if (s.getFileInformation(smbPath).getStandardInformation().isDirectory()) {
-				return (VirtualResource) new SmbFolder(r, path);
+				return new SmbFolder(r, path);
 			} else {
 				return (VirtualResource) new SmbFile(r, path);
 			}

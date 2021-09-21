@@ -1,5 +1,7 @@
 package me.aap.utils.vfs.smb;
 
+import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
+
 import androidx.annotation.NonNull;
 
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
@@ -9,11 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.text.SharedTextBuilder;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
-
-import static com.hierynomus.msfscc.FileAttributes.FILE_ATTRIBUTE_DIRECTORY;
 
 /**
  * @author Andrey Pavlenko
@@ -55,6 +56,25 @@ class SmbFolder extends SmbResource implements VirtualFolder {
 			}
 
 			return ls;
+		});
+	}
+
+	@Override
+	public boolean canDelete() {
+		return true;
+	}
+
+	@NonNull
+	@Override
+	public FutureSupplier<Boolean> delete() {
+		return getRoot().useShare(s -> {
+			try {
+				s.rmdir(getPath(), true);
+				return true;
+			} catch (Exception ex) {
+				Log.e(ex, "Failed to delete folder ", getPath());
+				return false;
+			}
 		});
 	}
 }

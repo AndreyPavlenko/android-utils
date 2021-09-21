@@ -1,5 +1,10 @@
 package me.aap.utils.vfs;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.completedNull;
+import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.collection.NaturalOrderComparator.compareNatural;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -7,11 +12,6 @@ import java.io.File;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.resource.Rid;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.completedNull;
-import static me.aap.utils.async.Completed.failed;
-import static me.aap.utils.collection.NaturalOrderComparator.compareNatural;
 
 /**
  * @author Andrey Pavlenko
@@ -37,6 +37,10 @@ public interface VirtualResource extends Comparable<VirtualResource> {
 
 	default boolean isLocalFile() {
 		return getLocalFile() != null;
+	}
+
+	default boolean canDelete() {
+		return false;
 	}
 
 	@Nullable

@@ -1,5 +1,9 @@
 package me.aap.utils.vfs.smb;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.io.AsyncInputStream.readInputStream;
+import static me.aap.utils.io.IoUtils.emptyByteBuffer;
+
 import androidx.annotation.NonNull;
 
 import com.hierynomus.msdtyp.AccessMask;
@@ -15,14 +19,11 @@ import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.ObjectPool.PooledObject;
 import me.aap.utils.io.AsyncInputStream;
 import me.aap.utils.io.IoUtils;
+import me.aap.utils.log.Log;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.smb.SmbRoot.SmbSession;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.io.AsyncInputStream.readInputStream;
-import static me.aap.utils.io.IoUtils.emptyByteBuffer;
 
 /**
  * @author Andrey Pavlenko
@@ -94,5 +95,24 @@ class SmbFile extends SmbResource implements VirtualFile {
 				if (s != null) s.release();
 			}
 		};
+	}
+
+	@Override
+	public boolean canDelete() {
+		return true;
+	}
+
+	@NonNull
+	@Override
+	public FutureSupplier<Boolean> delete() {
+		return getRoot().useShare(s -> {
+			try {
+				s.rm(getPath());
+				return true;
+			} catch (Exception ex) {
+				Log.e(ex, "Failed to delete file ", getPath());
+				return false;
+			}
+		});
 	}
 }

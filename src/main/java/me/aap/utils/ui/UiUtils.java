@@ -1,5 +1,10 @@
 package me.aap.utils.ui;
 
+import static android.graphics.Bitmap.Config.ARGB_8888;
+import static android.os.Build.VERSION.SDK_INT;
+import static android.view.KeyEvent.KEYCODE_DPAD_DOWN;
+import static android.view.KeyEvent.KEYCODE_DPAD_UP;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -27,11 +32,6 @@ import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.concurrent.ConcurrentUtils;
 import me.aap.utils.ui.activity.ActivityDelegate;
-
-import static android.graphics.Bitmap.Config.ARGB_8888;
-import static android.os.Build.VERSION.SDK_INT;
-import static android.view.KeyEvent.KEYCODE_DPAD_DOWN;
-import static android.view.KeyEvent.KEYCODE_DPAD_UP;
 
 /**
  * @author Andrey Pavlenko
@@ -72,6 +72,10 @@ public class UiUtils {
 				.setMessage(msg)
 				.setPositiveButton(android.R.string.ok, null)
 				.show();
+	}
+
+	public static FutureSupplier<Void> showQuestion(Context ctx, @StringRes int title, @StringRes int msg) {
+		return showQuestion(ctx, ctx.getString(title), ctx.getString(msg));
 	}
 
 	public static FutureSupplier<Void> showQuestion(Context ctx, CharSequence title, CharSequence msg) {

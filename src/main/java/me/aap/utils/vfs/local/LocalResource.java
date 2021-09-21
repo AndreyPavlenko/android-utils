@@ -1,5 +1,10 @@
 package me.aap.utils.vfs.local;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.os.OsUtils.isRmAvailable;
+import static me.aap.utils.os.OsUtils.isSuAvailable;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -9,12 +14,10 @@ import java.io.IOException;
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.io.FileUtils;
+import me.aap.utils.os.OsUtils;
 import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
@@ -81,6 +84,13 @@ abstract class LocalResource implements VirtualResource {
 		}
 	}
 
+	@Override
+	public boolean canDelete() {
+		if (isSuAvailable() && isRmAvailable()) return true;
+		File f = getLocalFile();
+		return (f != null) && f.canWrite();
+	}
+
 	@NonNull
 	@Override
 	public FutureSupplier<Boolean> delete() {
@@ -88,14 +98,14 @@ abstract class LocalResource implements VirtualResource {
 
 		if (isFile()) {
 			if (file.delete()) return completed(true);
-			return failed(new IOException("Failed to delete file: " + file));
+			return OsUtils.su(15000, "rm '", file.getAbsolutePath(), "'").map(r -> r == 0);
 		}
 
 		try {
 			FileUtils.delete(file);
 			return completed(true);
 		} catch (Throwable ex) {
-			return failed(ex);
+			return OsUtils.su(30000, "rm -rf '", file.getAbsolutePath(), "'").map(r -> r == 0);
 		}
 	}
 

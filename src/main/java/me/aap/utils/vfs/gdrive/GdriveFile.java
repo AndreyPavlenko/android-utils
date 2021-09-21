@@ -1,5 +1,10 @@
 package me.aap.utils.vfs.gdrive;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.io.AsyncInputStream.readInputStream;
+
+import androidx.annotation.NonNull;
+
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.services.drive.Drive;
 
@@ -9,12 +14,10 @@ import java.nio.ByteBuffer;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.io.AsyncInputStream;
 import me.aap.utils.io.IoUtils;
+import me.aap.utils.log.Log;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.io.AsyncInputStream.readInputStream;
 
 /**
  * @author Andrey Pavlenko
@@ -51,7 +54,7 @@ class GdriveFile extends GdriveResource implements VirtualFile {
 					FutureSupplier<ByteBuffer> r = readInputStream(in, dst.getByteBuffer(), getInputBufferLen());
 
 					if (!r.isFailed()) {
-						pos += r.peek().remaining();
+						pos += r.getOrThrow().remaining();
 						return r;
 					}
 				}
@@ -67,7 +70,7 @@ class GdriveFile extends GdriveResource implements VirtualFile {
 					}
 
 					InputStream is = stream = get.executeMediaAsInputStream();
-					ByteBuffer b = readInputStream(is, dst.getByteBuffer(), getInputBufferLen()).peek();
+					ByteBuffer b = readInputStream(is, dst.getByteBuffer(), getInputBufferLen()).getOrThrow();
 					pos += b.remaining();
 					return b;
 				});
@@ -78,5 +81,24 @@ class GdriveFile extends GdriveResource implements VirtualFile {
 				IoUtils.close(stream);
 			}
 		};
+	}
+
+	@Override
+	public boolean canDelete() {
+		return true;
+	}
+
+	@NonNull
+	@Override
+	public FutureSupplier<Boolean> delete() {
+		return fs.useDrive(d -> {
+			try {
+				d.files().delete(id).execute();
+				return true;
+			} catch (Exception ex) {
+				Log.e(ex, "Failed to delete file ", getName());
+				return false;
+			}
+		});
 	}
 }

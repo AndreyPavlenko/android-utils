@@ -476,6 +476,11 @@ public class PreferenceView extends ConstraintLayout {
 			setCondListener(c -> reconfigure());
 		} else {
 			setVisibility(VISIBLE);
+
+			if (getLayoutParams().height != WRAP_CONTENT) {
+				getLayoutParams().height = WRAP_CONTENT;
+				requestLayout();
+			}
 		}
 	}
 

@@ -8,7 +8,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import me.aap.utils.async.Async;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.text.SharedTextBuilder;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
@@ -51,5 +53,26 @@ class SftpFolder extends SftpResource implements VirtualFolder {
 
 			return children;
 		});
+	}
+
+	@Override
+	public boolean canDelete() {
+		return true;
+	}
+
+	@NonNull
+	@Override
+	public FutureSupplier<Boolean> delete() {
+		return getChildren().then(ls -> Async.forEach(VirtualResource::delete, ls).then(v ->
+				getRoot().useChannel(ch -> {
+					try {
+						ch.rmdir(getPath());
+						return true;
+					} catch (Exception ex) {
+						Log.e(ex, "Failed to delete directory ", getPath());
+						return false;
+					}
+				}))
+		);
 	}
 }
