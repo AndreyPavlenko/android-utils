@@ -1,78 +1,113 @@
 package me.aap.utils.ui.view;
 
+import static android.util.TypedValue.COMPLEX_UNIT_PX;
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static me.aap.utils.ui.UiUtils.toIntPx;
+import static me.aap.utils.ui.UiUtils.toPx;
+import static me.aap.utils.ui.view.NavBarView.POSITION_BOTTOM;
+
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.res.TypedArray;
+import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.CornerPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.util.AttributeSet;
+import android.graphics.drawable.Drawable;
+import android.view.Gravity;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatImageView;
 import androidx.appcompat.widget.LinearLayoutCompat;
+import androidx.core.widget.ImageViewCompat;
 
-import me.aap.utils.R;
+import com.google.android.material.textview.MaterialTextView;
+
 import me.aap.utils.ui.UiUtils;
-
-import static me.aap.utils.ui.UiUtils.toIntPx;
-import static me.aap.utils.ui.UiUtils.toPx;
 
 /**
  * @author Andrey Pavlenko
  */
+@SuppressLint("ViewConstructor")
 public class NavButtonView extends LinearLayoutCompat {
-	private boolean compact = false;
+	private final NavBarView navBar;
+	private final int pad;
 
-	public NavButtonView(Context context, @Nullable AttributeSet attrs) {
-		this(context, attrs, R.attr.bottomNavigationStyle);
-	}
-
-	public NavButtonView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-		super(context, attrs, defStyleAttr);
-		inflate(context, R.layout.nav_button_layout, this);
-
-		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.NavButtonView,
-				defStyleAttr, R.style.Theme_Utils_Base_NavBarStyle);
-		getIcon().setImageDrawable(ta.getDrawable(R.styleable.NavButtonView_icon));
-		getText().setText(ta.getText(R.styleable.NavButtonView_text));
-		ta.recycle();
-
-		setOrientation(VERTICAL);
+	public NavButtonView(NavBarView navBar) {
+		super(navBar.getContext());
+		this.navBar = navBar;
 		setClickable(true);
 		setFocusable(true);
-	}
+		setOrientation(VERTICAL);
 
-	boolean isCompact() {
-		return compact;
-	}
+		Context ctx = navBar.getContext();
+		ImageView img = new AppCompatImageView(ctx);
+		boolean bottom = (navBar.getPosition() == POSITION_BOTTOM);
+		LayoutParams lp = new LayoutParams(MATCH_PARENT, MATCH_PARENT);
+		pad = toIntPx(ctx, 2);
+		img.setPadding(0, pad, 0, pad);
+		lp.weight = 1;
+		lp.gravity = Gravity.CENTER;
+		img.setLayoutParams(lp);
+		img.setAlpha(0.5f);
+		ImageViewCompat.setImageTintList(img, ColorStateList.valueOf(navBar.getTint()));
+		addView(img);
 
-	void setCompact(boolean compact) {
-		this.compact = compact;
-		int pad = toIntPx(getContext(), compact ? 12 : 0);
-		setPadding(pad, 0, pad, 0);
-		setSelected(isSelected());
+		if (bottom) {
+			TextView t = new MaterialTextView(ctx);
+			lp = new LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+			lp.gravity = Gravity.CENTER;
+			t.setLayoutParams(lp);
+			t.setTextAppearance(navBar.textAppearance);
+			t.setVisibility(GONE);
+			addView(t);
+		}
 	}
 
 	@Override
 	public void setSelected(boolean selected) {
 		super.setSelected(selected);
-		getIcon().setAlpha(selected ? 1f : 0.5f);
-		if (isCompact()) getText().setVisibility(GONE);
-		else getText().setVisibility(selected ? VISIBLE : GONE);
+		ImageView i = getIcon();
+
+		if (selected) {
+			i.setAlpha(1f);
+			i.setPadding(0, 0, 0, 0);
+		} else {
+			i.setAlpha(0.5f);
+			i.setPadding(0, pad, 0, pad);
+		}
+		TextView t = getText();
+		if (t != null) t.setVisibility(selected ? VISIBLE : GONE);
+	}
+
+	public void setIcon(Drawable icon) {
+		getIcon().setImageDrawable(icon);
+	}
+
+	public void setText(CharSequence text) {
+		TextView t = getText();
+		if (t != null) t.setText(text);
+	}
+
+	public void setTextSize(float size) {
+		TextView t = getText();
+		if (t != null) t.setTextSize(COMPLEX_UNIT_PX, size);
 	}
 
 	public NavBarView getNavBar() {
-		return (NavBarView) getParent();
+		return navBar;
 	}
 
 	public ImageView getIcon() {
 		return (ImageView) getChildAt(0);
 	}
 
-	public TextView getText() {
-		return (TextView) getChildAt(1);
+	@Nullable
+	TextView getText() {
+		return (getChildCount() == 2) ? (TextView) getChildAt(1) : null;
 	}
 
 	public static class Ext extends NavButtonView {
@@ -80,9 +115,9 @@ public class NavButtonView extends LinearLayoutCompat {
 		private final CornerPathEffect corner;
 		private boolean hasExt;
 
-		public Ext(Context ctx, @Nullable AttributeSet attrs) {
-			super(ctx, attrs);
-			corner = new CornerPathEffect(toPx(ctx, 1));
+		public Ext(NavBarView navBar) {
+			super(navBar);
+			corner = new CornerPathEffect(toPx(navBar.getContext(), 1));
 		}
 
 		public void setHasExt(boolean hasExt) {
@@ -102,7 +137,7 @@ public class NavButtonView extends LinearLayoutCompat {
 			float len = toPx(ctx, 4);
 			path.reset();
 
-			if (isCompact()) {
+			if (getText() == null) {
 				float y2 = getHeight() - 2 * w;
 				float y1 = y2 - len;
 				float x2 = getWidth() / 2f;

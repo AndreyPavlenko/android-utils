@@ -1,5 +1,19 @@
 package me.aap.utils.ui.fragment;
 
+import static android.view.KeyEvent.KEYCODE_DPAD_CENTER;
+import static android.view.KeyEvent.KEYCODE_ENTER;
+import static android.view.KeyEvent.KEYCODE_NUMPAD_ENTER;
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEFT;
+import static java.util.Objects.requireNonNull;
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.ui.UiUtils.toPx;
+import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
+import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
+
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -31,20 +45,6 @@ import me.aap.utils.ui.view.VirtualResourceAdapter;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
-
-import static android.view.KeyEvent.KEYCODE_DPAD_CENTER;
-import static android.view.KeyEvent.KEYCODE_ENTER;
-import static android.view.KeyEvent.KEYCODE_NUMPAD_ENTER;
-import static android.view.View.GONE;
-import static android.view.View.VISIBLE;
-import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
-import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
-import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEFT;
-import static java.util.Objects.requireNonNull;
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.ui.UiUtils.toPx;
-import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
-import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
 
 /**
  * @author Andrey Pavlenko
@@ -167,7 +167,13 @@ public class FilePickerFragment extends GenericDialogFragment implements
 	@Override
 	public boolean onBackPressed() {
 		ListView<VirtualResource> v = getListView();
-		if ((v == null) || (v.getParentItem() == null)) return false;
+		if ((v == null) || (v.getParentItem() == null)) {
+			if ((state != null) && (state.consumer != null)) {
+				pick(null);
+				return true;
+			}
+			return false;
+		}
 
 		v.setParentItems();
 		return true;
@@ -343,7 +349,7 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		default EditText createPath(ToolBarView tb, FilePickerFragment f) {
 			EditText t = createEditText(tb);
 			ConstraintLayout.LayoutParams lp = setLayoutParams(t, 0, WRAP_CONTENT);
-			t.setBackgroundResource(R.drawable.tool_bar_edittext_bg);
+			t.setBackgroundResource(R.color.tool_bar_edittext_bg);
 			t.setOnKeyListener((v, k, e) -> onPathKeyEvent(f, t, k, e));
 			t.setMaxLines(1);
 			t.setSingleLine(true);

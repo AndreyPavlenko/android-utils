@@ -1,5 +1,8 @@
 package me.aap.utils.pref;
 
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,9 +13,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import me.aap.utils.R;
 import me.aap.utils.app.App;
 import me.aap.utils.ui.UiUtils;
-
-import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
-import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 
 
 /**
@@ -98,6 +98,14 @@ public class PreferenceViewAdapter extends RecyclerView.Adapter<PreferenceViewAd
 
 	public PreferenceSet getPreferenceSet() {
 		return set;
+	}
+
+	public void setSize(float scale) {
+		if (recyclerView == null) return;
+		Context ctx = recyclerView.getContext();
+		for (int i = 0, n = recyclerView.getChildCount(); i < n; i++) {
+			((PreferenceView) recyclerView.getChildAt(i)).setSize(ctx, scale);
+		}
 	}
 
 	public static class PrefViewHolder extends RecyclerView.ViewHolder {

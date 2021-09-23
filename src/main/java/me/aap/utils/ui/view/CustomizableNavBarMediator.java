@@ -136,7 +136,6 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator,
 		NavBarView nb = (NavBarView) v.getParent();
 		OverlayMenuView menu = createOverlayMenu(nb, false);
 		ColorStateList tint = extButton.getIcon().getImageTintList();
-		ColorStateList textColor = extButton.getText().getTextColors();
 		menu.show(b -> {
 			int selectedId = extButton.getId();
 			OverlayMenuItemView selected = null;
@@ -145,7 +144,7 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator,
 				int id = i.getId();
 				OverlayMenuItemView item = (OverlayMenuItemView) b.addItem(id,
 						i.getIcon(), i.getText()).setData(i);
-				item.setTextColor(textColor);
+				item.setTextColor(tint);
 				TextViewCompat.setCompoundDrawableTintList(item, tint);
 				if (id == selectedId) selected = item;
 			}
@@ -164,21 +163,20 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator,
 		int count = nb.getChildCount();
 		OverlayMenuView menu = createOverlayMenu(nb, true);
 		ColorStateList tint = btn.getIcon().getImageTintList();
-		ColorStateList textColor = btn.getText().getTextColors();
 		menu.show(b -> {
 			if (nb.getPosition() == POSITION_BOTTOM) {
 				if (idx != 0) {
 					OverlayMenuItemView item = (OverlayMenuItemView)
 							b.addItem(R.id.left, R.drawable.move_left, R.string.move_left);
 					item.setHandler(i -> swap(nb, btn.getId(), nb.getChildAt(idx - 1).getId()));
-					item.setTextColor(textColor);
+					item.setTextColor(tint);
 					TextViewCompat.setCompoundDrawableTintList(item, tint);
 				}
 				if (idx != (count - 1)) {
 					OverlayMenuItemView item = (OverlayMenuItemView)
 							b.addItem(R.id.right, R.drawable.move_right, R.string.move_right);
 					item.setHandler(i -> swap(nb, btn.getId(), nb.getChildAt(idx + 1).getId()));
-					item.setTextColor(textColor);
+					item.setTextColor(tint);
 					TextViewCompat.setCompoundDrawableTintList(item, tint);
 				}
 			} else {
@@ -186,14 +184,14 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator,
 					OverlayMenuItemView item = (OverlayMenuItemView)
 							b.addItem(R.id.up, R.drawable.move_up, R.string.move_up);
 					item.setHandler(i -> swap(nb, btn.getId(), nb.getChildAt(idx - 1).getId()));
-					item.setTextColor(textColor);
+					item.setTextColor(tint);
 					TextViewCompat.setCompoundDrawableTintList(item, tint);
 				}
 				if (idx != (count - 1)) {
 					OverlayMenuItemView item = (OverlayMenuItemView)
 							b.addItem(R.id.down, R.drawable.move_down, R.string.move_down);
 					item.setHandler(i -> swap(nb, btn.getId(), nb.getChildAt(idx + 1).getId()));
-					item.setTextColor(textColor);
+					item.setTextColor(tint);
 					TextViewCompat.setCompoundDrawableTintList(item, tint);
 				}
 			}
@@ -280,7 +278,7 @@ public abstract class CustomizableNavBarMediator implements NavBarView.Mediator,
 		} else {
 			extButton.setId(i.getId());
 			extButton.getIcon().setImageDrawable(i.getIcon());
-			extButton.getText().setText(i.getText());
+			extButton.setText(i.getText());
 		}
 
 		return extButton;

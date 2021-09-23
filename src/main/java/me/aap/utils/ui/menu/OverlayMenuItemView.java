@@ -1,5 +1,10 @@
 package me.aap.utils.ui.menu;
 
+import static android.util.TypedValue.COMPLEX_UNIT_PX;
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static me.aap.utils.ui.UiUtils.ID_NULL;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -25,10 +30,6 @@ import me.aap.utils.function.Function;
 import me.aap.utils.ui.menu.OverlayMenu.Builder;
 import me.aap.utils.ui.menu.OverlayMenu.SelectionHandler;
 
-import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
-import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
-import static me.aap.utils.ui.UiUtils.ID_NULL;
-
 /**
  * @author Andrey Pavlenko
  */
@@ -40,7 +41,7 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 	private Object data;
 	private boolean isLongClick;
 
-	OverlayMenuItemView(OverlayMenuView parent, int id, Drawable icon, CharSequence text) {
+	OverlayMenuItemView(OverlayMenuView parent, int id, Drawable icon, CharSequence text, float scale) {
 		super(parent.getContext(), null, R.attr.popupMenuStyle);
 		this.parent = parent;
 		setId(id);
@@ -53,7 +54,7 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance, R.attr.textAppearanceListItem);
 		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_itemPadding, 5);
 		ta.recycle();
-		init(icon, iconTint, text, textColor, textAppearance, padding);
+		init(icon, iconTint, text, textColor, textAppearance, padding, scale);
 	}
 
 	@SuppressLint("InlinedApi")
@@ -66,12 +67,13 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 		Drawable icon = ta.getDrawable(R.styleable.OverlayMenuItemView_icon);
 		CharSequence text = ta.getText(R.styleable.OverlayMenuItemView_text);
 		int textColor = ta.getColor(R.styleable.OverlayMenuItemView_android_textColor, Color.BLACK);
-		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance, R.attr.textAppearanceListItem);
+		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance,
+				R.attr.textAppearanceListItem);
 		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_itemPadding, 5);
 		int submenu = ta.getResourceId(R.styleable.OverlayMenuItemView_submenu, ID_NULL);
 		ta.recycle();
 
-		init(icon, iconTint, text, textColor, textAppearance, padding);
+		init(icon, iconTint, text, textColor, textAppearance, padding, 1F);
 
 		if (submenu != ID_NULL) {
 			setSubmenu(submenu);
@@ -81,14 +83,14 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 	}
 
 	private void init(Drawable icon, ColorStateList iconTint, CharSequence text,
-										int textColor, int textAppearance, int padding) {
+										int textColor, int textAppearance, int padding, float scale) {
 		LinearLayoutCompat.LayoutParams lp = new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
 		setLayoutParams(lp);
 		setText(text);
 		setTextAppearance(textAppearance);
 		setTextColor(textColor);
 		setCompoundDrawableTintList(iconTint);
-		setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
+
 		setCompoundDrawablePadding(padding);
 		setPadding(padding, padding, padding, padding);
 		setSingleLine(true);
@@ -100,6 +102,20 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 		setOnLongClickListener(this);
 		setBackgroundResource(R.drawable.focusable_shape_transparent);
 		setMovementMethod(new ScrollingMovementMethod());
+
+		if (scale != 1F) {
+			TypedArray ta = getContext().obtainStyledAttributes(textAppearance, new int[]{android.R.attr.textSize});
+			setTextSize(COMPLEX_UNIT_PX, ta.getDimensionPixelSize(0, 0) * scale);
+			ta.recycle();
+
+			if (icon != null) {
+				icon.setBounds(0, 0, (int) (icon.getIntrinsicWidth() * scale),
+						(int) (icon.getIntrinsicHeight() * scale));
+				setCompoundDrawables(icon, null, null, null);
+			}
+		} else if (icon != null) {
+			setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
+		}
 	}
 
 	public int getItemId() {

@@ -6,6 +6,7 @@ import static android.view.KeyEvent.KEYCODE_DPAD_DOWN;
 import static android.view.KeyEvent.KEYCODE_DPAD_UP;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -24,8 +25,12 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
+import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.annotation.StyleRes;
+import androidx.appcompat.content.res.AppCompatResources;
 
 import me.aap.utils.R;
 import me.aap.utils.async.FutureSupplier;
@@ -51,6 +56,13 @@ public class UiUtils {
 		return (int) toPx(ctx, dp);
 	}
 
+	public static int getTextAppearanceSize(Context ctx, @StyleRes int textAppearance) {
+		TypedArray ta = ctx.obtainStyledAttributes(textAppearance, new int[]{android.R.attr.textSize});
+		int size = ta.getDimensionPixelSize(0, 0);
+		ta.recycle();
+		return size;
+	}
+
 	public static void showAlert(Context ctx, @StringRes int msg) {
 		showAlert(ctx, ctx.getString(msg));
 	}
@@ -74,14 +86,17 @@ public class UiUtils {
 				.show();
 	}
 
-	public static FutureSupplier<Void> showQuestion(Context ctx, @StringRes int title, @StringRes int msg) {
-		return showQuestion(ctx, ctx.getString(title), ctx.getString(msg));
+	public static FutureSupplier<Void> showQuestion(
+			Context ctx, @StringRes int title, @StringRes int msg, @DrawableRes int icon) {
+		return showQuestion(ctx, ctx.getString(title), ctx.getString(msg),
+				(icon == ID_NULL) ? null : AppCompatResources.getDrawable(ctx, icon));
 	}
 
-	public static FutureSupplier<Void> showQuestion(Context ctx, CharSequence title, CharSequence msg) {
+	public static FutureSupplier<Void> showQuestion(
+			Context ctx, CharSequence title, CharSequence msg, @Nullable Drawable icon) {
 		Promise<Void> p = new Promise<>();
 		ActivityDelegate.get(ctx).createDialogBuilder(ctx)
-				.setTitle(null, title)
+				.setTitle(icon, title)
 				.setMessage(msg)
 				.setNegativeButton(android.R.string.cancel, (d, w) -> p.cancel())
 				.setPositiveButton(android.R.string.ok, (d, w) -> p.complete(null))

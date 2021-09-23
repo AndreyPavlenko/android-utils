@@ -1,5 +1,13 @@
 package me.aap.utils.ui.view;
 
+import static android.content.res.Configuration.SCREEN_HEIGHT_DP_UNDEFINED;
+import static android.content.res.Configuration.SCREEN_WIDTH_DP_UNDEFINED;
+import static android.util.TypedValue.COMPLEX_UNIT_PX;
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static me.aap.utils.ui.UiUtils.getTextAppearanceSize;
+import static me.aap.utils.ui.UiUtils.isVisible;
+import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
+
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
@@ -8,28 +16,25 @@ import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.DimenRes;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.annotation.StyleRes;
 import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.core.content.ContextCompat;
 
 import me.aap.utils.R;
-import me.aap.utils.function.BiFunction;
+import me.aap.utils.function.Function;
 import me.aap.utils.ui.activity.ActivityDelegate;
 import me.aap.utils.ui.activity.ActivityListener;
 import me.aap.utils.ui.fragment.ActivityFragment;
 import me.aap.utils.ui.fragment.ViewFragmentMediator;
-
-import static android.content.res.Configuration.SCREEN_HEIGHT_DP_UNDEFINED;
-import static android.content.res.Configuration.SCREEN_WIDTH_DP_UNDEFINED;
-import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
-import static me.aap.utils.ui.UiUtils.isVisible;
-import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
 
 /**
  * @author Andrey Pavlenko
@@ -39,9 +44,13 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 	public static final int POSITION_LEFT = 1;
 	public static final int POSITION_RIGHT = 2;
 	@ColorInt
-	private final int bgColor;
-	@ColorInt
 	private final int tint;
+	@DimenRes
+	private final int size;
+	@StyleRes
+	final int textAppearance;
+	@ColorInt
+	private final int bgColor;
 	private int position;
 	private Mediator mediator;
 
@@ -52,18 +61,16 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 	public NavBarView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
 
-		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.NavBarView);
-		position = ta.getInt(R.styleable.NavBarView_position, POSITION_BOTTOM);
-		if (position != POSITION_BOTTOM) setOrientation(VERTICAL);
-		ta.recycle();
-
-		ta = context.obtainStyledAttributes(attrs,
-				new int[]{android.R.attr.colorBackground, R.attr.tint},
+		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.NavBarView,
 				R.attr.bottomNavigationStyle, R.style.Theme_Utils_Base_NavBarStyle);
-		bgColor = ta.getColor(0, Color.TRANSPARENT);
-		tint = ta.getColor(1, Color.TRANSPARENT);
-		setBackgroundColor(bgColor);
+		tint = ta.getColor(R.styleable.NavBarView_tint, Color.TRANSPARENT);
+		size = ta.getLayoutDimension(R.styleable.NavBarView_size, 0);
+		textAppearance = ta.getResourceId(R.styleable.NavBarView_textAppearance, 0);
+		position = ta.getInt(R.styleable.NavBarView_position, POSITION_BOTTOM);
+		bgColor = ta.getColor(R.styleable.NavBarView_android_colorBackground, Color.TRANSPARENT);
 		ta.recycle();
+		setBackgroundColor(bgColor);
+		if (position != POSITION_BOTTOM) setOrientation(VERTICAL);
 
 		ActivityDelegate a = getActivity();
 		a.addBroadcastListener(this, Mediator.DEFAULT_EVENT_MASK);
@@ -79,6 +86,26 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 		setOrientation((pos == POSITION_BOTTOM) ? HORIZONTAL : VERTICAL);
 		setMediator((ActivityFragment) null);
 		setMediator(getActivity().getActiveFragment());
+	}
+
+	public void setSize(float scale) {
+		int s = (int) (size * scale);
+		ViewGroup.LayoutParams lp = getLayoutParams();
+		if (lp == null) lp = new LinearLayoutCompat.LayoutParams(0, 0);
+
+		if (getPosition() == POSITION_BOTTOM) {
+			float ts = getTextAppearanceSize(getContext(), textAppearance) * scale;
+			for (int i = 0, n = getChildCount(); i < n; i++) {
+				((NavButtonView) getChildAt(i)).setTextSize(ts);
+			}
+			lp.width = MATCH_PARENT;
+			lp.height = s;
+		} else {
+			lp.width = s;
+			lp.height = MATCH_PARENT;
+		}
+
+		setLayoutParams(lp);
 	}
 
 	public boolean isBottom() {
@@ -107,8 +134,19 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 	}
 
 	protected boolean setMediator(ActivityFragment f) {
-		return attachMediator(this, f, (f == null) ? null : f::getNavBarMediator,
+		boolean attached = attachMediator(this, f, (f == null) ? null : f::getNavBarMediator,
 				this::getMediator, this::setMediator);
+		if (!attached || (f == null)) return false;
+		float scale = f.getActivityDelegate().getNavBarSize();
+
+		if (scale == 1F) {
+			if (getPosition() == POSITION_BOTTOM) getLayoutParams().height = size;
+			else getLayoutParams().width = size;
+		} else {
+			setSize(scale);
+		}
+
+		return true;
 	}
 
 	protected ActivityDelegate getActivity() {
@@ -306,9 +344,8 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 		}
 
 		default <B extends NavButtonView> B createButton(
-				NavBarView nb, BiFunction<Context, AttributeSet, B> constructor, Drawable icon, CharSequence text) {
-			B b = constructor.apply(nb.getContext(), null);
-			b.setCompact(nb.getPosition() != POSITION_BOTTOM);
+				NavBarView nb, Function<NavBarView, B> constructor, Drawable icon, CharSequence text) {
+			B b = constructor.apply(nb);
 			initButton(b, icon, text);
 			return b;
 		}
@@ -316,8 +353,8 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 		default void initButton(NavButtonView b, Drawable icon, CharSequence text) {
 			LinearLayoutCompat.LayoutParams lp = new LinearLayoutCompat.LayoutParams(MATCH_PARENT, MATCH_PARENT, 1.0f);
 			b.setLayoutParams(lp);
-			b.getIcon().setImageDrawable(icon);
-			b.getText().setText(text);
+			b.setIcon(icon);
+			b.setText(text);
 			b.setBackgroundResource(R.drawable.focusable_shape_transparent);
 		}
 	}

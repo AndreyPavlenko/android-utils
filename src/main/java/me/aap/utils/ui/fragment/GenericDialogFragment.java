@@ -1,5 +1,9 @@
 package me.aap.utils.ui.fragment;
 
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
+import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
+
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.TextView;
@@ -16,10 +20,6 @@ import me.aap.utils.ui.activity.ActivityDelegate;
 import me.aap.utils.ui.view.FloatingButton;
 import me.aap.utils.ui.view.ImageButton;
 import me.aap.utils.ui.view.ToolBarView;
-
-import static android.view.View.GONE;
-import static android.view.View.VISIBLE;
-import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
 
 /**
  * @author Andrey Pavlenko

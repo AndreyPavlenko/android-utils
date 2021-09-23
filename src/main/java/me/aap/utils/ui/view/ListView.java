@@ -327,7 +327,7 @@ public class ListView<I> extends RecyclerView {
 		private I item;
 
 		public Holder() {
-			this(new TextView(getContext(), null, defStyleAttr));
+			this(new ScalableTextView(getContext(), null, defStyleAttr));
 		}
 
 		public Holder(@NonNull View itemView) {

@@ -1,5 +1,6 @@
 package me.aap.utils.pref;
 
+import static android.util.TypedValue.COMPLEX_UNIT_PX;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
@@ -9,12 +10,15 @@ import static me.aap.utils.ui.fragment.FilePickerFragment.FILE_OR_FOLDER;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -25,6 +29,7 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.annotation.StyleRes;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import java.io.File;
@@ -59,6 +64,11 @@ import me.aap.utils.vfs.local.LocalFileSystem;
  * @author Andrey Pavlenko
  */
 public class PreferenceView extends ConstraintLayout {
+	private final ColorStateList textTint;
+	@StyleRes
+	private final int titleTextAppearance;
+	@StyleRes
+	private final int subtitleTextAppearance;
 	private Opts opts;
 	private PreferenceViewAdapter adapter;
 	private Supplier<? extends PreferenceView.Opts> supplier;
@@ -71,6 +81,33 @@ public class PreferenceView extends ConstraintLayout {
 
 	public PreferenceView(Context ctx, AttributeSet attrs) {
 		super(ctx, attrs, android.R.attr.preferenceStyle);
+		TypedArray ta = ctx.obtainStyledAttributes(attrs, R.styleable.PreferenceView,
+				android.R.attr.preferenceStyle, R.style.Theme_Utils_Base_PreferenceStyle);
+		textTint = ta.getColorStateList(R.styleable.PreferenceView_android_textColor);
+		titleTextAppearance = ta.getResourceId(R.styleable.PreferenceView_titleTextAppearance, 0);
+		subtitleTextAppearance = ta.getResourceId(R.styleable.PreferenceView_subtitleTextAppearance, 0);
+		ta.recycle();
+	}
+
+	void setSize(Context ctx, float scale) {
+		setTextAppearance(ctx, getTitleView(), titleTextAppearance, scale);
+		setTextAppearance(ctx, getSubtitleView(), subtitleTextAppearance, scale);
+		setFooterTextAppearance(ctx, scale);
+	}
+
+	private void setTextAppearance(Context ctx, TextView v, @StyleRes int res, float scale) {
+		v.setTextAppearance(res);
+		TypedArray ta = ctx.obtainStyledAttributes(res, new int[]{android.R.attr.textSize});
+		v.setTextSize(COMPLEX_UNIT_PX, ta.getDimensionPixelSize(0, 0) * scale);
+		ta.recycle();
+		v.setTextColor(textTint);
+	}
+
+	private void setFooterTextAppearance(Context ctx, float scale) {
+		for (int i = 2, n = getChildCount(); i < n; i++) {
+			View v = getChildAt(i);
+			if (v instanceof TextView) setTextAppearance(ctx, (TextView) v, subtitleTextAppearance, scale);
+		}
 	}
 
 	void cleanUp() {
@@ -435,7 +472,8 @@ public class PreferenceView extends ConstraintLayout {
 
 	private void setPreference(@LayoutRes int layout, Opts opts) {
 		removeAllViews();
-		inflate(getContext(), layout, this);
+		Context ctx = getContext();
+		inflate(ctx, layout, this);
 
 		ImageView iconView = getIconView();
 		TextView titleView = getTitleView();
@@ -462,6 +500,11 @@ public class PreferenceView extends ConstraintLayout {
 			subtitleView.setVisibility(VISIBLE);
 			subtitleView.setText(opts.subtitle);
 		}
+
+		float scale = ActivityDelegate.get(getContext()).getTextIconSize();
+		setTextAppearance(ctx, titleView, titleTextAppearance, scale);
+		setTextAppearance(ctx, subtitleView, subtitleTextAppearance, scale);
+		setFooterTextAppearance(ctx, scale);
 
 		if (opts.visibility != null) {
 			if (opts.visibility.get()) {

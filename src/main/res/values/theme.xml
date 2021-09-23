@@ -16,14 +16,10 @@
         <item name="materialAlertDialogTheme">@style/Theme.Utils.Base.AlertDialog</item>
 
         <item name="rippleColor">#FFFFFF</item>
-
         <item name="boxStrokeColor">?attr/colorPrimaryDark</item>
         <item name="boxStrokeWidth">1dp</item>
         <item name="cornerRadius">5dp</item>
-
         <item name="thumbTint">@color/thumb_color</item>
-
-        <item name="editTextStyle">@style/Theme.Utils.Base.EditTextStyle</item>
 
         <!--Text appearance-->
         <item name="textAppearanceHeadline1">@style/TextAppearance.MaterialComponents.Headline1
@@ -47,12 +43,7 @@
         <item name="textAppearanceButton">@style/TextAppearance.MaterialComponents.Button</item>
         <item name="textAppearanceCaption">@style/TextAppearance.MaterialComponents.Caption</item>
         <item name="textAppearanceOverline">@style/TextAppearance.MaterialComponents.Overline</item>
-
         <item name="textAppearanceListItem">@style/TextAppearance.Utils.ListItem</item>
-    </style>
-
-    <style name="Theme.Utils.Base.EditTextStyle" parent="Widget.AppCompat.EditText">
-        <item name="android:textColor">?attr/editTextColor</item>
     </style>
 
     <style name="Theme.Utils.Base.PopupMenuStyle">
@@ -64,27 +55,41 @@
     </style>
 
     <style name="Theme.Utils.Base.ToolBarStyle">
+        <item name="size">40dp</item>
         <item name="tint">?attr/colorOnPrimary</item>
         <item name="android:colorBackground">?attr/colorPrimary</item>
-        <item name="android:textColor">?android:attr/textColorPrimary</item>
-        <item name="android:paddingTop">0dp</item>
-        <item name="android:paddingBottom">0dp</item>
-        <item name="android:editTextStyle">@style/Theme.Utils.Base.ToolBarEditTextStyle</item>
+        <item name="textAppearance">@style/Theme.Utils.Base.ToolBarTextAppearance</item>
+        <item name="editTextAppearance">@style/Theme.Utils.Base.ToolBarEditTextAppearance</item>
     </style>
 
-    <style name="Theme.Utils.Base.ToolBarEditTextStyle" parent="Theme.Utils.Base.EditTextStyle">
-        <item name="android:textAppearance">@style/Theme.Utils.Base.ToolBarEditTextAppearance</item>
+    <style name="Theme.Utils.Base.ToolBarTextAppearance" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
 
     <style name="Theme.Utils.Base.ToolBarEditTextAppearance" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">16sp</item>
         <item name="android:textColor">?attr/editTextColor</item>
     </style>
 
-    <style name="Theme.Utils.Base.NavBarStyle" parent="Theme.Utils.Base.ToolBarStyle" />
+    <style name="Theme.Utils.Base.NavBarStyle">
+        <item name="size">36dp</item>
+        <item name="tint">?attr/colorOnPrimary</item>
+        <item name="android:colorBackground">?attr/colorPrimary</item>
+        <item name="textAppearance">@style/Theme.Utils.Base.NavBarTextAppearance</item>
+    </style>
+
+    <style name="Theme.Utils.Base.NavBarTextAppearance" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
+    </style>
 
     <style name="Theme.Utils.Base.PreferenceStyle">
         <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:textColorHint">?android:attr/textColorHint</item>
         <item name="tint">?attr/colorOnSecondary</item>
+        <item name="titleTextAppearance">?attr/textAppearanceListItem</item>
+        <item name="subtitleTextAppearance">?attr/textAppearanceCaption</item>
     </style>
 
     <style name="Theme.Utils.Base.FileListViewStyle">

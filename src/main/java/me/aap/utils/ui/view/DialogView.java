@@ -1,5 +1,8 @@
 package me.aap.utils.ui.view;
 
+import static me.aap.utils.R.styleable.DialogView_listLayout;
+import static me.aap.utils.R.styleable.DialogView_singleChoiceItemLayout;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -120,7 +123,7 @@ public class DialogView extends FrameLayout implements DialogInterface {
 			}
 
 			if (title != null) {
-				TextView text = (TextView) t.findViewById(R.id.alertTitle);
+				TextView text = t.findViewById(R.id.alertTitle);
 				text.setText(title);
 			}
 
@@ -131,7 +134,7 @@ public class DialogView extends FrameLayout implements DialogInterface {
 		public DialogBuilder setMessage(@NonNull CharSequence message) {
 			View c = dialog.findViewById(R.id.contentPanel);
 			c.setVisibility(VISIBLE);
-			TextView text = (TextView) c.findViewById(android.R.id.message);
+			TextView text = c.findViewById(android.R.id.message);
 			text.setText(message);
 			return this;
 		}
@@ -169,12 +172,11 @@ public class DialogView extends FrameLayout implements DialogInterface {
 		public DialogBuilder setSingleChoiceItems(@NonNull CharSequence[] items, int checkedItem,
 																							@Nullable DialogInterface.OnClickListener listener) {
 			Context ctx = getContext();
-			TypedArray a = ctx.obtainStyledAttributes(null, new int[]{
-					R.attr.listLayout,
-					R.attr.singleChoiceItemLayout,
-			}, R.attr.alertDialogStyle, R.style.Theme_Utils_Base_AlertDialog_Style);
-			int layout = a.getResourceId(0, 0);
-			int itemLayout = a.getResourceId(1, R.layout.mtrl_alert_select_dialog_singlechoice);
+			TypedArray a = ctx.obtainStyledAttributes(null, R.styleable.DialogView,
+					R.attr.alertDialogStyle, R.style.Theme_Utils_Base_AlertDialog_Style);
+			int layout = a.getResourceId(DialogView_listLayout, 0);
+			int itemLayout = a.getResourceId(DialogView_singleChoiceItemLayout,
+					R.layout.mtrl_alert_select_dialog_singlechoice);
 			a.recycle();
 
 			ListView list = (ListView) LayoutInflater.from(getContext()).inflate(layout, null);

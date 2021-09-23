@@ -291,12 +291,24 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		return getAppActivity().getSupportFragmentManager();
 	}
 
+	public ToolBarView getToolBar() {
+		return null;
+	}
+
+	public float getToolBarSize() {
+		return 1F;
+	}
+
 	public NavBarView getNavBar() {
 		return null;
 	}
 
-	public ToolBarView getToolBar() {
-		return null;
+	public float getNavBarSize() {
+		return 1F;
+	}
+
+	public float getTextIconSize() {
+		return 1F;
 	}
 
 	public int getActiveFragmentId() {

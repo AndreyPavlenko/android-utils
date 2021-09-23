@@ -1,5 +1,17 @@
 package me.aap.utils.ui.view;
 
+import static android.util.TypedValue.COMPLEX_UNIT_PX;
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEFT;
+import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
+import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.RIGHT;
+import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET;
+import static me.aap.utils.ui.UiUtils.getTextAppearanceSize;
+import static me.aap.utils.ui.UiUtils.isVisible;
+import static me.aap.utils.ui.UiUtils.toIntPx;
+import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -7,10 +19,12 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.DimenRes;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
@@ -31,20 +45,17 @@ import me.aap.utils.ui.activity.ActivityListener;
 import me.aap.utils.ui.fragment.ActivityFragment;
 import me.aap.utils.ui.fragment.ViewFragmentMediator;
 
-import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
-import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEFT;
-import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
-import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.RIGHT;
-import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET;
-import static me.aap.utils.ui.UiUtils.isVisible;
-import static me.aap.utils.ui.UiUtils.toIntPx;
-import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
-
 /**
  * @author Andrey Pavlenko
  */
 public class ToolBarView extends ConstraintLayout implements ActivityListener,
 		EventBroadcaster<ToolBarView.Listener> {
+	@DimenRes
+	private final int size;
+	@StyleRes
+	private final int textAppearance;
+	@StyleRes
+	private final int editTextAppearance;
 	private Mediator mediator;
 	private final Collection<ListenerRef<Listener>> listeners = new LinkedList<>();
 
@@ -55,14 +66,32 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 	public ToolBarView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
 
-		TypedArray ta = context.obtainStyledAttributes(attrs, new int[]{android.R.attr.colorBackground},
+		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.ToolBarView,
 				R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
-		setBackgroundColor(ta.getColor(0, Color.TRANSPARENT));
+		size = ta.getLayoutDimension(R.styleable.ToolBarView_size, 0);
+		textAppearance = ta.getResourceId(R.styleable.ToolBarView_textAppearance, 0);
+		editTextAppearance = ta.getResourceId(R.styleable.ToolBarView_editTextAppearance, 0);
+		setBackgroundColor(ta.getColor(R.styleable.ToolBarView_android_colorBackground, Color.TRANSPARENT));
 		ta.recycle();
 
 		ActivityDelegate a = getActivity();
 		a.addBroadcastListener(this, Mediator.DEFAULT_EVENT_MASK);
 		setMediator(a.getActiveFragment());
+	}
+
+	public void setSize(float scale) {
+		Context ctx = getContext();
+		float ts = getTextAppearanceSize(ctx, textAppearance) * scale;
+		float ets = getTextAppearanceSize(ctx, editTextAppearance) * scale;
+		ViewGroup.LayoutParams lp = getLayoutParams();
+		lp.height = (int) (size * scale);
+		setLayoutParams(lp);
+
+		for (int i = 0, n = getChildCount(); i < n; i++) {
+			View v = getChildAt(i);
+			if (v instanceof EditText) ((EditText) v).setTextSize(COMPLEX_UNIT_PX, ets);
+			else if (v instanceof TextView) ((TextView) v).setTextSize(COMPLEX_UNIT_PX, ts);
+		}
 	}
 
 	public Mediator getMediator() {
@@ -74,8 +103,13 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 	}
 
 	protected boolean setMediator(ActivityFragment f) {
-		return attachMediator(this, f, (f == null) ? null : f::getToolBarMediator,
+		boolean attached = attachMediator(this, f, (f == null) ? null : f::getToolBarMediator,
 				this::getMediator, this::setMediator);
+		if (!attached || (f == null)) return false;
+		float scale = f.getActivityDelegate().getToolBarSize();
+		if (scale != 1F) setSize(scale);
+		else getLayoutParams().height = size;
+		return true;
 	}
 
 	public boolean onBackPressed() {
@@ -248,7 +282,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 		}
 
 		default <B extends ImageButton> B initButton(B b, @DrawableRes int icon, OnClickListener onClick) {
-			ConstraintLayout.LayoutParams lp = setLayoutParams(b, 0, WRAP_CONTENT);
+			ConstraintLayout.LayoutParams lp = setLayoutParams(b, 0, MATCH_PARENT);
 			lp.horizontalWeight = 1;
 			lp.dimensionRatio = "1:1";
 			b.setImageResource(icon);
@@ -273,21 +307,8 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 		default EditText createEditText(ToolBarView tb) {
 			Context ctx = tb.getContext();
 			EditText t = ActivityDelegate.get(ctx).createEditText(ctx);
-			t.setTextAppearance(getEditTextAppearance(ctx));
+			t.setTextAppearance(tb.editTextAppearance);
 			return t;
-		}
-
-		@StyleRes
-		default int getEditTextAppearance(Context ctx) {
-			TypedArray ta = ctx.obtainStyledAttributes(null, new int[]{R.attr.editTextStyle},
-					R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
-			int style = ta.getResourceId(0, R.style.Theme_Utils_Base_ToolBarEditTextStyle);
-			ta.recycle();
-			ta = ctx.obtainStyledAttributes(null, new int[]{android.R.attr.textAppearance},
-					style, R.style.Theme_Utils_Base_ToolBarEditTextStyle);
-			style = ta.getResourceId(0, R.style.Theme_Utils_Base_ToolBarEditTextAppearance);
-			ta.recycle();
-			return style;
 		}
 
 		default Mediator join(Mediator m) {
@@ -368,7 +389,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 			default TextView createTitleText(ToolBarView tb) {
 				Context ctx = tb.getContext();
 				MaterialTextView t = new MaterialTextView(ctx, null, R.attr.toolbarStyle);
-				t.setTextAppearance(getTitleTextAppearance(ctx));
+				t.setTextAppearance(tb.textAppearance);
 				t.setMaxLines(1);
 				t.setFocusable(false);
 				t.setEllipsize(TextUtils.TruncateAt.END);
@@ -376,15 +397,6 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 				lp.horizontalWeight = 2;
 				lp.endToEnd = PARENT_ID;
 				return t;
-			}
-
-			@StyleRes
-			default int getTitleTextAppearance(Context ctx) {
-				TypedArray ta = ctx.obtainStyledAttributes(null, new int[]{R.attr.textAppearanceHeadline6},
-						R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
-				int style = ta.getResourceId(0, R.style.TextAppearance_MaterialComponents_Headline6);
-				ta.recycle();
-				return style;
 			}
 
 			default boolean backOnTitleClick() {
@@ -519,11 +531,11 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 				EditText t = createEditText(tb);
 				TextChangedListener l = s -> tb.fireBroadcastEvent(r -> r.onToolBarEvent(tb, Listener.FILTER_CHANGED));
 				t.addTextChangedListener(l);
-				t.setBackgroundResource(R.drawable.tool_bar_edittext_bg);
+				t.setBackgroundResource(R.color.tool_bar_edittext_bg);
 				t.setOnKeyListener(UiUtils::dpadFocusHelper);
 				t.setMaxLines(1);
 				setFilterPadding(t);
-				setLayoutParams(t, 0, WRAP_CONTENT);
+				setLayoutParams(t, 0, MATCH_PARENT);
 				return t;
 			}
 

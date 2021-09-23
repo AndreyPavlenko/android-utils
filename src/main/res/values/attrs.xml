@@ -7,6 +7,48 @@
     <attr name="numLabels" format="integer" />
     <attr name="itemPadding" format="dimension" />
 
+    <declare-styleable name="ToolBarView">
+        <attr name="size" format="dimension|reference" />
+        <attr name="textAppearance" format="reference" />
+        <attr name="editTextAppearance" format="reference" />
+        <attr name="android:colorBackground" />
+    </declare-styleable>
+
+    <declare-styleable name="NavBarView">
+        <attr name="position" format="enum">
+            <enum name="BOTTOM" value="0" />
+            <enum name="LEFT" value="1" />
+            <enum name="RIGHT" value="2" />
+        </attr>
+        <attr name="tint" />
+        <attr name="size" />
+        <attr name="textAppearance" />
+        <attr name="android:colorBackground" />
+    </declare-styleable>
+
+    <declare-styleable name="FloatingButton">
+        <attr name="borderWidth" />
+        <attr name="borderColor" format="color|reference" />
+        <attr name="borderFocusColor" format="color|reference" />
+    </declare-styleable>
+
+    <declare-styleable name="PreferenceView">
+        <attr name="android:textColor" />
+        <attr name="android:textColorHint" />
+        <attr name="titleTextAppearance" format="reference" />
+        <attr name="subtitleTextAppearance" format="reference" />
+    </declare-styleable>
+
+    <declare-styleable name="DialogView">
+        <attr name="listLayout" />
+        <attr name="singleChoiceItemLayout" />
+    </declare-styleable>
+
+    <declare-styleable name="OverlayMenuView">
+        <attr name="colorPrimarySurface" />
+        <attr name="android:colorBackground" />
+    </declare-styleable>
+
     <declare-styleable name="OverlayMenuItemView">
         <attr name="icon" />
         <attr name="text" />
@@ -15,11 +57,6 @@
         <attr name="itemPadding" />
         <attr name="android:textColor" />
         <attr name="android:textAppearance" />
-    </declare-styleable>
-
-    <declare-styleable name="NavButtonView">
-        <attr name="icon" />
-        <attr name="text" />
     </declare-styleable>
 
     <declare-styleable name="OutlinedLinearLayout">
@@ -38,12 +75,6 @@
         <attr name="numLabels" />
     </declare-styleable>
 
-    <declare-styleable name="FloatingButton">
-        <attr name="borderWidth" />
-        <attr name="borderColor" format="color|reference" />
-        <attr name="borderFocusColor" format="color|reference" />
-    </declare-styleable>
-
     <declare-styleable name="ListView">
         <attr name="tint" />
         <attr name="background" />
@@ -54,14 +85,6 @@
     <declare-styleable name="FileListView">
         <attr name="fileIcon" format="reference" />
         <attr name="folderIcon" format="reference" />
-    </declare-styleable>
-
-    <declare-styleable name="NavBarView">
-        <attr name="position" format="enum">
-            <enum name="BOTTOM" value="0" />
-            <enum name="LEFT" value="1" />
-            <enum name="RIGHT" value="2" />
-        </attr>
     </declare-styleable>
 
 </resources>

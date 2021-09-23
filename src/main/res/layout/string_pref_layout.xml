@@ -20,12 +20,14 @@
         style="?android:attr/preferenceStyle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:padding="5dp"
         android:focusable="true"
-        android:textAppearance="?attr/textAppearanceListItem"
-        android:textColorHint="?android:attr/textColorHint"
+        android:background="@color/pref_edittext_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/pref_value"
         app:layout_constraintHorizontal_weight="1"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/pref_subtitle" />
+        app:layout_constraintTop_toBottomOf="@id/pref_subtitle">
+
+    </com.google.android.material.textfield.TextInputEditText>
 </merge>

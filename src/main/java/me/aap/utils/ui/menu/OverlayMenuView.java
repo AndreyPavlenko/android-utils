@@ -1,5 +1,12 @@
 package me.aap.utils.ui.menu;
 
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static java.util.Objects.requireNonNull;
+import static me.aap.utils.R.styleable.OverlayMenuView_android_colorBackground;
+import static me.aap.utils.R.styleable.OverlayMenuView_colorPrimarySurface;
+import static me.aap.utils.ui.UiUtils.toPx;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -27,28 +34,23 @@ import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Function;
 import me.aap.utils.ui.activity.ActivityDelegate;
 
-import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
-import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
-import static java.util.Objects.requireNonNull;
-import static me.aap.utils.ui.UiUtils.toPx;
-
 /**
  * @author Andrey Pavlenko
  */
 public class OverlayMenuView extends ScrollView implements OverlayMenu {
 	@ColorInt
 	private final int headerColor;
+
 	@Nullable
 	MenuBuilder builder;
 
 	public OverlayMenuView(Context ctx, AttributeSet attrs) {
 		super(ctx, attrs, R.attr.popupMenuStyle);
 
-		TypedArray ta = ctx.obtainStyledAttributes(attrs,
-				new int[]{android.R.attr.colorBackground, R.attr.colorPrimarySurface},
+		TypedArray ta = ctx.obtainStyledAttributes(attrs, R.styleable.OverlayMenuView,
 				R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
-		setBackgroundColor(ta.getColor(0, Color.TRANSPARENT));
-		headerColor = ta.getColor(1, Color.TRANSPARENT);
+		headerColor = ta.getColor(OverlayMenuView_colorPrimarySurface, Color.TRANSPARENT);
+		setBackgroundColor(ta.getColor(OverlayMenuView_android_colorBackground, Color.TRANSPARENT));
 		ta.recycle();
 	}
 
@@ -117,8 +119,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		builder.cleanUp();
 		builder = null;
 		setVisibility(GONE);
-
-		if (a != null) a.setActiveMenu(null);
+		a.setActiveMenu(null);
 		if (ch != null) ch.menuClosed(this);
 		if (f != null) f.requestFocus();
 	}
@@ -179,6 +180,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 	final class MenuBuilder implements Builder {
 		final Function<? super Builder, FutureSupplier<Void>> consumer;
 		final MenuBuilder parent;
+		final float scale;
 		ViewGroup view;
 		SelectionHandler selectionHandler;
 		CloseHandler closeHandler;
@@ -187,9 +189,10 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		String title;
 		int parentItemId = NO_ID;
 
-		public MenuBuilder(Function<? super Builder, FutureSupplier<Void>> consumer, MenuBuilder parent) {
+		MenuBuilder(Function<? super Builder, FutureSupplier<Void>> consumer, MenuBuilder parent) {
 			this.consumer = consumer;
 			this.parent = parent;
+			scale = ActivityDelegate.get(getContext()).getTextIconSize();
 			init();
 		}
 
@@ -223,7 +226,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 
 		@Override
 		public OverlayMenuItem addItem(int id, Drawable icon, CharSequence title) {
-			OverlayMenuItemView i = new OverlayMenuItemView(OverlayMenuView.this, id, icon, title);
+			OverlayMenuItemView i = new OverlayMenuItemView(OverlayMenuView.this, id, icon, title, scale);
 			view.addView(i);
 			return i;
 		}
@@ -237,7 +240,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 			int idx = view.indexOfChild(i);
 			if (after) idx++;
 
-			i = new OverlayMenuItemView(OverlayMenuView.this, id, icon, title);
+			i = new OverlayMenuItemView(OverlayMenuView.this, id, icon, title, scale);
 			view.addView(i, idx);
 			return i;
 		}
