@@ -73,7 +73,7 @@
     </style>
 
     <style name="Theme.Utils.Base.NavBarStyle">
-        <item name="size">36dp</item>
+        <item name="size">40dp</item>
         <item name="tint">?attr/colorOnPrimary</item>
         <item name="android:colorBackground">?attr/colorPrimary</item>
         <item name="textAppearance">@style/Theme.Utils.Base.NavBarTextAppearance</item>
