@@ -1,5 +1,8 @@
 package me.aap.utils.net.http;
 
+import static me.aap.utils.async.Completed.completedVoid;
+import static me.aap.utils.async.Completed.failed;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -19,11 +22,9 @@ import me.aap.utils.function.LongSupplier;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.log.Log;
+import me.aap.utils.pref.BasicPreferenceStore;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.pref.PreferenceStore.Pref;
-
-import static me.aap.utils.async.Completed.completedVoid;
-import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
@@ -47,6 +48,10 @@ public class HttpFileDownloader {
 		this.returnExistingOnFail = returnExistingOnFail;
 	}
 
+	public FutureSupplier<Status> download(String src, File dst) {
+		return download(src, dst, new BasicPreferenceStore());
+	}
+
 	public FutureSupplier<Status> download(String src, File dst, PreferenceStore prefs) {
 		try {
 			return download(new URL(src), dst, prefs);
@@ -65,7 +70,7 @@ public class HttpFileDownloader {
 			long stamp = prefs.getLongPref(TIMESTAMP);
 			int age = prefs.getIntPref(MAX_AGE);
 
-			if ((stamp + (age * 1000)) > System.currentTimeMillis()) {
+			if ((stamp + (age * 1000L)) > System.currentTimeMillis()) {
 				DownloadStatus status = new DownloadStatus(src, dst, dst.length());
 				status.setEtag(prefs.getStringPref(ETAG));
 				status.setCharset(prefs.getStringPref(CHARSET));

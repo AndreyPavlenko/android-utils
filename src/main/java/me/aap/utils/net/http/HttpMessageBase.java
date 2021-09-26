@@ -1,5 +1,17 @@
 package me.aap.utils.net.http;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static me.aap.utils.async.Completed.completedNull;
+import static me.aap.utils.async.Completed.completedVoid;
+import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.concurrent.NetThread.getReadBuffer;
+import static me.aap.utils.concurrent.NetThread.isReadBuffer;
+import static me.aap.utils.io.IoUtils.copyOfRange;
+import static me.aap.utils.io.IoUtils.emptyByteBuffer;
+import static me.aap.utils.io.IoUtils.ensureCapacity;
+import static me.aap.utils.net.http.HttpUtils.parseLong;
+import static me.aap.utils.net.http.HttpVersion.HTTP_1_0;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -20,18 +32,6 @@ import me.aap.utils.io.MemOutputStream;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.net.http.HttpError.PayloadTooLarge;
 import me.aap.utils.text.TextUtils;
-
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static me.aap.utils.async.Completed.completedNull;
-import static me.aap.utils.async.Completed.completedVoid;
-import static me.aap.utils.async.Completed.failed;
-import static me.aap.utils.concurrent.NetThread.getReadBuffer;
-import static me.aap.utils.concurrent.NetThread.isReadBuffer;
-import static me.aap.utils.io.IoUtils.copyOfRange;
-import static me.aap.utils.io.IoUtils.emptyByteBuffer;
-import static me.aap.utils.io.IoUtils.ensureCapacity;
-import static me.aap.utils.net.http.HttpUtils.parseLong;
-import static me.aap.utils.net.http.HttpVersion.HTTP_1_0;
 
 /**
  * @author Andrey Pavlenko
@@ -118,14 +118,10 @@ abstract class HttpMessageBase implements HttpMessage {
 		if (available == len) {
 			ByteBuffer payload = buf.duplicate();
 			payload.position(headerEnd).limit(payloadEnd);
+			CharSequence enc = decode ? getContentEncoding() : null;
 			releaseBuf();
-
-			if (decode) {
-				CharSequence enc = getContentEncoding();
-				if (enc != null) return decode(consumer, payload, enc, MAX_PAYLOAD_LEN);
-			}
-
-			return consumer.apply(payload, null);
+			return (enc != null) ? decode(consumer, payload, enc, MAX_PAYLOAD_LEN)
+					: consumer.apply(payload, null);
 		}
 
 		if (len > maxLen) {

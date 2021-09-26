@@ -3,15 +3,18 @@ package me.aap.utils.ui.activity;
 import static android.app.NotificationManager.IMPORTANCE_LOW;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.os.Build.VERSION.SDK_INT;
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.failed;
 
+import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
+import android.net.Uri;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.view.KeyEvent;
 
@@ -52,7 +55,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 	public static <A extends ActivityBase> FutureSupplier<A> create(
 			Context ctx, String channelId, String channelName, @DrawableRes int icon,
 			String title, String text, Class<A> c) {
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+		if (SDK_INT >= VERSION_CODES.O) {
 			NotificationChannel nc = new NotificationChannel(channelId, channelName, IMPORTANCE_LOW);
 			NotificationManager nmgr = (NotificationManager) ctx.getSystemService(NOTIFICATION_SERVICE);
 			if (nmgr != null) nmgr.createNotificationChannel(nc);
@@ -223,6 +226,20 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 		ActivityDelegate d = delegate.peek();
 		return (d != null) ? d.onKeyLongPress(keyCode, keyEvent, super::onKeyLongPress)
 				: super.onKeyLongPress(keyCode, keyEvent);
+	}
+
+	public void installApk(Uri u, boolean known) {
+		checkPermissions(Manifest.permission.REQUEST_INSTALL_PACKAGES).onSuccess(perms -> {
+			Intent i = new Intent("android.intent.action.INSTALL_PACKAGE");
+			i.setData(u);
+			if (SDK_INT >= VERSION_CODES.N) i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK + 1);
+			else i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			if (known) {
+				i.putExtra("android.intent.extra.NOT_UNKNOWN_SOURCE", true);
+				i.putExtra("android.intent.extra.INSTALLER_PACKAGE_NAME", "com.android.vending");
+			}
+			startActivity(i);
+		});
 	}
 
 	private static final class StartActivityPromise extends Promise<Intent> {

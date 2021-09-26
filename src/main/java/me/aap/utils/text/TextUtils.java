@@ -164,11 +164,11 @@ public class TextUtils {
 		return regionMatches(text, text.length() - len, seq, 0, len, ignoreCase);
 	}
 
-	@SuppressWarnings("StatementWithEmptyBody")
 	public static String trim(String text) {
 		return (text == null) ? null : text.trim();
 	}
 
+	@SuppressWarnings("StatementWithEmptyBody")
 	public static CharSequence trim(CharSequence text) {
 		if (text == null) return null;
 		int len = text.length();
@@ -413,6 +413,15 @@ public class TextUtils {
 		}
 
 		return 19;
+	}
+
+	public static String toString(ByteBuffer b, Charset cs) {
+		if (!b.hasArray()) {
+			ByteBuffer bb = ByteBuffer.allocate(b.remaining());
+			bb.put(b);
+			b = bb;
+		}
+		return new String(b.array(), b.arrayOffset() + b.position(), b.remaining(), cs);
 	}
 
 	private static class HexTable {
