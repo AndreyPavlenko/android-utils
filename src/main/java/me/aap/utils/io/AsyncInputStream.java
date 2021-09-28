@@ -1,5 +1,7 @@
 package me.aap.utils.io;
 
+import static me.aap.utils.async.Completed.failed;
+
 import androidx.annotation.NonNull;
 
 import java.io.Closeable;
@@ -11,8 +13,6 @@ import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.log.Log;
 import me.aap.utils.net.ByteBufferSupplier;
-
-import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
@@ -48,7 +48,58 @@ public interface AsyncInputStream extends Closeable {
 		return true;
 	}
 
-	static AsyncInputStream wrapInputStream(InputStream in, int bufferLen) {
+	static AsyncInputStream from(FutureSupplier<AsyncInputStream> f) {
+		if (f.isDone() && !f.isFailed()) return f.getOrThrow();
+
+		return new AsyncInputStream() {
+			AsyncInputStream stream;
+
+			@Override
+			public FutureSupplier<ByteBuffer> read(ByteBufferSupplier dst) {
+				AsyncInputStream s = stream;
+				return (s != null) ? s.read(dst) : f.then(ais -> {
+					if (ais == null) return failed(new IOException("Null input stream"));
+					stream = ais;
+					return ais.read(dst);
+				});
+			}
+
+			@Override
+			public int available() {
+				AsyncInputStream s = stream;
+				return (s != null) ? s.available() : 0;
+			}
+
+			@Override
+			public boolean hasRemaining() {
+				AsyncInputStream s = stream;
+				return (s == null) || s.hasRemaining();
+			}
+
+			@Override
+			public FutureSupplier<Long> skip(long n) {
+				AsyncInputStream s = stream;
+				return (s != null) ? s.skip(n) : f.then(ais -> {
+					if (ais == null) return failed(new IOException("Null input stream"));
+					stream = ais;
+					return ais.skip(n);
+				});
+			}
+
+			@Override
+			public void close() {
+				AsyncInputStream s = stream;
+				f.onSuccess(IoUtils::close);
+				if (s != null) s.close();
+			}
+		};
+	}
+
+	static AsyncInputStream from(InputStream in) {
+		return from(in, 8192);
+	}
+
+	static AsyncInputStream from(InputStream in, int bufferLen) {
 		return new AsyncInputStream() {
 
 			@Override

@@ -52,6 +52,11 @@ public class FileUtils {
 		return null;
 	}
 
+	public static String getFileName(String path) {
+		int idx = path.lastIndexOf('/');
+		return (idx > 0) ? path.substring(idx + 1) : path;
+	}
+
 	public static String getFileExtension(String fileName) {
 		return getFileExtension(fileName, null);
 	}

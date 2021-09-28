@@ -32,11 +32,11 @@ public interface AsyncOutputStream extends Closeable {
 	default void endOfStream() {
 	}
 
-	static AsyncOutputStream wrapOutputStream(OutputStream out) {
-		return wrapOutputStream(out, 8192);
+	static AsyncOutputStream from(OutputStream out) {
+		return from(out, 8192);
 	}
 
-	static AsyncOutputStream wrapOutputStream(OutputStream out, int bufferLen) {
+	static AsyncOutputStream from(OutputStream out, int bufferLen) {
 		return new AsyncOutputStream() {
 
 			@Override

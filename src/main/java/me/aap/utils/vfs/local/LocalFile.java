@@ -81,12 +81,12 @@ class LocalFile extends LocalResource implements VirtualFile {
 	public AsyncInputStream getInputStream(long offset) throws IOException {
 		FileInputStream in = new FileInputStream(file);
 		IoUtils.skip(in, offset);
-		return AsyncInputStream.wrapInputStream(in, getInputBufferLen());
+		return AsyncInputStream.from(in, getInputBufferLen());
 	}
 
 	@Override
 	public AsyncOutputStream getOutputStream() throws IOException {
-		return AsyncOutputStream.wrapOutputStream(new FileOutputStream(file), getOutputBufferLen());
+		return AsyncOutputStream.from(new FileOutputStream(file), getOutputBufferLen());
 	}
 
 	@Nullable

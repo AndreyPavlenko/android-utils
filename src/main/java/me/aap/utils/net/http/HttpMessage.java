@@ -77,7 +77,7 @@ public interface HttpMessage {
 	}
 
 	default FutureSupplier<?> writePayload(OutputStream out) {
-		return writePayload(AsyncOutputStream.wrapOutputStream(out));
+		return writePayload(AsyncOutputStream.from(out));
 	}
 
 	FutureSupplier<?> writePayload(AsyncOutputStream out);

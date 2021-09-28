@@ -64,6 +64,6 @@ class ContentFile extends ContentResource implements VirtualFile {
 		InputStream in = App.get().getContentResolver().openInputStream(getRid().toAndroidUri());
 		if (in == null) throw new IOException("Resource not found: " + this);
 		IoUtils.skip(in, offset);
-		return AsyncInputStream.wrapInputStream(in, getInputBufferLen());
+		return AsyncInputStream.from(in, getInputBufferLen());
 	}
 }

@@ -1,8 +1,13 @@
 package me.aap.utils.vfs;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.completedVoid;
+import static me.aap.utils.async.Completed.failed;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -19,10 +24,6 @@ import me.aap.utils.io.RandomAccessChannel;
 import me.aap.utils.net.ByteBufferArraySupplier;
 import me.aap.utils.net.ByteBufferSupplier;
 import me.aap.utils.net.NetChannel;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.completedVoid;
-import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
@@ -43,14 +44,9 @@ public interface VirtualFile extends VirtualResource {
 		return completed(0L);
 	}
 
-	@Nullable
-	default String getContentEncoding() {
-		return null;
-	}
-
-	@Nullable
-	default String getCharacterEncoding() {
-		return null;
+	default FutureSupplier<? extends Info> getInfo() {
+		File f = getLocalFile();
+		return (f != null) ? completed(Info.localFileInfo(f)) : getLength().map(l -> () -> l);
 	}
 
 	@NonNull
@@ -166,5 +162,39 @@ public interface VirtualFile extends VirtualResource {
 
 	default ByteBuffer allocateOutputBuffer(long max) {
 		return ByteBuffer.allocate((int) Math.min(getOutputBufferLen(), max));
+	}
+
+	interface Info {
+		static Info localFileInfo(File f) {
+			return new Info() {
+				@Override
+				public long getLength() {
+					return f.length();
+				}
+
+				@NonNull
+				@Override
+				public File getLocalFile() {
+					return f;
+				}
+			};
+		}
+
+		long getLength();
+
+		@Nullable
+		default File getLocalFile() {
+			return null;
+		}
+
+		@Nullable
+		default String getContentEncoding() {
+			return null;
+		}
+
+		@Nullable
+		default String getCharacterEncoding() {
+			return null;
+		}
 	}
 }

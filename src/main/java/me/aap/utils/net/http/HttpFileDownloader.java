@@ -3,6 +3,8 @@ package me.aap.utils.net.http;
 import static me.aap.utils.async.Completed.completedVoid;
 import static me.aap.utils.async.Completed.failed;
 
+import androidx.annotation.NonNull;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -20,11 +22,13 @@ import me.aap.utils.async.Promise;
 import me.aap.utils.function.IntSupplier;
 import me.aap.utils.function.LongSupplier;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.io.FileUtils;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.log.Log;
 import me.aap.utils.pref.BasicPreferenceStore;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.pref.PreferenceStore.Pref;
+import me.aap.utils.vfs.VirtualFile;
 
 /**
  * @author Andrey Pavlenko
@@ -82,6 +86,16 @@ public class HttpFileDownloader {
 			}
 		}
 
+		if (!exist) {
+			File dir = dst.getParentFile();
+			if (dir == null) return failed(new IOException("Unable to create file: " + dst));
+			try {
+				FileUtils.mkdirs(dir);
+			} catch (IOException ex) {
+				return failed(ex);
+			}
+		}
+
 		HttpConnection.connect(o -> {
 			o.url = src;
 			o.responseTimeout = prefs.getIntPref(RESP_TIMEOUT);
@@ -122,8 +136,8 @@ public class HttpFileDownloader {
 				} else if (incomplete.renameTo(dst)) {
 					try (PreferenceStore.Edit edit = prefs.editPreferenceStore()) {
 						edit.setStringPref(ETAG, status.getEtag());
-						edit.setStringPref(CHARSET, status.getCharset());
-						edit.setStringPref(ENCODING, status.getEncoding());
+						edit.setStringPref(CHARSET, status.getCharacterEncoding());
+						edit.setStringPref(ENCODING, status.getContentEncoding());
 						edit.setLongPref(TIMESTAMP, System.currentTimeMillis());
 					}
 
@@ -143,11 +157,11 @@ public class HttpFileDownloader {
 	}
 
 	private void completeExceptionally(Promise<Status> p, Throwable err, DownloadStatus status, StatusListener listener) {
-		Log.e("Failed to download ", status.getUrl(), " to ", status.getFile());
+		Log.e("Failed to download ", status.getUrl(), " to ", status.getLocalFile());
 
-		if (returnExistingOnFail && status.getFile().isFile()) {
+		if (returnExistingOnFail && status.getLocalFile().isFile()) {
 			Log.e(err, "Failed to download: ", status.getUrl(), ". Returning existing file: ",
-					status.getFile());
+					status.getLocalFile());
 			status.failure = err;
 			if (listener != null) listener.onSuccess(status);
 			p.complete(status);
@@ -165,14 +179,14 @@ public class HttpFileDownloader {
 				@Override
 				public void write(int b) throws IOException {
 					fos.write(b);
-					status.downloadedSize += 1;
+					status.bytesDownloaded += 1;
 					if (listener != null) listener.onProgress(status);
 				}
 
 				@Override
 				public void write(byte[] b, int off, int len) throws IOException {
 					fos.write(b, off, len);
-					status.downloadedSize += len;
+					status.bytesDownloaded += len;
 					if (listener != null) listener.onProgress(status);
 				}
 
@@ -192,29 +206,21 @@ public class HttpFileDownloader {
 		}
 	}
 
-	public interface Status {
+	public interface Status extends VirtualFile.Info {
 
 		URL getUrl();
 
-		File getFile();
-
-		long getTotalSize();
-
-		long getDownloadedSize();
-
 		String getEtag();
-
-		String getCharset();
-
-		String getEncoding();
 
 		Throwable getFailure();
 
+		long bytesDownloaded();
+
 		default InputStream getFileStream(boolean decode) throws IOException {
-			InputStream in = new FileInputStream(getFile());
+			InputStream in = new FileInputStream(getLocalFile());
 
 			if (decode) {
-				String enc = getEncoding();
+				String enc = getContentEncoding();
 
 				if (enc != null) {
 					if ("gzip".equals(enc)) {
@@ -243,37 +249,39 @@ public class HttpFileDownloader {
 	private static final class DownloadStatus implements Status {
 		private final URL url;
 		private final File file;
-		private final long totalSize;
+		private final long len;
 		String etag;
 		String charset;
 		String encoding;
-		long downloadedSize;
+		long bytesDownloaded;
 		Throwable failure;
 
-		public DownloadStatus(URL url, File file, long totalSize) {
+		public DownloadStatus(URL url, File file, long len) {
 			this.url = url;
 			this.file = file;
-			this.totalSize = totalSize;
+			this.len = len;
 		}
 
+		@NonNull
 		@Override
 		public URL getUrl() {
 			return url;
 		}
 
+		@NonNull
 		@Override
-		public File getFile() {
+		public File getLocalFile() {
 			return file;
 		}
 
 		@Override
-		public long getTotalSize() {
-			return totalSize;
+		public long getLength() {
+			return len;
 		}
 
 		@Override
-		public long getDownloadedSize() {
-			return downloadedSize;
+		public long bytesDownloaded() {
+			return bytesDownloaded;
 		}
 
 		@Override
@@ -286,7 +294,7 @@ public class HttpFileDownloader {
 		}
 
 		@Override
-		public String getCharset() {
+		public String getCharacterEncoding() {
 			return charset;
 		}
 
@@ -295,7 +303,7 @@ public class HttpFileDownloader {
 		}
 
 		@Override
-		public String getEncoding() {
+		public String getContentEncoding() {
 			return encoding;
 		}
 
@@ -313,11 +321,11 @@ public class HttpFileDownloader {
 			return "DownloadStatus {" +
 					"\n  source=" + url +
 					"\n  destination=" + file +
-					"\n  totalSize=" + totalSize +
+					"\n  length=" + len +
 					"\n  etag='" + etag + '\'' +
 					"\n  charset='" + charset + '\'' +
 					"\n  encoding='" + encoding + '\'' +
-					"\n  downloadedSize=" + downloadedSize +
+					"\n  bytesDownloaded=" + bytesDownloaded +
 					"\n  failure=" + failure +
 					"\n}";
 		}

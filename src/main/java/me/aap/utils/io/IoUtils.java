@@ -1,5 +1,7 @@
 package me.aap.utils.io;
 
+import static me.aap.utils.async.Completed.completedVoid;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -8,8 +10,6 @@ import java.nio.ByteBuffer;
 
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.log.Log;
-
-import static me.aap.utils.async.Completed.completedVoid;
 
 /**
  * @author Andrey Pavlenko
@@ -42,6 +42,14 @@ public class IoUtils {
 			skipped += s;
 		}
 		return skipped;
+	}
+
+	public static long calculateLen(InputStream in) throws IOException {
+		try {
+			return skip(in, Long.MAX_VALUE);
+		} finally {
+			close(in);
+		}
 	}
 
 	public static void writeToStream(ByteBuffer src, OutputStream out) throws IOException {

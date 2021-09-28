@@ -63,13 +63,13 @@ public class HttpDownloadStatusListener implements HttpFileDownloader.StatusList
 
 	@Override
 	public void onProgress(Status status) {
-		long total = status.getTotalSize();
+		long total = status.getLength();
 
 		if (total < 0) {
 			builder.setProgress(0, 0, true);
 		} else {
 			int shift = progressShift(total);
-			builder.setProgress((int) (total >>> shift), (int) (status.getDownloadedSize() >>> shift), false);
+			builder.setProgress((int) (total >>> shift), (int) (status.bytesDownloaded() >>> shift), false);
 		}
 
 		mgr.notify(channelId, id, builder.build());

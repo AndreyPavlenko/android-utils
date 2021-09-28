@@ -1,5 +1,14 @@
 package me.aap.utils.vfs;
 
+import static me.aap.utils.async.Completed.completedVoid;
+import static me.aap.utils.net.http.HttpHeader.ACCEPT_RANGES;
+import static me.aap.utils.net.http.HttpHeader.CONNECTION;
+import static me.aap.utils.net.http.HttpHeader.CONTENT_LENGTH;
+import static me.aap.utils.net.http.HttpHeader.CONTENT_RANGE;
+import static me.aap.utils.net.http.HttpResponseBuilder.supplier;
+import static me.aap.utils.net.http.HttpVersion.HTTP_1_1;
+
+import java.io.File;
 import java.nio.ByteBuffer;
 
 import me.aap.utils.async.FutureSupplier;
@@ -8,6 +17,7 @@ import me.aap.utils.net.http.HttpError;
 import me.aap.utils.net.http.HttpError.Forbidden;
 import me.aap.utils.net.http.HttpError.NotFound;
 import me.aap.utils.net.http.HttpError.ServiceUnavailable;
+import me.aap.utils.net.http.HttpHeader;
 import me.aap.utils.net.http.HttpMethod;
 import me.aap.utils.net.http.HttpRequest;
 import me.aap.utils.net.http.HttpRequestHandler;
@@ -15,14 +25,7 @@ import me.aap.utils.net.http.HttpResponseBuilder;
 import me.aap.utils.net.http.HttpVersion;
 import me.aap.utils.net.http.Range;
 import me.aap.utils.resource.Rid;
-
-import static me.aap.utils.async.Completed.completedVoid;
-import static me.aap.utils.net.http.HttpHeader.ACCEPT_RANGES;
-import static me.aap.utils.net.http.HttpHeader.CONNECTION;
-import static me.aap.utils.net.http.HttpHeader.CONTENT_LENGTH;
-import static me.aap.utils.net.http.HttpHeader.CONTENT_RANGE;
-import static me.aap.utils.net.http.HttpResponseBuilder.supplier;
-import static me.aap.utils.net.http.HttpVersion.HTTP_1_1;
+import me.aap.utils.vfs.local.LocalFileSystem;
 
 /**
  * @author Andrey Pavlenko
@@ -63,11 +66,13 @@ public class VfsHttpHandler implements HttpRequestHandler {
 
 			VirtualFile file = (VirtualFile) result;
 
-			file.getLength().onCompletion((len, err) -> {
-				if (err != null) {
+			file.getInfo().onCompletion((info, err) -> {
+				if ((err != null) || (info == null)) {
 					ServiceUnavailable.instance.write(channel);
 					return;
 				}
+
+				long len = info.getLength();
 
 				if ((len >= 0) && (range != null)) {
 					range.align(len);
@@ -81,14 +86,15 @@ public class VfsHttpHandler implements HttpRequestHandler {
 				FutureSupplier<Void> reply;
 
 				if (method == HttpMethod.HEAD) {
-					reply = channel.write(supplier(b -> buildResponse(b, version, len, range, close)));
+					reply = channel.write(supplier(b -> buildResponse(b, version, info, range, close)));
 				} else if (range != null) {
 					long start = range.getStart();
-					reply = file.transferTo(channel, start, range.getEnd() - start + 1,
-							supplier(b -> buildResponse(b, version, len, range, close)));
+					reply = getFileForTransfer(file, info).transferTo(channel, start,
+							range.getEnd() - start + 1,
+							supplier(b -> buildResponse(b, version, info, range, close)));
 				} else {
-					reply = file.transferTo(channel, 0, len,
-							supplier(b -> buildResponse(b, version, len, null, close)));
+					reply = getFileForTransfer(file, info).transferTo(channel, 0, len,
+							supplier(b -> buildResponse(b, version, info, null, close)));
 				}
 
 				reply.onCompletion((r, f) -> {
@@ -101,6 +107,11 @@ public class VfsHttpHandler implements HttpRequestHandler {
 		return completedVoid();
 	}
 
+	protected VirtualFile getFileForTransfer(VirtualFile f, VirtualFile.Info i) {
+		File local = i.getLocalFile();
+		return (local != null) ? LocalFileSystem.getInstance().getFile(local) : f;
+	}
+
 	protected Rid getRid(HttpRequest req) {
 		CharSequence q = req.getQuery();
 		if ((q == null) || (q.length() <= HTTP_QUERY.length())) {
@@ -109,11 +120,14 @@ public class VfsHttpHandler implements HttpRequestHandler {
 		return Rid.create(Rid.decode(q.subSequence(HTTP_QUERY.length(), q.length())));
 	}
 
-	protected ByteBuffer[] buildResponse(HttpResponseBuilder b, HttpVersion version, long len, Range range, boolean close) {
+	protected ByteBuffer[] buildResponse(HttpResponseBuilder b, HttpVersion version,
+																			 VirtualFile.Info info, Range range, boolean close) {
+		long len = info.getLength();
+
 		if (len < 0) {
 			b.setStatusOk(version);
 			if (close) b.addHeader(CONNECTION);
-			return b.build();
+			return build(b, info);
 		}
 
 		long contentLen = len;
@@ -130,6 +144,15 @@ public class VfsHttpHandler implements HttpRequestHandler {
 		b.addHeader(CONTENT_LENGTH, contentLen);
 		if (close) b.addHeader(CONNECTION);
 		else if (version != HTTP_1_1) b.addHeader(CONNECTION, "Keep-Alive");
+		return build(b, info);
+	}
+
+	private ByteBuffer[] build(HttpResponseBuilder b, VirtualFile.Info info) {
+		String enc = info.getContentEncoding();
+		if (enc == null) return b.build();
+		String charset = info.getCharacterEncoding();
+		if (charset != null) b.addHeader(HttpHeader.CONTENT_ENCODING, ", charset=" + charset);
+		else b.addHeader(HttpHeader.CONTENT_ENCODING, enc);
 		return b.build();
 	}
 }
