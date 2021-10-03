@@ -31,6 +31,7 @@ import static me.aap.utils.text.TextUtils.toHexString;
  */
 @SuppressWarnings("unused")
 public class SecurityUtils {
+	public static final int SHA1_DIGEST_LEN = 20;
 
 	public static MessageDigest sha256Digest() {
 		try {

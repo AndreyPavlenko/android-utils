@@ -370,9 +370,18 @@ public class TextUtils {
 		return tb;
 	}
 
+	public static TextBuilder appendHexString(TextBuilder tb, byte[] bytes, int start, int end) {
+		appendHexString(tb.getStringBuilder(), bytes, start, end);
+		return tb;
+	}
+
 	public static StringBuilder appendHexString(StringBuilder sb, byte[] bytes) {
-		for (byte b : bytes) {
-			int v = b & 0xFF;
+		return appendHexString(sb, bytes, 0, bytes.length);
+	}
+
+	public static StringBuilder appendHexString(StringBuilder sb, byte[] bytes, int start, int end) {
+		while (start < end) {
+			int v = bytes[start++] & 0xFF;
 			sb.append(HexTable.table[v >>> 4]).append(HexTable.table[v & 0xF]);
 		}
 		return sb;

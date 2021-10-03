@@ -1,5 +1,7 @@
 package me.aap.utils.ui.fragment;
 
+import static android.os.Build.VERSION.SDK_INT;
+import static android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION;
 import static android.view.KeyEvent.KEYCODE_DPAD_CENTER;
 import static android.view.KeyEvent.KEYCODE_ENTER;
 import static android.view.KeyEvent.KEYCODE_NUMPAD_ENTER;
@@ -14,7 +16,13 @@ import static me.aap.utils.ui.UiUtils.toPx;
 import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
 import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
 
+import android.Manifest;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,10 +40,12 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import me.aap.utils.R;
+import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Function;
 import me.aap.utils.holder.BiHolder;
+import me.aap.utils.log.Log;
 import me.aap.utils.ui.UiUtils;
 import me.aap.utils.ui.activity.ActivityDelegate;
 import me.aap.utils.ui.view.FloatingButton;
@@ -115,6 +125,24 @@ public class FilePickerFragment extends GenericDialogFragment implements
 
 	public void setOnLongClick(Function<VirtualResource, Boolean> onLongClick) {
 		state.onLongClick = onLongClick;
+	}
+
+	@Override
+	public void onCreate(@Nullable Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		if ((SDK_INT >= Build.VERSION_CODES.R)
+				&& App.get().hasManifestPermission(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
+				&& !Environment.isExternalStorageManager()) {
+			Intent req = new Intent(ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+			Uri uri = Uri.fromParts("package", requireContext().getPackageName(), null);
+			req.setData(uri);
+
+			try {
+				startActivity(req);
+			} catch (ActivityNotFoundException ex) {
+				Log.e(ex, "Failed to request %s", ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+			}
+		}
 	}
 
 	@Nullable

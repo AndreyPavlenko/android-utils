@@ -6,6 +6,7 @@ import static me.aap.utils.collection.CollectionUtils.forEach;
 import static me.aap.utils.concurrent.ConcurrentUtils.isMainThread;
 
 import android.annotation.SuppressLint;
+import android.content.pm.PackageManager;
 
 import androidx.annotation.Nullable;
 
@@ -16,6 +17,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.collection.CollectionUtils;
 import me.aap.utils.concurrent.HandlerExecutor;
 import me.aap.utils.concurrent.ThreadPool;
 import me.aap.utils.function.CheckedRunnable;
@@ -175,5 +177,15 @@ public class App extends android.app.Application {
 			t.setDaemon(true);
 			return t;
 		});
+	}
+
+	public boolean hasManifestPermission(String perm) {
+		try {
+			String[] perms = getPackageManager().getPackageInfo(getPackageName(),
+					PackageManager.GET_PERMISSIONS).requestedPermissions;
+			return CollectionUtils.contains(perms, perm);
+		} catch (PackageManager.NameNotFoundException ignore) {
+			return false;
+		}
 	}
 }
