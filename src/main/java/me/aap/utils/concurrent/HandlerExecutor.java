@@ -16,7 +16,7 @@ import me.aap.utils.log.Log;
  * @author Andrey Pavlenko
  */
 public class HandlerExecutor extends Handler implements Executor {
-	private final ScheduledTask queue = new ScheduledTask();
+	private final Task queue = new Task();
 	private volatile boolean closed;
 
 	public HandlerExecutor() {
@@ -39,13 +39,17 @@ public class HandlerExecutor extends Handler implements Executor {
 		post(command);
 	}
 
+	public Cancellable submit(@NonNull Runnable task) {
+		return schedule(task, 0);
+	}
+
 	public synchronized Cancellable schedule(@NonNull Runnable task, long delay) {
 		if (isClosed()) {
-			Log.d("Handler is closed! Unable to schedule task: ", task);
+			Log.d("Handler is closed! Unable to submit task: ", task);
 			return () -> false;
 		}
 
-		ScheduledTask t = new ScheduledTask(task);
+		Task t = new Task(task);
 		postDelayed(t, delay);
 		return t;
 	}
@@ -61,16 +65,16 @@ public class HandlerExecutor extends Handler implements Executor {
 		return closed;
 	}
 
-	private final class ScheduledTask implements Runnable, Cancellable {
+	private final class Task implements Runnable, Cancellable {
 		private Runnable task;
-		private ScheduledTask prev;
-		private ScheduledTask next;
+		private Task prev;
+		private Task next;
 
-		ScheduledTask() {
+		Task() {
 			task = this;
 		}
 
-		private ScheduledTask(@NonNull Runnable task) {
+		private Task(@NonNull Runnable task) {
 			if (BuildConfig.D && (task == null)) throw new RuntimeException();
 			this.task = task;
 			prev = queue;
@@ -83,8 +87,8 @@ public class HandlerExecutor extends Handler implements Executor {
 		public void run() {
 			if (BuildConfig.D && (task == this)) throw new RuntimeException();
 			Runnable t = remove();
-			if (t == null) Log.e("Delayed task is already done or canceled: ", t);
-			else if (isClosed()) Log.e("Executor is closed! Ignoring delayed task: ", t);
+			if (t == null) Log.e("Task is already done or canceled: ", t);
+			else if (isClosed()) Log.e("Executor is closed! Ignoring task: ", t);
 			else t.run();
 		}
 

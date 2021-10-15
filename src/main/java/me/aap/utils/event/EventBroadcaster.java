@@ -56,6 +56,10 @@ public interface EventBroadcaster<L> {
 		removeBroadcastListeners(l -> l == listener);
 	}
 
+	default void removeBroadcastListeners() {
+		removeBroadcastListeners(l->true);
+	}
+
 	default void removeBroadcastListeners(Predicate<L> matcher) {
 		for (Iterator<ListenerRef<L>> it = getBroadcastEventListeners().iterator(); it.hasNext(); ) {
 			L l = it.next().get();

@@ -1,5 +1,7 @@
 package me.aap.utils.ui.view;
 
+import static me.aap.utils.ui.UiUtils.ID_NULL;
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.TypedArray;
@@ -13,13 +15,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.content.res.AppCompatResources;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import me.aap.utils.R;
 import me.aap.utils.ui.menu.OverlayMenu;
-
-import static me.aap.utils.ui.UiUtils.ID_NULL;
 
 /**
  * @author Andrey Pavlenko
@@ -34,7 +35,7 @@ public interface DialogBuilder {
 
 	default DialogBuilder setTitle(@DrawableRes int icon, @StringRes int title) {
 		Context ctx = getContext();
-		Drawable i = (icon != ID_NULL) ? ctx.getDrawable(icon) : null;
+		Drawable i = (icon != ID_NULL) ? AppCompatResources.getDrawable(ctx, icon) : null;
 		CharSequence t = (title != ID_NULL) ? ctx.getString(title) : null;
 		return setTitle(i, t);
 	}

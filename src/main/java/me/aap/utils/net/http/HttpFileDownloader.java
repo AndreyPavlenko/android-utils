@@ -79,7 +79,7 @@ public class HttpFileDownloader {
 				status.setEtag(prefs.getStringPref(ETAG));
 				status.setCharset(prefs.getStringPref(CHARSET));
 				status.setEncoding(prefs.getStringPref(ENCODING));
-				Log.i("File age is less than ", age, ". Returning existing file: ", dst);
+				Log.d("File age is less than ", age, ". Returning existing file: ", dst);
 				if (listener != null) listener.onSuccess(status);
 				p.complete(status);
 				return p;
@@ -114,7 +114,7 @@ public class HttpFileDownloader {
 			Log.d("Response received:\n", resp);
 
 			if (resp.getStatusCode() == HttpStatusCode.NOT_MODIFIED) {
-				Log.i("File not modified: ", src, ". Returning existing file: ", dst);
+				Log.d("File not modified: ", src, ". Returning existing file: ", dst);
 				if (listener != null) listener.onSuccess(status);
 				p.complete(status);
 				return completedVoid();

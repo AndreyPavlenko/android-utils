@@ -96,11 +96,13 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 					HandlerExecutor handler = (HandlerExecutor) executor;
 					exec = task -> {
 						if (handler.getLooper().isCurrentThread()) {
-							task.run();
+							if (handler.isClosed()) Log.e("Handler closed! Unable to run task ", task);
+							else task.run();
 						} else {
 							boolean canceled = isCancelled();
 							handler.post(() -> {
-								if (canceled || !isCancelled()) task.run();
+								if (handler.isClosed()) Log.e("Handler closed! Unable to run task ", task);
+								else if (canceled || !isCancelled()) task.run();
 							});
 						}
 					};
@@ -168,6 +170,11 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	default FutureSupplier<T> main() {
 		if (isDone() && isMainThread()) return this;
 		return withExecutor(App.get().getHandler(), false);
+	}
+
+	default FutureSupplier<T> main(HandlerExecutor handler) {
+		if (isDone() && (Thread.currentThread() == handler.getLooper().getThread())) return this;
+		return withExecutor(handler, false);
 	}
 
 	default FutureSupplier<T> fork() {

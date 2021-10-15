@@ -2,73 +2,68 @@ package me.aap.utils.collection;
 
 import java.util.Comparator;
 
-import me.aap.utils.log.Log;
-
-import static java.lang.Character.isDigit;
-
 /**
  * @author Andrey Pavlenko
  */
-public class NaturalOrderComparator<S extends CharSequence> implements Comparator<S> {
+public class NaturalOrderComparator implements Comparator<String> {
 
-	public static <S extends CharSequence> int compareNatural(S a, S b, boolean reverse) {
-		return reverse ? compareNatural(b, a) : compareNatural(a, b);
+	public static int compareNatural(String a, String b) {
+		return compareNatural(a, b, false);
 	}
 
-	public static <S extends CharSequence> int compareNatural(S a, S b) {
-		try {
-			return cmp(a, b);
-		} catch (NumberFormatException ex) {
-			Log.e(ex, "Failed to compare '" + a + "' and '" + b + '\'');
-			return a.toString().compareTo(b.toString());
-		}
+	public static int compareNatural(String a, String b, boolean reverse, boolean ignoreCase) {
+		return reverse ? compareNatural(b, a, ignoreCase) : compareNatural(a, b, ignoreCase);
 	}
 
-	private static <S extends CharSequence> int cmp(S a, S b) {
-		int alen = a.length();
-		int blen = b.length();
+	@SuppressWarnings("StatementWithEmptyBody")
+	public static int compareNatural(String a, String b, boolean ignoreCase) {
+		int alen = a.codePointCount(0, a.length());
+		int blen = b.codePointCount(0, b.length());
 
 		for (int aidx = 0, bidx = 0; ; ) {
-			if (aidx == alen) return (bidx == blen) ? 0 : -1;
+			if (aidx == alen) return (bidx == blen) ? Integer.compare(alen, blen) : -1;
 			if (bidx == blen) return 1;
 
-			char ca = a.charAt(aidx);
-			char cb = b.charAt(bidx);
+			int ac = a.codePointAt(aidx);
+			int bc = b.codePointAt(bidx);
 
-			if (isDigit(ca) && isDigit(cb)) {
-				int aoff = aidx;
-				int boff = bidx;
+			if (Character.isDigit(ac) && Character.isDigit(bc)) {
+				// Skip zeros
+				for (; (aidx < alen) && (Character.digit(a.codePointAt(aidx), 10) == 0); aidx++) ;
+				for (; (bidx < blen) && (Character.digit(b.codePointAt(bidx), 10) == 0); bidx++) ;
 
-				for (aidx++; (aidx < alen) && isDigit(a.charAt(aidx)); aidx++) ;
-				for (bidx++; (bidx < blen) && isDigit(b.charAt(bidx)); bidx++) ;
+				int anlen = 0;
+				int bnlen = 0;
 
-				int nalen = aidx - aoff;
-				int nblen = bidx - boff;
+				// Calculate length of each number
+				for (int i = aidx; (i < alen) && Character.isDigit(a.codePointAt(i)); anlen++, i++) ;
+				for (int i = bidx; (i < blen) && Character.isDigit(b.codePointAt(i)); bnlen++, i++) ;
 
-				if ((nalen != 1) || (nblen != 1)) {
-					long na = Long.parseLong(a.subSequence(aoff, aidx).toString());
-					long nb = Long.parseLong(b.subSequence(boff, bidx).toString());
-
-					if (na == nb) {
-						if (nalen != nblen) return (nalen < nblen) ? -1 : 1;
-					} else if (na < nb) {
-						return -1;
-					} else {
-						return 1;
+				if (anlen == bnlen) {
+					for (int i = 0; i < anlen; i++, aidx++, bidx++) {
+						int ad = Character.digit(a.codePointAt(aidx), 10);
+						int bd = Character.digit(b.codePointAt(bidx), 10);
+						if (ad != bd) return (ad < bd) ? -1 : 1;
 					}
-				} else if (ca != cb) {
-					return (ca < cb) ? -1 : 1;
+				} else {
+					return (anlen < bnlen) ? -1 : 1;
 				}
-			} else if (ca != cb) {
-				return (ca < cb) ? -1 : 1;
-			} else {
+			} else if (ac == bc) {
 				aidx++;
 				bidx++;
+			} else if (ignoreCase) {
+				int au = Character.toUpperCase(ac);
+				int bu = Character.toUpperCase(bc);
+				if (au != bu) return (au < bu) ? -1 : 1;
+				aidx++;
+				bidx++;
+			} else {
+				return (ac < bc) ? -1 : 1;
 			}
 		}
 	}
 
-	public int compare(S a, S b) {
+	public int compare(String a, String b) {
 		return compareNatural(a, b);
 	}
 }

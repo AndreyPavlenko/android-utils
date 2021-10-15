@@ -1,5 +1,11 @@
 package me.aap.utils.net.http;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static me.aap.utils.concurrent.NetThread.isWriteBuffer;
+import static me.aap.utils.io.IoUtils.emptyByteBufferArray;
+import static me.aap.utils.net.http.HttpHeader.CONTENT_LENGTH;
+import static me.aap.utils.net.http.HttpVersion.HTTP_1_1;
+
 import java.io.OutputStream;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
@@ -12,15 +18,6 @@ import me.aap.utils.function.Function;
 import me.aap.utils.io.ByteBufferOutputStream;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.net.ByteBufferArraySupplier;
-
-import static java.lang.Thread.currentThread;
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static me.aap.utils.concurrent.NetThread.isWriteBuffer;
-import static me.aap.utils.io.IoUtils.copyOfRange;
-import static me.aap.utils.io.IoUtils.emptyByteBufferArray;
-import static me.aap.utils.net.http.HttpHeader.CONTENT_LENGTH;
-import static me.aap.utils.net.http.HttpVersion.HTTP_1_1;
-import static me.aap.utils.text.TextUtils.getNumberOfDigits;
 
 /**
  * @author Andrey Pavlenko
@@ -74,7 +71,7 @@ class HttpMessageBuilder implements HttpRequestBuilder, HttpResponseBuilder {
 					array = builder.apply(b);
 					responseBuf = b.responseBuf;
 					if (BuildConfig.D && responseBuf)
-						((NetThread) currentThread()).assertWriteBuffer(array[0]);
+						NetThread.assertWriteBuffer(array[0]);
 				}
 
 				return array;
@@ -87,7 +84,7 @@ class HttpMessageBuilder implements HttpRequestBuilder, HttpResponseBuilder {
 
 				if (responseBuf) {
 					if (fromIndex == 0) {
-						if (BuildConfig.D) ((NetThread) currentThread()).assertWriteBuffer(array[0]);
+						if (BuildConfig.D) NetThread.assertWriteBuffer(array[0]);
 						array[0] = IoUtils.copyOf(array[0]);
 					}
 
@@ -165,7 +162,7 @@ class HttpMessageBuilder implements HttpRequestBuilder, HttpResponseBuilder {
 	public HttpMessageBuilder addHeader(HttpHeader h, long value) {
 		long v = (value < 0) ? -value : value;
 		int nameLen = h.getNameLength();
-		int valueLen = getNumberOfDigits(v);
+		int valueLen = numberOfDigits(v);
 		ensureCapacity(nameLen + valueLen + 5);
 		h.appendName(buf);
 		buf.put(SEP);
@@ -180,7 +177,7 @@ class HttpMessageBuilder implements HttpRequestBuilder, HttpResponseBuilder {
 	public HttpMessageBuilder addHeader(CharSequence name, long value) {
 		long v = (value < 0) ? -value : value;
 		int nameLen = name.length();
-		int valueLen = getNumberOfDigits(v);
+		int valueLen = numberOfDigits(v);
 		ensureCapacity(nameLen + valueLen + 5);
 		append(name, nameLen);
 		buf.put(SEP);
@@ -304,5 +301,14 @@ class HttpMessageBuilder implements HttpRequestBuilder, HttpResponseBuilder {
 			pos = 0;
 			responseBuf = false;
 		}
+	}
+
+	private static int numberOfDigits(long positiveNum) {
+		long p = 10;
+		for (int i = 1; i < 19; i++) {
+			if (positiveNum < p) return i;
+			p = 10 * p;
+		}
+		return 19;
 	}
 }

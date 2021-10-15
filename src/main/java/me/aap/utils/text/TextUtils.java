@@ -413,17 +413,6 @@ public class TextUtils {
 		return bytes;
 	}
 
-	public static int getNumberOfDigits(long positiveNum) {
-		long p = 10;
-
-		for (int i = 1; i < 19; i++) {
-			if (positiveNum < p) return i;
-			p = 10 * p;
-		}
-
-		return 19;
-	}
-
 	public static String toString(ByteBuffer b, Charset cs) {
 		if (!b.hasArray()) {
 			ByteBuffer bb = ByteBuffer.allocate(b.remaining());

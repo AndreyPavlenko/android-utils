@@ -9,7 +9,9 @@ import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
 import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
 import static android.view.View.SYSTEM_UI_FLAG_VISIBLE;
+import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.completedVoid;
+import static me.aap.utils.async.Completed.failed;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_DESTROY;
 import static me.aap.utils.ui.activity.ActivityListener.ACTIVITY_FINISH;
@@ -106,13 +108,18 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 
 	@NonNull
 	public static ActivityDelegate get(Context ctx) {
+		return getActivityDelegate(ctx).getOrThrow();
+	}
+
+	@NonNull
+	public static FutureSupplier<? extends ActivityDelegate> getActivityDelegate(Context ctx) {
 		if (ctx instanceof AppActivity) {
-			return ((AppActivity) ctx).getActivityDelegate().getOrThrow();
+			return ((AppActivity) ctx).getActivityDelegate();
 		} else if (ctx instanceof ContextWrapper) {
 			do {
 				ctx = ((ContextWrapper) ctx).getBaseContext();
 				if (ctx instanceof AppActivity)
-					return ((AppActivity) ctx).getActivityDelegate().getOrThrow();
+					return ((AppActivity) ctx).getActivityDelegate();
 			} while (ctx instanceof ContextWrapper);
 		}
 
@@ -120,12 +127,12 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 
 		if (f != null) {
 			ActivityDelegate d = f.apply(ctx);
-			if (d != null) return d;
+			if (d != null) return completed(d);
 		}
 
 		IllegalArgumentException ex = new IllegalArgumentException("Unsupported context: " + ctx);
 		Log.e(ex, "Activity delegate not found. contextToDelegate = ", f);
-		throw ex;
+		return failed(ex);
 	}
 
 	@Nonnull

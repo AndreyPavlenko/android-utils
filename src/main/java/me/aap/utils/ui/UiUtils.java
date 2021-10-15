@@ -33,6 +33,7 @@ import androidx.annotation.StyleRes;
 import androidx.appcompat.content.res.AppCompatResources;
 
 import me.aap.utils.R;
+import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.concurrent.ConcurrentUtils;
@@ -73,6 +74,17 @@ public class UiUtils {
 				.setMessage(msg)
 				.setPositiveButton(android.R.string.ok, null)
 				.show();
+		App.get().getHandler().submit(() -> {
+			ActivityDelegate a = ActivityDelegate.get(ctx);
+			View b = a.findViewById(android.R.id.button1);
+			if (b != null) {
+				b.requestFocus();
+				b.setNextFocusUpId(android.R.id.button1);
+				b.setNextFocusDownId(android.R.id.button1);
+				b.setNextFocusLeftId(android.R.id.button1);
+				b.setNextFocusRightId(android.R.id.button1);
+			}
+		});
 	}
 
 	public static void showInfo(Context ctx, @StringRes int msg) {
@@ -84,6 +96,17 @@ public class UiUtils {
 				.setMessage(msg)
 				.setPositiveButton(android.R.string.ok, null)
 				.show();
+		App.get().getHandler().submit(() -> {
+			ActivityDelegate a = ActivityDelegate.get(ctx);
+			View b = a.findViewById(android.R.id.button1);
+			if (b != null) {
+				b.requestFocus();
+				b.setNextFocusUpId(android.R.id.button1);
+				b.setNextFocusDownId(android.R.id.button1);
+				b.setNextFocusLeftId(android.R.id.button1);
+				b.setNextFocusRightId(android.R.id.button1);
+			}
+		});
 	}
 
 	public static FutureSupplier<Void> showQuestion(
@@ -101,24 +124,63 @@ public class UiUtils {
 				.setNegativeButton(android.R.string.cancel, (d, w) -> p.cancel())
 				.setPositiveButton(android.R.string.ok, (d, w) -> p.complete(null))
 				.show();
+		App.get().getHandler().submit(() -> {
+			ActivityDelegate a = ActivityDelegate.get(ctx);
+			View b = a.findViewById(android.R.id.button1);
+			if (b != null) {
+				b.requestFocus();
+				b.setNextFocusUpId(android.R.id.button1);
+				b.setNextFocusDownId(android.R.id.button1);
+				b.setNextFocusRightId(android.R.id.button2);
+			}
+			b = a.findViewById(android.R.id.button2);
+			if (b != null) {
+				b.setNextFocusUpId(android.R.id.button2);
+				b.setNextFocusDownId(android.R.id.button2);
+				b.setNextFocusLeftId(android.R.id.button1);
+			}
+		});
 		return p;
 	}
 
-	public static FutureSupplier<String> queryText(Context ctx, @StringRes int title) {
-		return queryText(ctx, title, "");
+	public static FutureSupplier<String> queryText(Context ctx, @StringRes int title,
+																								 @DrawableRes int icon) {
+		return queryText(ctx, title, icon, "");
 	}
 
-	public static FutureSupplier<String> queryText(Context ctx, @StringRes int title, CharSequence initText) {
+	public static FutureSupplier<String> queryText(Context ctx, @StringRes int title,
+																								 @DrawableRes int icon, CharSequence initText) {
 		Promise<String> p = new Promise<>();
 		ActivityDelegate a = ActivityDelegate.get(ctx);
 		EditText text = a.createEditText(ctx);
 		text.setSingleLine();
 		text.setText(initText);
+		text.setId(android.R.id.text1);
+		text.setNextFocusUpId(android.R.id.button1);
+		text.setNextFocusDownId(android.R.id.button1);
+		text.setNextFocusLeftId(android.R.id.text1);
+		text.setNextFocusRightId(android.R.id.text1);
+		text.setOnKeyListener(UiUtils::dpadFocusHelper);
 		a.createDialogBuilder(ctx)
-				.setTitle(title).setView(text)
+				.setTitle(icon, title).setView(text)
 				.setNegativeButton(android.R.string.cancel, (d, i) -> p.cancel())
 				.setPositiveButton(android.R.string.ok, (d, i) -> p.complete(text.getText().toString()))
 				.show();
+		App.get().getHandler().submit(() -> {
+			text.requestFocus();
+			View b = a.findViewById(android.R.id.button1);
+			if (b != null) {
+				b.setNextFocusUpId(text.getId());
+				b.setNextFocusDownId(text.getId());
+				b.setNextFocusRightId(android.R.id.button2);
+			}
+			b = a.findViewById(android.R.id.button2);
+			if (b != null) {
+				b.setNextFocusUpId(text.getId());
+				b.setNextFocusDownId(text.getId());
+				b.setNextFocusLeftId(android.R.id.button1);
+			}
+		});
 		return p;
 	}
 

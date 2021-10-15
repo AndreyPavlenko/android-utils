@@ -13,8 +13,4 @@ public class BasicEventBroadcaster<L> implements EventBroadcaster<L> {
 	public Collection<ListenerRef<L>> getBroadcastEventListeners() {
 		return listeners;
 	}
-
-	public void removeBroadcastListeners() {
-		listeners.clear();
-	}
 }
