@@ -39,6 +39,7 @@ public class FloatingButton extends FloatingActionButton implements ActivityList
 	private int borderFocusColor;
 	@Px
 	private float borderWidth;
+	private float scale = 1f;
 
 	public FloatingButton(Context context, AttributeSet attrs) {
 		this(context, attrs, R.attr.floatingActionButtonStyle);
@@ -141,6 +142,16 @@ public class FloatingButton extends FloatingActionButton implements ActivityList
 		return getActivity().interceptTouchEvent(e, this::handleTouchEvent);
 	}
 
+	public void setScale(float scale) {
+		int w = getWidth();
+		float diff = w * scale - w * this.scale;
+		this.scale = scale;
+		setScaleX(scale);
+		setScaleY(scale);
+		setX(getX() - diff);
+		setY(getY() - diff);
+	}
+
 	private final static float MOVE_TOLERANCE = 10;
 	private float downX, downY, dx, dy;
 	private boolean moving;
@@ -148,6 +159,8 @@ public class FloatingButton extends FloatingActionButton implements ActivityList
 	private boolean handleTouchEvent(@NonNull MotionEvent e) {
 		switch (e.getActionMasked()) {
 			case MotionEvent.ACTION_DOWN:
+				setScaleX(scale * 1.5f);
+				setScaleY(scale * 1.5f);
 				downX = e.getRawX();
 				downY = e.getRawY();
 				dx = getX() - downX;
@@ -182,6 +195,9 @@ public class FloatingButton extends FloatingActionButton implements ActivityList
 				moving = true;
 				return true;
 			case MotionEvent.ACTION_UP:
+				setScaleX(scale);
+				setScaleY(scale);
+
 				if (moving) {
 					moving = false;
 
