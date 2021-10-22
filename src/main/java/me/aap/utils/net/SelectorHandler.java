@@ -1,5 +1,15 @@
 package me.aap.utils.net;
 
+import static java.nio.channels.SelectionKey.OP_ACCEPT;
+import static java.nio.channels.SelectionKey.OP_CONNECT;
+import static java.nio.channels.SelectionKey.OP_READ;
+import static java.nio.channels.SelectionKey.OP_WRITE;
+import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.misc.Assert.assertEquals;
+
 import android.os.Build;
 
 import androidx.annotation.Keep;
@@ -49,16 +59,6 @@ import me.aap.utils.io.IoUtils;
 import me.aap.utils.io.RandomAccessChannel;
 import me.aap.utils.log.Log;
 import me.aap.utils.security.SecurityUtils;
-
-import static java.nio.channels.SelectionKey.OP_ACCEPT;
-import static java.nio.channels.SelectionKey.OP_CONNECT;
-import static java.nio.channels.SelectionKey.OP_READ;
-import static java.nio.channels.SelectionKey.OP_WRITE;
-import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static me.aap.utils.async.Completed.failed;
-import static me.aap.utils.misc.Assert.assertEquals;
 
 /**
  * @author Andrey Pavlenko
@@ -718,7 +718,7 @@ class SelectorHandler implements NetHandler, Runnable {
 								return;
 							}
 
-							assert p == peekNode();
+							assert (p == peekNode()) || !isOpen();
 							poll();
 							p.complete(null);
 							break;

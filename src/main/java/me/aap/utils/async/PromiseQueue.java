@@ -3,7 +3,7 @@ package me.aap.utils.async;
 import androidx.annotation.Nullable;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import javax.annotation.Nonnull;
@@ -17,7 +17,7 @@ import me.aap.utils.function.Consumer;
  * @author Andrey Pavlenko
  */
 public class PromiseQueue {
-	private final AtomicInteger state = new AtomicInteger();
+	private final AtomicReference workThread = new AtomicReference();
 	@SuppressWarnings("rawtypes")
 	private final Q queue = new Q();
 	@Nullable
@@ -39,20 +39,26 @@ public class PromiseQueue {
 	@SuppressWarnings("unchecked")
 	public <T> FutureSupplier<T> enqueue(CheckedSupplier<T, Throwable> task) {
 		QueuedPromise<T> p = new QueuedPromise<>(task);
+
+		if (workThread.get() == Thread.currentThread()) {
+			p.run();
+			return p;
+		}
+
 		queue.offerNode(p);
 		if (queue.peekNode() == p) getExecutor().execute(this::processQueue);
 		return p;
 	}
 
 	private void processQueue() {
-		if (!state.compareAndSet(0, 1)) return;
+		if (!workThread.compareAndSet(null, Thread.currentThread())) return;
 
 		try {
 			for (QueuedPromise<?> p = queue.pollNode(); p != null; p = queue.pollNode()) {
 				p.run();
 			}
 		} finally {
-			state.compareAndSet(1, 0);
+			workThread.compareAndSet(Thread.currentThread(), null);
 		}
 	}
 
