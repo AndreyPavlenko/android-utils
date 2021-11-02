@@ -132,6 +132,8 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		if (b == null) return false;
 
 		int parentItemId = builder.parentItemId;
+		CloseHandler ch = builder.closeHandler;
+		if (ch != null) ch.menuClosed(this);
 		builder.cleanUp();
 		b.init();
 		if (b.title != null) b.setTitle(b.title);

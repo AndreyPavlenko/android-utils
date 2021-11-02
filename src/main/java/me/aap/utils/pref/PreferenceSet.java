@@ -2,6 +2,7 @@ package me.aap.utils.pref;
 
 import android.content.res.Resources;
 import android.view.View;
+import android.view.ViewParent;
 
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -10,7 +11,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
-import me.aap.utils.R;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.ui.menu.OverlayMenu;
@@ -139,13 +139,25 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	public void addToView(RecyclerView v) {
 		v.setHasFixedSize(true);
 		v.setLayoutManager(new LinearLayoutManager(v.getContext()));
-		v.setAdapter(new PreferenceViewAdapter(this));
+		v.setAdapter((adapter != null) ? adapter : new PreferenceViewAdapter(this));
 	}
 
 	public void addToMenu(OverlayMenu.Builder b, boolean setMinWidth) {
-		View v = b.inflate(R.layout.pref_list_view);
-		RecyclerView prefsView = v.findViewById(R.id.prefs_list_view);
+		RecyclerView prefsView = new RecyclerView(b.getMenu().getContext()) {
+			@Override
+			public View focusSearch(View focused, int direction) {
+				View v = super.focusSearch(focused, direction);
+				for (ViewParent p = (v == null) ? null : v.getParent(); p != null; p = p.getParent()) {
+					if (p == this) return v;
+				}
+				return null;
+			}
+		};
+		adapter = new PreferenceViewAdapter(this);
+		b.setCloseHandlerHandler(m -> adapter.onDestroy());
+		b.setView(prefsView);
 		addToView(prefsView);
+		prefsView.requestFocus();
 
 		if (setMinWidth) {
 			prefsView.setMinimumWidth(Resources.getSystem().getDisplayMetrics().widthPixels * 2 / 3);

@@ -21,8 +21,10 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.StringRes;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.LinearLayoutCompat;
+import androidx.core.widget.TextViewCompat;
 
 import me.aap.utils.R;
 import me.aap.utils.async.FutureSupplier;
@@ -89,7 +91,7 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 		setText(text);
 		setTextAppearance(textAppearance);
 		setTextColor(textColor);
-		setCompoundDrawableTintList(iconTint);
+		TextViewCompat.setCompoundDrawableTintList(this, iconTint);
 
 		setCompoundDrawablePadding(padding);
 		setPadding(padding, padding, padding, padding);
@@ -208,7 +210,7 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 
 	private void setRightIcon(@DrawableRes int icon) {
 		Drawable[] d = getCompoundDrawables();
-		d[2] = (icon == ID_NULL) ? null : getContext().getDrawable(icon);
+		d[2] = (icon == ID_NULL) ? null : AppCompatResources.getDrawable(getContext(), icon);
 		setCompoundDrawablesWithIntrinsicBounds(d[0], d[1], d[2], d[3]);
 	}
 }

@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import me.aap.utils.R;
+import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.collection.CollectionUtils;
 import me.aap.utils.function.BiConsumer;
@@ -106,7 +107,8 @@ public class PreferenceView extends ConstraintLayout {
 	private void setFooterTextAppearance(Context ctx, float scale) {
 		for (int i = 2, n = getChildCount(); i < n; i++) {
 			View v = getChildAt(i);
-			if (v instanceof TextView) setTextAppearance(ctx, (TextView) v, subtitleTextAppearance, scale);
+			if (v instanceof TextView)
+				setTextAppearance(ctx, (TextView) v, subtitleTextAppearance, scale);
 		}
 	}
 
@@ -328,6 +330,8 @@ public class PreferenceView extends ConstraintLayout {
 
 		if (o.showProgress) {
 			sb.setVisibility(VISIBLE);
+			sb.setNextFocusUpId(t.getId());
+			t.setNextFocusDownId(sb.getId());
 			sb.setMax((o.seekMax - o.seekMin) / o.seekScale);
 			sb.setProgress(Math.max(0, toInt.applyAsInt(initValue) - o.seekMin) / o.seekScale);
 
@@ -336,6 +340,7 @@ public class PreferenceView extends ConstraintLayout {
 				public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 					if (fromUser) {
 						t.setText(fromInt.apply(progress * o.seekScale + o.seekMin));
+						if (sb.isFocused()) App.get().getHandler().post(sb::requestFocus);
 					}
 				}
 
