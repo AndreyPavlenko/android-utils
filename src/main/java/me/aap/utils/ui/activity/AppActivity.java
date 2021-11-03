@@ -53,6 +53,10 @@ public interface AppActivity {
 
 	void finish();
 
+	default boolean isFinishing() {
+		return false;
+	}
+
 	default void startActivity(Intent intent) {
 		startActivity(intent, null);
 	}

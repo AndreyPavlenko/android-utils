@@ -37,6 +37,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.regex.Pattern;
 
 import me.aap.utils.R;
@@ -433,23 +434,18 @@ public class FilePickerFragment extends GenericDialogFragment implements
 
 				if ((st.create != null) && st.create.isAvailable(p)) {
 					State state = (State) p.resetState();
-					state.create.create(st.parent, st.children)
-							.main()
-							.onFailure(fail -> {
-								ListView<VirtualResource> lv = p.getListView();
-								if (lv != null) lv.onFailure(fail);
-								p.restoreState(state);
-								f.getActivityDelegate().showFragment(R.id.file_picker);
-							})
-							.onSuccess(h -> {
-								if (h != null) {
-									state.parent = h.getValue1();
-									state.children = h.getValue2();
-								}
-
-								p.restoreState(state);
-								f.getActivityDelegate().showFragment(R.id.file_picker);
-							});
+					state.create.create(st.parent, st.children).main().onCompletion((h, err) -> {
+						if (h != null) {
+							state.parent = h.getValue1();
+							state.children = h.getValue2();
+						}
+						if ((err != null) && !(err instanceof CancellationException)) {
+							ListView<VirtualResource> lv = p.getListView();
+							if (lv != null) lv.onFailure(err);
+						}
+						p.restoreState(state);
+						p.getActivityDelegate().showFragment(R.id.file_picker);
+					});
 					return;
 				}
 			}

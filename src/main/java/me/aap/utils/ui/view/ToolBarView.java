@@ -361,9 +361,10 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 				switch ((int) e) {
 					case FRAGMENT_CHANGED:
 					case FRAGMENT_CONTENT_CHANGED:
+						ActivityFragment f = tb.getActiveFragment();
+						if (f == null) return;
 						ImageButton b = tb.findViewById(getBackButtonId());
 						TextView t = tb.findViewById(getTitleId());
-						ActivityFragment f = tb.getActiveFragment();
 						b.setVisibility(getBackButtonVisibility(f));
 						t.setText(f.getTitle());
 						break;

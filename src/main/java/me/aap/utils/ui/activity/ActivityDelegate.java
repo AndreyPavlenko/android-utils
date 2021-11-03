@@ -44,6 +44,7 @@ import androidx.fragment.app.FragmentTransaction;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -89,6 +90,7 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 	private OverlayMenu activeMenu;
 	private boolean fullScreen;
 	private boolean backPressed;
+	private boolean recreating;
 	private int activeFragmentId = ID_NULL;
 	private int activeNavItemId = ID_NULL;
 
@@ -174,6 +176,15 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 
 	protected void onActivityStop() {
 		Log.d("onActivityStop");
+		if (getAppActivity().isFinishing() || recreating) {
+			FragmentManager fm = getSupportFragmentManager();
+			FragmentTransaction tr = fm.beginTransaction();
+			for (Fragment f : new ArrayList<>(fm.getFragments())) {
+				Log.d("Destroying fragment ", f);
+				tr.remove(f);
+			}
+			tr.commit();
+		}
 	}
 
 	protected void onActivityDestroy() {
@@ -205,7 +216,12 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 
 	public void recreate() {
 		Log.d("Recreating");
+		recreating = true;
 		getAppActivity().recreate();
+	}
+
+	public boolean isRecreating() {
+		return recreating;
 	}
 
 	@Override

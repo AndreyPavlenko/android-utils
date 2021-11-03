@@ -1,12 +1,18 @@
 package me.aap.utils.ui.view;
 
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_DONE;
+import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_UNKNOWN;
+import static me.aap.utils.ui.UiUtils.ID_NULL;
+import static me.aap.utils.ui.UiUtils.toPx;
+
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
-import me.aap.utils.log.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
@@ -26,6 +32,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 import me.aap.utils.R;
 import me.aap.utils.async.Completed;
@@ -33,13 +40,7 @@ import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Function;
 import me.aap.utils.holder.BiHolder;
-
-import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
-import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
-import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_DONE;
-import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_UNKNOWN;
-import static me.aap.utils.ui.UiUtils.ID_NULL;
-import static me.aap.utils.ui.UiUtils.toPx;
+import me.aap.utils.log.Log;
 
 /**
  * @author Andrey Pavlenko
@@ -290,9 +291,9 @@ public class ListView<I> extends RecyclerView {
 
 	public void onFailure(Throwable err) {
 		onCancel();
-		Log.w(getClass().getName(), "Failed to load items", err);
+		Log.w(err, "Failed to load items");
 		if (errorHandler != null) errorHandler.accept(err);
-		else Toast.makeText(getContext(), err.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+		else Toast.makeText(getContext(), err.toString(), Toast.LENGTH_LONG).show();
 	}
 
 	public interface ItemAdapter<I> {
