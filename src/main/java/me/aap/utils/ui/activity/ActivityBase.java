@@ -171,7 +171,11 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 
 	public FutureSupplier<Intent> startActivityForResult(Supplier<Intent> intent) {
 		StartActivityPromise p = new StartActivityPromise(intent);
-		activityLauncher.launch(p);
+		try {
+			activityLauncher.launch(p);
+		} catch (Exception ex) {
+			p.completeExceptionally(ex);
+		}
 		return p;
 	}
 

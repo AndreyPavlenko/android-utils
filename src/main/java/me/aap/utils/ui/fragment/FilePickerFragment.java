@@ -17,7 +17,9 @@ import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED;
 import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -131,19 +133,29 @@ public class FilePickerFragment extends GenericDialogFragment implements
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		if ((SDK_INT >= Build.VERSION_CODES.R)
-				&& App.get().hasManifestPermission(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
+		requestManageAllFilesPerm(requireContext());
+	}
+
+	public static boolean requestManageAllFilesPerm(Context ctx) {
+		if (!(ctx instanceof Activity) || (SDK_INT < Build.VERSION_CODES.R)) return false;
+
+		App app = App.get();
+
+		if (app.hasManifestPermission(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
 				&& !Environment.isExternalStorageManager()) {
 			Intent req = new Intent(ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-			Uri uri = Uri.fromParts("package", requireContext().getPackageName(), null);
+			Uri uri = Uri.fromParts("package", app.getPackageName(), null);
 			req.setData(uri);
 
 			try {
-				startActivity(req);
+				ctx.startActivity(req);
+				return true;
 			} catch (ActivityNotFoundException ex) {
 				Log.e(ex, "Failed to request %s", ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
 			}
 		}
+
+		return false;
 	}
 
 	@Nullable

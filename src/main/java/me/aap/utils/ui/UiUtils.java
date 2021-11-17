@@ -87,14 +87,15 @@ public class UiUtils {
 		});
 	}
 
-	public static void showInfo(Context ctx, @StringRes int msg) {
-		showInfo(ctx, ctx.getString(msg));
+	public static FutureSupplier<Void> showInfo(Context ctx, @StringRes int msg) {
+		return showInfo(ctx, ctx.getString(msg));
 	}
 
-	public static void showInfo(Context ctx, String msg) {
+	public static FutureSupplier<Void> showInfo(Context ctx, String msg) {
+		Promise<Void> p = new Promise<>();
 		ActivityDelegate.get(ctx).createDialogBuilder(ctx)
 				.setMessage(msg)
-				.setPositiveButton(android.R.string.ok, null)
+				.setPositiveButton(android.R.string.ok, (d, w) -> p.complete(null))
 				.show();
 		App.get().getHandler().submit(() -> {
 			ActivityDelegate a = ActivityDelegate.get(ctx);
@@ -107,6 +108,7 @@ public class UiUtils {
 				b.setNextFocusRightId(android.R.id.button1);
 			}
 		});
+		return p;
 	}
 
 	public static FutureSupplier<Void> showQuestion(

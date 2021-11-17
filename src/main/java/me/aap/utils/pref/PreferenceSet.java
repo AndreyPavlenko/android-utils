@@ -130,6 +130,14 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 		});
 	}
 
+	public void addButton(Consumer<PreferenceView.ButtonOpts> builder) {
+		add(() -> {
+			PreferenceView.ButtonOpts o = new PreferenceView.ButtonOpts();
+			builder.accept(o);
+			return o;
+		});
+	}
+
 	public PreferenceSet subSet(Consumer<PreferenceView.Opts> builder) {
 		PreferenceSet sub = new PreferenceSet(this, builder);
 		add(sub);

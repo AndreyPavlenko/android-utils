@@ -23,7 +23,7 @@ import me.aap.utils.log.Log;
  * @author Andrey Pavlenko
  */
 public class FileUtils {
-	private static int FILE_BUFFER_SIZE = 8192;
+	private static final int FILE_BUFFER_SIZE = 8192;
 
 	public static File getFileFromUri(Uri fileUri) {
 		return getFileFromUri(App.get(), fileUri);
