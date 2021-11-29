@@ -40,6 +40,10 @@ public class SQLite implements Closeable {
 			SQLiteDatabase sqlite;
 
 			try {
+				File dir = file.getParentFile();
+				if ((dir != null) && !dir.isDirectory() && !dir.mkdirs()) {
+					Log.w("Failed to create directory: ", dir);
+				}
 				sqlite = SQLiteDatabase.openOrCreateDatabase(file, null);
 			} catch (Exception ex) {
 				Log.w("Failed to open database: ", file, ": ", ex, ". Retrying ...");
