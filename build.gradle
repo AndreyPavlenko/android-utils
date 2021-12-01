@@ -18,12 +18,12 @@ repositories {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 31
     buildToolsVersion "29.0.2"
 
     defaultConfig {
         minSdkVersion 23
-        targetSdkVersion 30
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
 
@@ -63,7 +63,7 @@ dependencies {
     implementation "com.google.android.play:core:${ANDROID_PLAY_CORE_VERSION}"
     implementation "com.google.android.material:material:${ANDROID_MATERIAL_VERSION}"
 
-    implementation 'com.jcraft:jsch:0.1.55'
+    implementation 'com.github.mwiede:jsch:0.1.70'
     implementation 'com.hierynomus:smbj:0.10.0'
 
     implementation 'com.google.gms:google-services:4.3.10'

@@ -1,5 +1,8 @@
 package me.aap.utils.async;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.failed;
+
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,9 +13,6 @@ import me.aap.utils.concurrent.ConcurrentQueueBase;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.holder.Holder;
 import me.aap.utils.log.Log;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
@@ -51,7 +51,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 
 		for (T obj = objectQueue.poll(); obj != null; obj = objectQueue.poll()) {
 			if (validateObject(obj, false)) {
-				return completed(new PooledObject<>(this, obj));
+				return completed(newPooledObject(null, obj));
 			} else {
 				destroyObject(obj);
 				counter.decrementAndGet();
@@ -69,7 +69,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 							Log.d(fail, "Failed to create object");
 							promise.completeExceptionally(fail);
 							processQueue();
-						} else if (!promise.complete(new PooledObject<>(this, result))) {
+						} else if (!promise.complete(newPooledObject(null, result))) {
 							enqueueObject(result);
 							processQueue();
 						}
@@ -130,6 +130,10 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 	protected void destroyObject(T obj) {
 	}
 
+	protected PooledObject<T> newPooledObject(Object marker, T obj) {
+		return new PooledObject<>(this, marker, obj);
+	}
+
 	private void releaseObject(PooledObject<T> released, T obj, boolean destroy) {
 		for (; ; ) {
 			if (destroy || !validateObject(obj, true) || isClosed()) {
@@ -150,7 +154,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 
 			if (!promiseQueue.isEmpty()) {
 				Thread thread = Thread.currentThread();
-				PooledObject<T> pooled = new PooledObject<>(this, thread, obj);
+				PooledObject<T> pooled = newPooledObject(thread, obj);
 
 				for (ObjectPromise<T> p = promiseQueue.pollNode(); p != null; p = promiseQueue.pollNode()) {
 					if (p.complete(pooled)) {
@@ -198,7 +202,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 					continue;
 				}
 
-				PooledObject<T> pooled = new PooledObject<>(this, thread, obj);
+				PooledObject<T> pooled = newPooledObject(thread, obj);
 
 				for (ObjectPromise<T> p = promiseQueue.pollNode(); p != null; p = promiseQueue.pollNode()) {
 					if (p.complete(pooled)) {
@@ -210,7 +214,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 							counter.decrementAndGet();
 							continue loop;
 						} else if (!promiseQueue.isEmpty()) {
-							pooled = new PooledObject<>(this, thread, obj);
+							pooled = newPooledObject(thread, obj);
 						} else {
 							break;
 						}
@@ -253,7 +257,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 		}
 	}
 
-	public static final class PooledObject<T> implements AutoCloseable {
+	public static class PooledObject<T> implements AutoCloseable {
 		static final Object INVALID = new Object();
 		@SuppressWarnings("rawtypes")
 		private static final AtomicReferenceFieldUpdater REF =
@@ -262,12 +266,7 @@ public abstract class ObjectPool<T> implements AutoCloseable {
 		private volatile Object ref;
 		Object marker;
 
-		PooledObject(ObjectPool<T> pool, T obj) {
-			this.pool = pool;
-			ref = obj;
-		}
-
-		PooledObject(ObjectPool<T> pool, Object marker, T obj) {
+		protected PooledObject(ObjectPool<T> pool, Object marker, T obj) {
 			this.pool = pool;
 			this.marker = marker;
 			ref = obj;

@@ -44,29 +44,33 @@ class SftpFile extends SftpResource implements VirtualFile {
 	@Override
 	public AsyncInputStream getInputStream(long offset) {
 		return new AsyncInputStream() {
-			private final FutureSupplier<PooledObject<SftpSession>> session = getRoot().getSession();
+			private final FutureSupplier<PooledObject<SftpSession>> getSession = getRoot().getSession();
 			long pos = offset;
+			SftpSession session;
 			InputStream stream;
 
 			@Override
 			public FutureSupplier<ByteBuffer> read(ByteBufferSupplier dst) {
+				SftpSession s = session;
 				InputStream in = stream;
 
-				if (in != null) {
+				if ((s != null) && (in != null)) {
 					ByteBuffer b = dst.getByteBuffer();
 					FutureSupplier<ByteBuffer> r = readInputStream(in, b, b.remaining());
 					if (!r.isFailed()) pos += r.getOrThrow().remaining();
+					s.restartTimer();
 					return r;
 				}
 
-				return session.then(s -> {
-					SftpSession session = s.get();
+				return getSession.then(o -> {
+					SftpSession session = this.session = o.get();
 					if (session == null) return completed(emptyByteBuffer());
 
 					InputStream is = stream = session.getChannel().get(getPath(), null, pos);
 					ByteBuffer b = dst.getByteBuffer();
 					FutureSupplier<ByteBuffer> r = readInputStream(is, b, b.remaining());
 					if (!r.isFailed()) pos += r.getOrThrow().remaining();
+					session.restartTimer();
 					return r;
 				});
 			}
@@ -74,9 +78,9 @@ class SftpFile extends SftpResource implements VirtualFile {
 			@Override
 			public void close() {
 				IoUtils.close(stream);
-				session.cancel();
-				PooledObject<SftpSession> s = session.peek();
-				if (s != null) s.release();
+				PooledObject<SftpSession> o = getSession.peek();
+				if (o != null) o.release();
+				else getSession.cancel();
 			}
 		};
 	}

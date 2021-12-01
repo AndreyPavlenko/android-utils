@@ -1,5 +1,12 @@
 package me.aap.utils.vfs.sftp;
 
+import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.completedNull;
+import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.vfs.sftp.SftpFileSystem.SCHEME_SFTP;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -11,6 +18,7 @@ import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.UserInfo;
 
 import java.util.Objects;
+import java.util.concurrent.ScheduledFuture;
 
 import me.aap.utils.app.App;
 import me.aap.utils.async.Async;
@@ -25,12 +33,6 @@ import me.aap.utils.resource.Rid;
 import me.aap.utils.vfs.VfsException;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
-
-import static java.util.Objects.requireNonNull;
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.completedNull;
-import static me.aap.utils.async.Completed.failed;
-import static me.aap.utils.vfs.sftp.SftpFileSystem.SCHEME_SFTP;
 
 /**
  * @author Andrey Pavlenko
@@ -114,7 +116,7 @@ class SftpRoot extends SftpFolder {
 	}
 
 	FutureSupplier<PooledObject<SftpSession>> getSession() {
-		return pool.getObject();
+		return pool.getObject().onSuccess(o -> o.get().startTimer());
 	}
 
 	<T> FutureSupplier<T> useChannel(CheckedFunction<ChannelSftp, T, Throwable> task) {
@@ -165,6 +167,18 @@ class SftpRoot extends SftpFolder {
 			this.password = password;
 			this.keyFile = keyFile;
 			this.keyPass = keyPass;
+		}
+
+		@Override
+		protected PooledObject<SftpSession> newPooledObject(Object marker, SftpSession obj) {
+			return new PooledObject<SftpSession>(this, marker, obj) {
+				@Override
+				public boolean release() {
+					SftpSession s = get();
+					if (s != null) s.stopTimer();
+					return super.release();
+				}
+			};
 		}
 
 		@Override
@@ -243,6 +257,7 @@ class SftpRoot extends SftpFolder {
 	static final class SftpSession implements AutoCloseable {
 		private final Session session;
 		private final ChannelSftp channel;
+		private ScheduledFuture<?> timer;
 
 		SftpSession(Session session, ChannelSftp channel) {
 			this.session = session;
@@ -264,6 +279,7 @@ class SftpRoot extends SftpFolder {
 		@Override
 		public void close() {
 			try {
+				stopTimer();
 				session.disconnect();
 			} catch (Throwable ignore) {
 			}
@@ -271,6 +287,26 @@ class SftpRoot extends SftpFolder {
 				channel.disconnect();
 			} catch (Throwable ignore) {
 			}
+		}
+
+		void startTimer() {
+			App app = App.get();
+			if (app == null) return;
+			timer = app.getScheduler().schedule(() -> {
+				Log.w("Closing SFTP channel due to timeout");
+				close();
+			}, 5, SECONDS);
+		}
+
+		void stopTimer() {
+			ScheduledFuture<?> t = timer;
+			timer = null;
+			if (t != null) t.cancel(false);
+		}
+
+		void restartTimer() {
+			stopTimer();
+			startTimer();
 		}
 	}
 }

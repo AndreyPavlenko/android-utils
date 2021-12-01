@@ -12,6 +12,7 @@ import java.io.File;
 import java.nio.ByteBuffer;
 
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.log.Log;
 import me.aap.utils.net.NetChannel;
 import me.aap.utils.net.http.HttpError;
 import me.aap.utils.net.http.HttpError.Forbidden;
@@ -98,8 +99,12 @@ public class VfsHttpHandler implements HttpRequestHandler {
 				}
 
 				reply.onCompletion((r, f) -> {
-					if (f != null) ServiceUnavailable.instance.write(channel);
-					else if (close) channel.close();
+					if (f != null) {
+						Log.d(f, "Failed to send HTTP response - closing channel ", channel);
+						channel.close();
+					} else if (close) {
+						channel.close();
+					}
 				});
 			});
 		});
