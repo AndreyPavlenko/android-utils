@@ -183,7 +183,7 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 				Log.d("Destroying fragment ", f);
 				tr.remove(f);
 			}
-			tr.commit();
+			tr.commitAllowingStateLoss();
 		}
 	}
 
