@@ -101,7 +101,7 @@ public abstract class Logger {
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(new Date());
 		appendDateTime(sb, cal.get(Calendar.DAY_OF_MONTH)).append('-');
-		appendDateTime(sb, cal.get(Calendar.MONTH)).append('-');
+		appendDateTime(sb, cal.get(Calendar.MONTH) + 1).append('-');
 		appendDateTime(sb, cal.get(Calendar.YEAR) % 100).append(' ');
 		appendDateTime(sb, cal.get(Calendar.HOUR_OF_DAY)).append(':');
 		appendDateTime(sb, cal.get(Calendar.MINUTE)).append(':');
