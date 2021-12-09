@@ -61,11 +61,11 @@ public class PreferenceViewAdapter extends RecyclerView.Adapter<PreferenceViewAd
 	public void onDestroy() {
 		RecyclerView view = recyclerView;
 		if (view == null) return;
-
 		for (int i = 0, n = view.getChildCount(); i < n; i++) {
 			View v = view.getChildAt(i);
 			if (v instanceof PreferenceView) ((PreferenceView) v).cleanUp();
 		}
+		view.setAdapter(null);
 	}
 
 	@Override
