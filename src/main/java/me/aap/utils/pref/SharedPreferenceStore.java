@@ -1,6 +1,7 @@
 package me.aap.utils.pref;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.SharedPreferences;
 
 import androidx.annotation.NonNull;
@@ -34,6 +35,10 @@ public interface SharedPreferenceStore extends PreferenceStore {
 
 	@NonNull
 	SharedPreferences getSharedPreferences();
+
+	static SharedPreferenceStore create(Context ctx, String name) {
+		return create(ctx.getSharedPreferences(name,Context.MODE_PRIVATE));
+	}
 
 	static SharedPreferenceStore create(SharedPreferences prefs) {
 		return new SharedPreferenceStore() {

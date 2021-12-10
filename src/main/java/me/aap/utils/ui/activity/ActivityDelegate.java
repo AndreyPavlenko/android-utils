@@ -165,6 +165,10 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		setSystemUiVisibility();
 	}
 
+	protected void onActivityNewIntent(Intent intent){
+		Log.d("onActivityNewIntent");
+	}
+
 	protected void onActivityPause() {
 		Log.d("onActivityPause");
 	}
@@ -287,6 +291,10 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 
 	public View getCurrentFocus() {
 		return getAppActivity().getCurrentFocus();
+	}
+
+	public Intent getIntent() {
+		return getAppActivity().getIntent();
 	}
 
 	public <T extends View> T findViewById(@IdRes int id) {

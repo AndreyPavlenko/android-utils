@@ -78,4 +78,6 @@ public interface AppActivity {
 	default DialogBuilder createDialogBuilder(Context ctx) {
 		return DialogBuilder.create(ctx);
 	}
+
+	Intent getIntent();
 }
