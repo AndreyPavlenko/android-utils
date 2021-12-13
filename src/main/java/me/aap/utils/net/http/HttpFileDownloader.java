@@ -2,6 +2,7 @@ package me.aap.utils.net.http;
 
 import static me.aap.utils.async.Completed.completedVoid;
 import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.net.http.HttpHeader.USER_AGENT;
 
 import androidx.annotation.NonNull;
 
@@ -34,7 +35,7 @@ import me.aap.utils.vfs.VirtualFile;
  * @author Andrey Pavlenko
  */
 public class HttpFileDownloader {
-	public static final Pref<Supplier<String>> AGENT = Pref.s("AGENT");
+	public static final Pref<Supplier<String>> AGENT = Pref.s("AGENT", USER_AGENT::getDefaultValue);
 	public static final Pref<Supplier<String>> ETAG = Pref.s("ETAG");
 	public static final Pref<Supplier<String>> CHARSET = Pref.s("CHARSET", "UTF-8");
 	public static final Pref<Supplier<String>> ENCODING = Pref.s("ENCODING");

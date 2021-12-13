@@ -1,11 +1,11 @@
 package me.aap.utils.net.http;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.nio.ByteBuffer;
-
-import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
  * @author Andrey Pavlenko
@@ -23,7 +23,7 @@ public enum HttpHeader {
 	IF_NONE_MATCH("If-None-Match"),
 	LOCATION("Location"),
 	TRANSFER_ENCODING("Transfer-Encoding", "chunked"),
-	USER_AGENT("User-Agent", "Java/" + System.getProperty("java.version")),
+	USER_AGENT("User-Agent", getAgent()),
 	;
 	private final String name;
 	private final String value;
@@ -73,5 +73,10 @@ public enum HttpHeader {
 	@Override
 	public String toString() {
 		return getName();
+	}
+
+	private static String getAgent() {
+		String a = System.getProperty("http.agent");
+		return (a != null) ? a : "Java/" + System.getProperty("java.version");
 	}
 }
