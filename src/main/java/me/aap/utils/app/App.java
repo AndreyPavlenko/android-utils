@@ -22,7 +22,6 @@ import me.aap.utils.concurrent.HandlerExecutor;
 import me.aap.utils.concurrent.ThreadPool;
 import me.aap.utils.function.CheckedRunnable;
 import me.aap.utils.function.CheckedSupplier;
-import me.aap.utils.net.NetHandler;
 
 /**
  * @author Andrey Pavlenko
@@ -33,7 +32,6 @@ public class App extends android.app.Application {
 	private volatile HandlerExecutor handler;
 	private volatile ThreadPool executor;
 	private volatile ScheduledExecutorService scheduler;
-	private volatile NetHandler netHandler;
 
 	@SuppressWarnings("unchecked")
 	public static <C extends App> C get() {
