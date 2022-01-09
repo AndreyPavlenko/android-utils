@@ -7,6 +7,8 @@ import static me.aap.utils.async.Completed.completedNull;
 import static me.aap.utils.async.Completed.failed;
 import static me.aap.utils.vfs.sftp.SftpFileSystem.SCHEME_SFTP;
 
+import android.os.Build;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -17,6 +19,9 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.UserInfo;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import java.security.Security;
 import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
 
@@ -155,6 +160,13 @@ class SftpRoot extends SftpFolder {
 		private final String keyFile;
 		@Nullable
 		private final String keyPass;
+
+		static {
+			if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+				Security.removeProvider("BC");
+				Security.insertProviderAt(new BouncyCastleProvider(), 1);
+			}
+		}
 
 		public SessionPool(SftpFileSystem fs, @NonNull String user, @NonNull String host,
 											 int port, @Nullable String password, @Nullable String keyFile,

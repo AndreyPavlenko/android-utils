@@ -6,7 +6,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.0.3'
+        classpath 'com.android.tools.build:gradle:7.0.4'
     }
 }
 
@@ -63,11 +63,11 @@ dependencies {
     implementation "com.google.android.play:core:${ANDROID_PLAY_CORE_VERSION}"
     implementation "com.google.android.material:material:${ANDROID_MATERIAL_VERSION}"
 
-    implementation 'com.github.mwiede:jsch:0.1.70'
+    implementation 'com.github.mwiede:jsch:0.1.72'
     implementation 'com.hierynomus:smbj:0.10.0'
 
     implementation 'com.google.gms:google-services:4.3.10'
-    implementation 'com.google.android.gms:play-services-auth:19.2.0'
+    implementation 'com.google.android.gms:play-services-auth:20.0.1'
     implementation 'com.google.http-client:google-http-client-gson:1.39.0'
     implementation('com.google.api-client:google-api-client-android:1.31.3') {
         exclude group: 'org.apache.httpcomponents'
