@@ -1,5 +1,16 @@
 package me.aap.utils.net.http;
 
+import static me.aap.utils.async.Completed.completedVoid;
+import static me.aap.utils.async.Completed.failed;
+import static me.aap.utils.net.http.HttpHeader.ACCEPT_ENCODING;
+import static me.aap.utils.net.http.HttpHeader.CONNECTION;
+import static me.aap.utils.net.http.HttpHeader.IF_NONE_MATCH;
+import static me.aap.utils.net.http.HttpHeader.USER_AGENT;
+import static me.aap.utils.net.http.HttpStatusCode.FOUND;
+import static me.aap.utils.net.http.HttpStatusCode.MOVED_PERMANENTLY;
+import static me.aap.utils.net.http.HttpStatusCode.PERMANENT_REDIRECT;
+import static me.aap.utils.net.http.HttpStatusCode.TEMPORARY_REDIRECT;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -33,17 +44,6 @@ import me.aap.utils.net.NetChannel;
 import me.aap.utils.net.NetHandler;
 import me.aap.utils.net.NetHandler.ConnectOpts;
 import me.aap.utils.text.SharedTextBuilder;
-
-import static me.aap.utils.async.Completed.completedVoid;
-import static me.aap.utils.async.Completed.failed;
-import static me.aap.utils.net.http.HttpHeader.ACCEPT_ENCODING;
-import static me.aap.utils.net.http.HttpHeader.CONNECTION;
-import static me.aap.utils.net.http.HttpHeader.IF_NONE_MATCH;
-import static me.aap.utils.net.http.HttpHeader.USER_AGENT;
-import static me.aap.utils.net.http.HttpStatusCode.FOUND;
-import static me.aap.utils.net.http.HttpStatusCode.MOVED_PERMANENTLY;
-import static me.aap.utils.net.http.HttpStatusCode.PERMANENT_REDIRECT;
-import static me.aap.utils.net.http.HttpStatusCode.TEMPORARY_REDIRECT;
 
 /**
  * @author Andrey Pavlenko
@@ -403,7 +403,14 @@ public class HttpConnection extends HttpResponseEncoder implements HttpResponseH
 			else Log.d("Temporary redirect(", n, "): ", o.url, " -> ", location);
 
 			try {
-				URL u = new URL(location);
+				URL u;
+
+				if (location.startsWith("/")) {
+					u = new URL(o.url.getProtocol(), o.url.getHost(), o.url.getPort(), location);
+				} else {
+					u = new URL(location);
+				}
+
 				URL cached = null;
 				if (permanent) cached = CollectionUtils.putIfAbsent(permRedirects, o.url, u);
 				o.url = (cached == null) ? u : cached;
