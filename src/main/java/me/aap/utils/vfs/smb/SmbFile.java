@@ -78,7 +78,7 @@ class SmbFile extends SmbResource implements VirtualFile {
 							SMB2CreateDisposition.FILE_OPEN,
 							null);
 					InputStream is = stream = file.getInputStream();
-					IoUtils.skip(in, pos);
+					IoUtils.skip(is, pos);
 					FutureSupplier<ByteBuffer> r = readInputStream(is, dst.getByteBuffer(), getInputBufferLen());
 					pos += r.getOrThrow().remaining();
 					return r;
