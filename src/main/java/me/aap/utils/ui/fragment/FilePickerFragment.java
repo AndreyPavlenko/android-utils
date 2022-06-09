@@ -66,6 +66,7 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		ListView.ItemClickListener<VirtualResource>, ListView.ItemsChangeListener<VirtualResource> {
 	public static final byte FILE = 1;
 	public static final byte FOLDER = 2;
+	public static final byte WRITABLE = 4;
 	public static final byte FILE_OR_FOLDER = FILE | FOLDER;
 	private State state = new State();
 

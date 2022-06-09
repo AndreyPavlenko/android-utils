@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -258,5 +259,10 @@ public class CollectionUtils {
 		}
 
 		return -(low + 1);
+	}
+
+	public static <T extends Comparable<T>> T[] sort(T[] array) {
+		Arrays.sort(array);
+		return array;
 	}
 }

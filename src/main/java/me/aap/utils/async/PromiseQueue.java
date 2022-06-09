@@ -1,5 +1,7 @@
 package me.aap.utils.async;
 
+import static java.lang.Thread.currentThread;
+
 import androidx.annotation.Nullable;
 
 import java.util.concurrent.Executor;
@@ -17,11 +19,13 @@ import me.aap.utils.function.Consumer;
  * @author Andrey Pavlenko
  */
 public class PromiseQueue {
+	@SuppressWarnings("rawtypes")
 	private final AtomicReference workThread = new AtomicReference();
 	@SuppressWarnings("rawtypes")
 	private final Q queue = new Q();
 	@Nullable
 	private final Executor exec;
+	private int stackLen;
 
 	public PromiseQueue() {
 		this(null);
@@ -38,27 +42,39 @@ public class PromiseQueue {
 
 	@SuppressWarnings("unchecked")
 	public <T> FutureSupplier<T> enqueue(CheckedSupplier<T, Throwable> task) {
+		Thread t = currentThread();
 		QueuedPromise<T> p = new QueuedPromise<>(task);
 
-		if (workThread.get() == Thread.currentThread()) {
-			p.run();
-			return p;
+		if (workThread.get() == t) {
+			if ((stackLen < 16) && queue.isEmpty()) {
+				try {
+					stackLen++;
+					p.run();
+				} finally {
+					stackLen--;
+				}
+			} else {
+				queue.offerNode(p);
+			}
+		} else {
+			queue.offerNode(p);
+			if (workThread.compareAndSet(null, t)) getExecutor().execute(() -> processQueue(t));
 		}
 
-		queue.offerNode(p);
-		if (queue.peekNode() == p) getExecutor().execute(this::processQueue);
 		return p;
 	}
 
-	private void processQueue() {
-		if (!workThread.compareAndSet(null, Thread.currentThread())) return;
-
-		try {
-			for (QueuedPromise<?> p = queue.pollNode(); p != null; p = queue.pollNode()) {
-				p.run();
+	@SuppressWarnings("unchecked")
+	private void processQueue(Thread expectedWorker) {
+		while (!queue.isEmpty() && workThread.compareAndSet(expectedWorker, currentThread())) {
+			try {
+				for (QueuedPromise<?> p = queue.pollNode(); p != null; p = queue.pollNode()) {
+					p.run();
+				}
+			} finally {
+				expectedWorker = null;
+				workThread.compareAndSet(currentThread(), null);
 			}
-		} finally {
-			workThread.compareAndSet(Thread.currentThread(), null);
 		}
 	}
 

@@ -23,6 +23,7 @@ import me.aap.utils.concurrent.HandlerExecutor;
 import me.aap.utils.function.Cancellable;
 import me.aap.utils.function.CheckedBiConsumer;
 import me.aap.utils.function.CheckedFunction;
+import me.aap.utils.function.CheckedRunnable;
 import me.aap.utils.function.CheckedSupplier;
 import me.aap.utils.function.Consumer;
 import me.aap.utils.function.Function;
@@ -362,6 +363,18 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 				if (v != null) f.accept(v);
 			});
 		}
+	}
+
+	default FutureSupplier<T> ifNotDone(CheckedRunnable run) {
+		if (!isDone()) {
+			try {
+				run.run();
+			} catch (Throwable ex) {
+				Log.e(ex);
+				return failed(ex);
+			}
+		}
+		return this;
 	}
 
 	@SuppressWarnings("unchecked")

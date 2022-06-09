@@ -1,0 +1,173 @@
+package me.aap.utils.voice;
+
+import static android.speech.tts.TextToSpeech.LANG_MISSING_DATA;
+import static android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED;
+import static android.speech.tts.TextToSpeech.QUEUE_FLUSH;
+import static android.speech.tts.TextToSpeech.SUCCESS;
+import static me.aap.utils.voice.TextToSpeechException.TTS_ERR_INIT;
+import static me.aap.utils.voice.TextToSpeechException.TTS_ERR_LANG_MISSING_DATA;
+import static me.aap.utils.voice.TextToSpeechException.TTS_ERR_LANG_NOT_SUPPORTED;
+import static me.aap.utils.voice.TextToSpeechException.TTS_ERR_SPEAK_FAILED;
+
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.speech.tts.UtteranceProgressListener;
+
+import androidx.annotation.Nullable;
+
+import java.io.Closeable;
+import java.util.Locale;
+
+import me.aap.utils.app.App;
+import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.async.Promise;
+import me.aap.utils.ui.activity.ActivityDelegate;
+
+/**
+ * @author Andrey Pavlenko
+ */
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class TextToSpeech implements Closeable {
+	private final android.speech.tts.TextToSpeech tts;
+	private Promise promise;
+	private String uId;
+	private Object uData;
+	private int uCounter;
+
+	private TextToSpeech(Context ctx, String engine) {
+		promise = new Promise<>();
+		Listener l = new Listener();
+		tts = new android.speech.tts.TextToSpeech(ctx, l, engine);
+		tts.setOnUtteranceProgressListener(l);
+	}
+
+	public static FutureSupplier<TextToSpeech> create(Context ctx, @Nullable Locale lang) {
+		return create(ctx, lang, null);
+	}
+
+	public static FutureSupplier<TextToSpeech> create(Context ctx, @Nullable Locale lang, @Nullable String engine) {
+		TextToSpeech tts = new TextToSpeech(ctx, engine);
+		Promise<TextToSpeech> p = tts.promise;
+		if (lang == null) return p;
+		return p.map(t -> {
+			switch (t.tts.setLanguage(lang)) {
+				case LANG_MISSING_DATA:
+					t.close();
+					installLang(ctx);
+					throw new TextToSpeechException("Missing TTS data for language " + lang, TTS_ERR_LANG_MISSING_DATA);
+				case LANG_NOT_SUPPORTED:
+					t.close();
+					installLang(ctx);
+					throw new TextToSpeechException("Unsupported TTS language " + lang, TTS_ERR_LANG_NOT_SUPPORTED);
+				default:
+					return t;
+			}
+		});
+	}
+
+	public <T> FutureSupplier<T> speak(CharSequence text) {
+		return speak(text, null);
+	}
+
+	public <T> FutureSupplier<T> speak(CharSequence text, @Nullable T data) {
+		return speak(text, data, null);
+	}
+
+
+	public <T> FutureSupplier<T> speak(CharSequence text, @Nullable T data, @Nullable Bundle params) {
+		if (promise != null) promise.cancel();
+		Promise<T> p = new Promise<>();
+		promise = p;
+		uData = data;
+		uId = String.valueOf(uCounter++);
+		if (tts.speak(text, QUEUE_FLUSH, params, uId) != SUCCESS) {
+			p.completeExceptionally(new TextToSpeechException("Failed to speak " + text, TTS_ERR_SPEAK_FAILED));
+		}
+		return p;
+	}
+
+	@Override
+	public void close() {
+		if (promise != null) promise.cancel();
+		tts.stop();
+		tts.shutdown();
+		promise = null;
+		uData = null;
+		uId = null;
+	}
+
+	private static void installLang(Context ctx) {
+		ActivityDelegate.getActivityDelegate(ctx).onSuccess(d ->
+				d.startActivityForResult(() -> new Intent(android.speech.tts.TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)));
+	}
+
+	@SuppressWarnings("unchecked")
+	private final class Listener extends UtteranceProgressListener implements android.speech.tts.TextToSpeech.OnInitListener {
+
+		@Override
+		public void onInit(int status) {
+			Promise p = promise;
+			if (p == null) return;
+			promise = null;
+			if (status == SUCCESS) {
+				p.complete(TextToSpeech.this);
+			} else {
+				p.completeExceptionally(new TextToSpeechException("TTS initialization failed", TTS_ERR_INIT));
+			}
+		}
+
+		@Override
+		public void onStart(String utteranceId) {
+		}
+
+		@Override
+		public void onDone(String utteranceId) {
+			App.get().run(() -> {
+				if ((promise == null) || !utteranceId.equals(uId)) return;
+				Promise p = promise;
+				Object d = uData;
+				promise = null;
+				uData = null;
+				uId = null;
+				p.complete(d);
+			});
+		}
+
+		@Override
+		public void onError(String utteranceId) {
+			App.get().run(() -> {
+				if ((promise == null) || !utteranceId.equals(uId)) return;
+				Promise p = promise;
+				promise = null;
+				uData = null;
+				uId = null;
+				p.completeExceptionally(new TextToSpeechException("TTS speak failed", TTS_ERR_SPEAK_FAILED));
+			});
+		}
+
+		@Override
+		public void onError(String utteranceId, int errorCode) {
+			App.get().run(() -> {
+				if ((promise == null) || !utteranceId.equals(uId)) return;
+				Promise p = promise;
+				promise = null;
+				uData = null;
+				uId = null;
+				p.completeExceptionally(new TextToSpeechException("TTS speak error " + errorCode, TTS_ERR_SPEAK_FAILED));
+			});
+		}
+
+		@Override
+		public void onStop(String utteranceId, boolean interrupted) {
+			App.get().run(() -> {
+				if ((promise == null) || !utteranceId.equals(uId)) return;
+				Promise p = promise;
+				promise = null;
+				uData = null;
+				uId = null;
+				p.cancel();
+			});
+		}
+	}
+}

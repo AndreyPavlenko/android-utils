@@ -1,19 +1,26 @@
 package me.aap.utils.pref;
 
+import static android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION;
+import static android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
 import static android.util.TypedValue.COMPLEX_UNIT_PX;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.text.TextUtils.isBlank;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.UiUtils.toIntPx;
 import static me.aap.utils.ui.UiUtils.toPx;
 import static me.aap.utils.ui.fragment.FilePickerFragment.FILE_OR_FOLDER;
+import static me.aap.utils.ui.fragment.FilePickerFragment.WRITABLE;
 
 import android.annotation.SuppressLint;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.net.Uri;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -50,6 +57,7 @@ import me.aap.utils.function.IntSupplier;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.function.ToIntFunction;
 import me.aap.utils.holder.BiHolder;
+import me.aap.utils.log.Log;
 import me.aap.utils.misc.ChangeableCondition;
 import me.aap.utils.text.TextUtils;
 import me.aap.utils.ui.UiUtils;
@@ -209,7 +217,14 @@ public class PreferenceView extends ConstraintLayout {
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
 				if (!ignoreChange[0]) {
 					ignoreChange[0] = true;
-					o.store.applyStringPref(o.removeDefault, o.pref, s.toString());
+					String v = s.toString();
+					if (o.trim) v = v.trim();
+					if (o.removeBlank && isBlank(v)) {
+						o.store.removePref(o.pref);
+						t.setText(o.store.getStringPref(o.pref));
+					} else {
+						o.store.applyStringPref(o.removeDefault, o.pref, v);
+					}
 					ignoreChange[0] = false;
 				}
 			}
@@ -244,6 +259,25 @@ public class PreferenceView extends ConstraintLayout {
 
 		setOnClickListener(v -> {
 			ActivityDelegate a = ActivityDelegate.get(getContext());
+
+			if (o.useSaf && ((o.mode & FilePickerFragment.FOLDER) != 0)) {
+				try {
+					a.startActivityForResult(() -> new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
+							.onSuccess(data -> {
+								if (data == null) return;
+								Uri uri = data.getData();
+								if (uri == null) return;
+								int f = FLAG_GRANT_READ_URI_PERMISSION;
+								if ((o.mode & WRITABLE) != 0) f |= FLAG_GRANT_WRITE_URI_PERMISSION;
+								a.getContext().getContentResolver().takePersistableUriPermission(uri, f);
+								o.store.applyStringPref(o.pref, uri.toString());
+							});
+					return;
+				} catch (ActivityNotFoundException ex) {
+					Log.e(ex);
+				}
+			}
+
 			int current = a.getActiveFragmentId();
 			FilePickerFragment picker = a.showFragment(R.id.file_picker);
 			Object state = picker.resetState();
@@ -599,6 +633,8 @@ public class PreferenceView extends ConstraintLayout {
 		public int hint = ID_NULL;
 		public String stringHint;
 		public int maxLines = 1;
+		public boolean trim;
+		public boolean removeBlank;
 	}
 
 	public static class NumberOpts<S> extends PrefOpts<S> {
@@ -624,6 +660,7 @@ public class PreferenceView extends ConstraintLayout {
 		@DrawableRes
 		public int browseIcon = R.drawable.browse;
 		public byte mode = FILE_OR_FOLDER;
+		public boolean useSaf;
 		public Pattern pattern;
 		public FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>> supplier;
 	}

@@ -1,5 +1,8 @@
 package me.aap.utils.vfs.local;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.failed;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -10,15 +13,13 @@ import java.io.IOException;
 
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.io.AsyncInputStream;
+import me.aap.utils.io.AsyncOutputStream;
 import me.aap.utils.io.FileUtils;
 import me.aap.utils.io.IoUtils;
 import me.aap.utils.io.RandomAccessChannel;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
-import me.aap.utils.io.AsyncInputStream;
-import me.aap.utils.io.AsyncOutputStream;
-
-import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
@@ -64,17 +65,36 @@ class LocalFile extends LocalResource implements VirtualFile {
 	@Override
 	public FutureSupplier<Boolean> moveTo(VirtualFile to) {
 		File toFile = to.getLocalFile();
+		LocalFileSystem fs = getVirtualFileSystem();
+		fs.closeCachedChannels(file);
 
 		if (toFile != null) {
 			try {
+				fs.closeCachedChannels(toFile);
 				FileUtils.move(file, toFile);
-				return Completed.completed(true);
+				return completed(true);
 			} catch (IOException ex) {
 				return failed(ex);
 			}
 		}
 
 		return VirtualFile.super.moveTo(to);
+	}
+
+	@NonNull
+	@Override
+	public FutureSupplier<VirtualFile> rename(CharSequence name) {
+		try {
+			VirtualFolder p = getParent().peek();
+			if (p == null) return failed(new IOException());
+			File toFile = new File(p.getLocalFile(), name.toString());
+			LocalFileSystem fs = getVirtualFileSystem();
+			fs.closeCachedChannels(file, toFile);
+			FileUtils.move(file, toFile);
+			return completed(new LocalFile(toFile, p));
+		} catch (IOException ex) {
+			return failed(ex);
+		}
 	}
 
 	@Override
@@ -91,7 +111,7 @@ class LocalFile extends LocalResource implements VirtualFile {
 
 	@Nullable
 	@Override
-	public RandomAccessChannel getChannel() {
-		return getVirtualFileSystem().getChannel(getLocalFile());
+	public RandomAccessChannel getChannel(String mode) {
+		return getVirtualFileSystem().getChannel(getLocalFile(), mode);
 	}
 }

@@ -84,6 +84,11 @@ public interface VirtualFile extends VirtualResource {
 		return copyTo(to).then(v -> delete());
 	}
 
+	@NonNull
+	default FutureSupplier<VirtualFile> rename(CharSequence name) {
+		return getParent().then(p -> p.createFile(name).then(f -> moveTo(f).map(b -> f)));
+	}
+
 	default FutureSupplier<Void> transferTo(NetChannel channel, long off, long len,
 																					@Nullable ByteBufferSupplier header) {
 		return transferTo(channel, off, len, (header != null) ? header.asArray() : null);
@@ -145,6 +150,10 @@ public interface VirtualFile extends VirtualResource {
 
 	@Nullable
 	default RandomAccessChannel getChannel() {
+		return getChannel("r");
+	}
+
+	default RandomAccessChannel getChannel(String mode) {
 		return null;
 	}
 

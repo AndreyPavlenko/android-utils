@@ -135,6 +135,11 @@ public interface AsyncInputStream extends Closeable {
 					return failed(ex);
 				}
 			}
+
+			@Override
+			public InputStream asInputStream() {
+				return in;
+			}
 		};
 	}
 

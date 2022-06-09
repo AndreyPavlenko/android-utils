@@ -1,5 +1,8 @@
 package me.aap.utils.vfs.local;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.completedEmptyList;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Build;
@@ -11,13 +14,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,8 +28,8 @@ import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.collection.CacheMap;
 import me.aap.utils.function.Supplier;
-import me.aap.utils.io.IoUtils;
 import me.aap.utils.io.RandomAccessChannel;
+import me.aap.utils.io.RandomAccessFileChannelWrapper;
 import me.aap.utils.log.Log;
 import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.resource.Rid;
@@ -39,9 +37,6 @@ import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.completedEmptyList;
 
 public class LocalFileSystem implements VirtualFileSystem {
 	private static final LocalFileSystem instance = new LocalFileSystem(LocalFileSystem::androidRoots);
@@ -65,7 +60,7 @@ public class LocalFileSystem implements VirtualFileSystem {
 	@NonNull
 	@Override
 	public FutureSupplier<VirtualResource> getResource(Rid rid) {
-		return completed(getResource(rid.getPath()));
+		return completed(getResource(getPath(rid)));
 	}
 
 	public VirtualResource getResource(String path) {
@@ -78,7 +73,7 @@ public class LocalFileSystem implements VirtualFileSystem {
 
 	@Override
 	public FutureSupplier<VirtualFile> getFile(Rid rid) {
-		return completed(getFile(new File(rid.getPath())));
+		return completed(getFile(new File(getPath(rid))));
 	}
 
 	public VirtualFile getFile(File f) {
@@ -87,7 +82,7 @@ public class LocalFileSystem implements VirtualFileSystem {
 
 	@Override
 	public FutureSupplier<VirtualFolder> getFolder(Rid rid) {
-		return completed(getFolder(new File(rid.getPath())));
+		return completed(getFolder(new File(getPath(rid))));
 	}
 
 	public VirtualFolder getFolder(File f) {
@@ -157,6 +152,11 @@ public class LocalFileSystem implements VirtualFileSystem {
 		return files;
 	}
 
+	private static String getPath(Rid rid) {
+		String p = rid.toString();
+		return p.startsWith("file:/") ? p.substring(6) : rid.getPath();
+	}
+
 	private static void addRoot(Set<File> files, File... dirs) {
 		if (dirs == null) return;
 		for (File dir : dirs) addRoot(files, dir);
@@ -172,21 +172,31 @@ public class LocalFileSystem implements VirtualFileSystem {
 	}
 
 	FutureSupplier<Long> getLength(File file) {
-		CachedFileChannel f = fileCache.get(file);
-		return (f != null) ? f.length : Completed.completed(file.length());
+		return Completed.completed(file.length());
 	}
 
 	@Nullable
-	CachedFileChannel getChannel(File file) {
+	RandomAccessChannel getChannel(File file, String mode) {
 		return fileCache.compute(file, (k, v) -> {
-			if (v != null) return v;
+			if ((v != null) && ("rw".equals(v.mode) || mode.equals(v.mode))) return v;
 			try {
-				return new CachedFileChannel(file);
+				if (v != null) v.doClose();
+				String m = (v == null) ? mode : "rw";
+				return new CachedFileChannel(file, m, new RandomAccessFile(file, m));
 			} catch (Throwable ex) {
 				Log.e(ex, "Failed to open file: ", file);
 				return null;
 			}
 		});
+	}
+
+	void closeCachedChannels(File... files) {
+		for (File file : files) {
+			fileCache.compute(file, (k, v) -> {
+				if (v != null) v.doClose();
+				return null;
+			});
+		}
 	}
 
 	public static final class Provider implements VirtualFileSystem.Provider {
@@ -213,59 +223,29 @@ public class LocalFileSystem implements VirtualFileSystem {
 		}
 	}
 
-	private static final class CachedFileChannel implements RandomAccessChannel {
-		private final File f;
-		private final FileInputStream in;
-		private final FileChannel ch;
-		final FutureSupplier<Long> length;
+	private static final class CachedFileChannel extends RandomAccessFileChannelWrapper {
+		private final File file;
+		private final String mode;
 
-		CachedFileChannel(File file) throws IOException {
-			f = file;
-			in = new FileInputStream(f);
-			ch = in.getChannel();
-			long len = f.length();
-			length = completed(len);
+		CachedFileChannel(File file, String mode, RandomAccessFile raf) {
+			super(raf.getChannel(), raf.getChannel(), raf);
+			this.file = file;
+			this.mode = mode;
 		}
 
-		@Override
-		protected void finalize() {
-			Log.d("Closing cached file channel: ", f);
-			IoUtils.close(in);
-		}
-
-		@Override
-		public int read(ByteBuffer dst, long position) throws IOException {
-			return ch.read(dst, position);
-		}
-
-		@Override
-		public int write(ByteBuffer src, long position) throws IOException {
-			return ch.write(src, position);
-		}
-
-		@Override
-		public long transferTo(long position, long count, WritableByteChannel target) throws IOException {
-			return ch.transferTo(position, count, target);
-		}
-
-		@Override
-		public long transferFrom(ReadableByteChannel src, long position, long count) throws IOException {
-			return ch.transferFrom(src, position, count);
-		}
-
-		@Override
-		public long size() {
-			try {
-				return ch.size();
-			} catch (IOException ex) {
-				Log.e(ex, "Failed to get file size: ", f);
-				return 0;
-			}
-		}
-
+		@NonNull
 		@Override
 		public String toString() {
-			return "CachedFileChannel: " + f;
+			return "CachedFileChannel: " + file;
+		}
+
+		@Override
+		public void close() {
+		}
+
+		@Override
+		protected void doClose() {
+			super.doClose();
 		}
 	}
 }

@@ -1,5 +1,7 @@
 package me.aap.utils.io;
 
+import static me.aap.utils.async.Completed.failed;
+
 import androidx.annotation.NonNull;
 
 import java.io.Closeable;
@@ -9,8 +11,6 @@ import java.nio.ByteBuffer;
 
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
-
-import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
@@ -76,6 +76,11 @@ public interface AsyncOutputStream extends Closeable {
 			@Override
 			public boolean isAsync() {
 				return false;
+			}
+
+			@Override
+			public OutputStream asOutputStream() {
+				return out;
 			}
 		};
 	}

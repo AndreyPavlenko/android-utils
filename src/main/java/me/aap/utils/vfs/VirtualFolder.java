@@ -1,12 +1,13 @@
 package me.aap.utils.vfs;
 
+import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.async.Completed.completedNull;
+
 import java.util.List;
+import java.util.UUID;
 
 import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
-
-import static me.aap.utils.async.Completed.completed;
-import static me.aap.utils.async.Completed.completedNull;
 
 /**
  * @author Andrey Pavlenko
@@ -30,6 +31,12 @@ public interface VirtualFolder extends VirtualResource {
 
 	default FutureSupplier<VirtualFolder> createFolder(CharSequence name) {
 		return Completed.failed(new UnsupportedOperationException());
+	}
+
+	default FutureSupplier<VirtualFile> createTempFile(CharSequence prefix, CharSequence suffix) {
+		String name = prefix.toString() + UUID.randomUUID() + suffix;
+		return getChild(name).then(f -> (f == null) ? createFile(name) : f.exists()
+				.then(e -> e ? createTempFile(prefix, suffix) : createFile(name)));
 	}
 
 	default boolean isFile() {

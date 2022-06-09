@@ -16,35 +16,43 @@ import me.aap.utils.ui.activity.ActivityDelegate;
  * @author Andrey Pavlenko
  */
 public class ScalableTextView extends MaterialTextView {
+	private final float initSize;
 
 	public ScalableTextView(@NonNull Context context) {
 		super(context);
-		scale(context);
+		initSize = getTextSize();
+		scale();
 	}
 
 	public ScalableTextView(@NonNull Context context, @Nullable AttributeSet attrs) {
 		super(context, attrs);
-		scale(context);
+		initSize = getTextSize();
+		scale();
 	}
 
 	public ScalableTextView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
-		scale(context);
+		initSize = getTextSize();
+		scale();
 	}
 
 	public ScalableTextView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
 		super(context, attrs, defStyleAttr, defStyleRes);
-		scale(context);
+		initSize = getTextSize();
+		scale();
 	}
 
 	@Override
 	public void setTextAppearance(int resId) {
 		super.setTextAppearance(resId);
-		scale(getContext());
+		scale();
 	}
 
-	private void scale(Context context) {
-		float scale = ActivityDelegate.get(context).getTextIconSize();
-		if (scale != 0F) setTextSize(COMPLEX_UNIT_PX, getTextSize() * scale);
+	public void scale() {
+		ActivityDelegate.getActivityDelegate(getContext()).onSuccess(a -> scale(a.getTextIconSize()));
+	}
+
+	public void scale(float scale) {
+		if (scale != 0F) setTextSize(COMPLEX_UNIT_PX, initSize * scale);
 	}
 }

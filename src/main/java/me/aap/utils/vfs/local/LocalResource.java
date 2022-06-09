@@ -6,7 +6,6 @@ import static me.aap.utils.os.OsUtils.isRmAvailable;
 import static me.aap.utils.os.OsUtils.isSuAvailable;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,14 +22,15 @@ import me.aap.utils.vfs.VirtualResource;
  * @author Andrey Pavlenko
  */
 abstract class LocalResource implements VirtualResource {
+	@NonNull
 	final File file;
 	private FutureSupplier<VirtualFolder> parent;
 
-	LocalResource(File file) {
+	LocalResource(@NonNull File file) {
 		this.file = file;
 	}
 
-	public LocalResource(File file, VirtualFolder parent) {
+	public LocalResource(@NonNull File file, VirtualFolder parent) {
 		this.file = file;
 		this.parent = completed(parent);
 	}
@@ -59,7 +59,7 @@ abstract class LocalResource implements VirtualResource {
 		return true;
 	}
 
-	@Nullable
+	@NonNull
 	@Override
 	public File getLocalFile() {
 		return file;
@@ -87,8 +87,7 @@ abstract class LocalResource implements VirtualResource {
 	@Override
 	public boolean canDelete() {
 		if (isSuAvailable() && isRmAvailable()) return true;
-		File f = getLocalFile();
-		return (f != null) && f.canWrite();
+		return getLocalFile().canWrite();
 	}
 
 	@NonNull
@@ -97,6 +96,7 @@ abstract class LocalResource implements VirtualResource {
 		if (!file.exists()) return completed(false);
 
 		if (isFile()) {
+			getVirtualFileSystem().closeCachedChannels(file);
 			if (file.delete()) return completed(true);
 			return OsUtils.su(15000, "rm '", file.getAbsolutePath(), "'").map(r -> r == 0);
 		}

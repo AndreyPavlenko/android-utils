@@ -1,6 +1,9 @@
 package me.aap.utils.vfs.local;
 
+import static me.aap.utils.async.Completed.failed;
+
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,8 +13,6 @@ import me.aap.utils.io.FileUtils;
 import me.aap.utils.vfs.VirtualFile;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
-
-import static me.aap.utils.async.Completed.failed;
 
 /**
  * @author Andrey Pavlenko
@@ -65,6 +66,16 @@ class LocalFolder extends LocalResource implements VirtualFolder {
 			FileUtils.mkdirs(f);
 			return Completed.completed(new LocalFolder(f, this));
 		} catch (Throwable ex) {
+			return failed(ex);
+		}
+	}
+
+	@Override
+	public FutureSupplier<VirtualFile> createTempFile(CharSequence prefix, CharSequence suffix) {
+		try {
+			File f = File.createTempFile(prefix.toString(), suffix.toString(), file);
+			return Completed.completed(new LocalFile(f, this));
+		} catch (IOException ex) {
 			return failed(ex);
 		}
 	}

@@ -1,5 +1,9 @@
 package me.aap.utils.vfs.content;
 
+import static android.content.Context.MODE_PRIVATE;
+import static android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME;
+import static me.aap.utils.async.Completed.completed;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -24,10 +28,6 @@ import me.aap.utils.vfs.VirtualFileSystem;
 import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
 import me.aap.utils.vfs.local.LocalFileSystem;
-
-import static android.content.Context.MODE_PRIVATE;
-import static android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME;
-import static me.aap.utils.async.Completed.completed;
 
 /**
  * @author Andrey Pavlenko

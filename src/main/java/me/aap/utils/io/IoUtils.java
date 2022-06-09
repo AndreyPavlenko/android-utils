@@ -5,6 +5,7 @@ import static me.aap.utils.async.Completed.completedVoid;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Writer;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 
@@ -27,6 +28,14 @@ public class IoUtils {
 	}
 
 	public static void close(AutoCloseable... closeables) {
+		if (closeables != null) {
+			for (AutoCloseable c : closeables) {
+				close(c);
+			}
+		}
+	}
+
+	public static void close(Iterable<? extends AutoCloseable> closeables) {
 		if (closeables != null) {
 			for (AutoCloseable c : closeables) {
 				close(c);
@@ -83,6 +92,10 @@ public class IoUtils {
 
 	public static OutputStream nullOutputStream() {
 		return NullOutputStream.instance;
+	}
+
+	public static Writer nullWriter() {
+		return NullWriter.instance;
 	}
 
 	public static AsyncOutputStream nullAsyncOutputStream() {
@@ -200,6 +213,44 @@ public class IoUtils {
 
 		@Override
 		public void close() {
+		}
+	}
+
+	private static final class NullWriter extends Writer {
+		static final NullWriter instance = new NullWriter();
+
+		@Override
+		public Writer append(CharSequence csq) throws IOException {
+			return this;
+		}
+
+		@Override
+		public Writer append(CharSequence csq, int start, int end) throws IOException {
+			return this;
+		}
+
+		@Override
+		public void write(int c) throws IOException {
+		}
+
+		@Override
+		public void write(char[] chars, int i, int i1) throws IOException {
+		}
+
+		@Override
+		public void write(String str) throws IOException {
+		}
+
+		@Override
+		public void write(String str, int off, int len) throws IOException {
+		}
+
+		@Override
+		public void flush() throws IOException {
+		}
+
+		@Override
+		public void close() throws IOException {
 		}
 	}
 }
