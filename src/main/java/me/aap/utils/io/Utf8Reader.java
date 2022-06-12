@@ -8,7 +8,7 @@ import java.io.Reader;
  * @author Andrey Pavlenko
  */
 public class Utf8Reader extends Reader {
-	private static final int table[] = {
+	private static final int[] table = {
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 00..1f
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 20..3f
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 40..5f
@@ -25,7 +25,7 @@ public class Utf8Reader extends Reader {
 			1, 3, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // s7..s8
 	};
 	private final InputStream in;
-	private int bytesRead;
+	private long bytesRead;
 
 	public Utf8Reader(InputStream in) {
 		this.in = in;
@@ -63,8 +63,12 @@ public class Utf8Reader extends Reader {
 		return in;
 	}
 
-	public int getBytesRead() {
+	public long getBytesRead() {
 		return bytesRead;
+	}
+
+	public void setBytesRead(long bytesRead) {
+		this.bytesRead = bytesRead;
 	}
 
 	public void close() throws IOException {

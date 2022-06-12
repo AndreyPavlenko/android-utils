@@ -153,6 +153,7 @@ public interface VirtualFile extends VirtualResource {
 		return getChannel("r");
 	}
 
+	@Nullable
 	default RandomAccessChannel getChannel(String mode) {
 		return null;
 	}

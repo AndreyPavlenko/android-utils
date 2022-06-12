@@ -15,6 +15,7 @@ import android.provider.DocumentsContract;
 
 import androidx.annotation.NonNull;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -32,7 +33,6 @@ import me.aap.utils.vfs.VirtualResource;
  */
 public class ContentFolder extends ContentResource implements VirtualFolder {
 	private static final String[] queryFields = new String[]{COLUMN_DISPLAY_NAME, COLUMN_DOCUMENT_ID, COLUMN_MIME_TYPE};
-	private volatile FutureSupplier<List<VirtualResource>> children;
 
 	public ContentFolder(ContentFolder parent, String name, String id) {
 		super(parent, name, id);
@@ -40,9 +40,6 @@ public class ContentFolder extends ContentResource implements VirtualFolder {
 
 	@Override
 	public FutureSupplier<List<VirtualResource>> getChildren() {
-		FutureSupplier<List<VirtualResource>> children = this.children;
-		if (children != null) return children;
-
 		return App.get().execute(() -> {
 			Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(getRootUri(), getId());
 
@@ -66,22 +63,26 @@ public class ContentFolder extends ContentResource implements VirtualFolder {
 				}
 			}
 
-			return Collections.<VirtualResource>emptyList();
-		}).onSuccess(list -> this.children = list.isEmpty() ? null : completed(list));
+			return Collections.emptyList();
+		});
 	}
 
 	@Override
 	public FutureSupplier<VirtualFile> createFile(CharSequence name) {
-		try {
-			ContentResolver cr = App.get().getContentResolver();
-			String n = name.toString();
-			Uri u = DocumentsContract.buildDocumentUriUsingTree(getRid().toAndroidUri(), getId());
-			u = DocumentsContract.createDocument(cr, u, "application/tmp", n);
-			if (u != null) return completed(new ContentFile(this, n, DocumentsContract.getDocumentId(u)));
-		} catch (Exception ex) {
-			return failed(ex);
-		}
-		return VirtualFolder.super.createFile(name);
+		return getChild(name).then(f -> {
+			if (f instanceof VirtualFile) return completed((VirtualFile) f);
+			if (f instanceof VirtualFolder) return failed(new IOException("Folder exists " + name));
+			try {
+				ContentResolver cr = App.get().getContentResolver();
+				String n = name.toString();
+				Uri u = DocumentsContract.buildDocumentUriUsingTree(getRid().toAndroidUri(), getId());
+				u = DocumentsContract.createDocument(cr, u, "application/tmp", n);
+				if (u == null) return failed(new IOException("Failed to create file " + name));
+				return completed(new ContentFile(this, n, DocumentsContract.getDocumentId(u)));
+			} catch (Exception ex) {
+				return failed(ex);
+			}
+		});
 	}
 
 	@NonNull

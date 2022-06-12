@@ -1,5 +1,6 @@
 package me.aap.utils.voice;
 
+import static android.speech.tts.TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA;
 import static android.speech.tts.TextToSpeech.LANG_MISSING_DATA;
 import static android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED;
 import static android.speech.tts.TextToSpeech.QUEUE_FLUSH;
@@ -35,8 +36,8 @@ public class TextToSpeech implements Closeable {
 	private Object uData;
 	private int uCounter;
 
-	private TextToSpeech(Context ctx, String engine) {
-		promise = new Promise<>();
+	private TextToSpeech(Context ctx, String engine, Promise p) {
+		promise = p;
 		Listener l = new Listener();
 		tts = new android.speech.tts.TextToSpeech(ctx, l, engine);
 		tts.setOnUtteranceProgressListener(l);
@@ -46,9 +47,10 @@ public class TextToSpeech implements Closeable {
 		return create(ctx, lang, null);
 	}
 
-	public static FutureSupplier<TextToSpeech> create(Context ctx, @Nullable Locale lang, @Nullable String engine) {
-		TextToSpeech tts = new TextToSpeech(ctx, engine);
-		Promise<TextToSpeech> p = tts.promise;
+	public static FutureSupplier<TextToSpeech> create(Context ctx, @Nullable Locale lang,
+																										@Nullable String engine) {
+		Promise<TextToSpeech> p = new Promise<>();
+		new TextToSpeech(ctx, engine, p);
 		if (lang == null) return p;
 		return p.map(t -> {
 			switch (t.tts.setLanguage(lang)) {
@@ -99,11 +101,12 @@ public class TextToSpeech implements Closeable {
 
 	private static void installLang(Context ctx) {
 		ActivityDelegate.getActivityDelegate(ctx).onSuccess(d ->
-				d.startActivityForResult(() -> new Intent(android.speech.tts.TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)));
+				d.startActivityForResult(() -> new Intent(ACTION_INSTALL_TTS_DATA)));
 	}
 
 	@SuppressWarnings("unchecked")
-	private final class Listener extends UtteranceProgressListener implements android.speech.tts.TextToSpeech.OnInitListener {
+	private final class Listener extends UtteranceProgressListener
+			implements android.speech.tts.TextToSpeech.OnInitListener {
 
 		@Override
 		public void onInit(int status) {
@@ -154,7 +157,8 @@ public class TextToSpeech implements Closeable {
 				promise = null;
 				uData = null;
 				uId = null;
-				p.completeExceptionally(new TextToSpeechException("TTS speak error " + errorCode, TTS_ERR_SPEAK_FAILED));
+				p.completeExceptionally(new TextToSpeechException("TTS speak error " + errorCode,
+						TTS_ERR_SPEAK_FAILED));
 			});
 		}
 

@@ -5,6 +5,8 @@ import static android.speech.RecognizerIntent.EXTRA_LANGUAGE;
 import static android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL;
 import static android.speech.RecognizerIntent.EXTRA_PARTIAL_RESULTS;
 import static android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM;
+import static android.speech.SpeechRecognizer.ERROR_NO_MATCH;
+import static android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT;
 import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_UNKNOWN;
 
 import android.content.Context;
@@ -86,12 +88,11 @@ public class SpeechToText implements RecognitionListener, Closeable {
 		promise = null;
 		result = null;
 
-		if (error == SpeechRecognizer.ERROR_NO_MATCH) {
+		if ((error == ERROR_NO_MATCH) || (error == ERROR_SPEECH_TIMEOUT)) {
 			r.text = null;
 			p.complete(r);
 		} else {
-			p.completeExceptionally(new SpeechToTextException(
-					"Speech recognition failed: " + error, error));
+			p.completeExceptionally(new SpeechToTextException(error));
 		}
 	}
 
