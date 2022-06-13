@@ -11,11 +11,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.function.CheckedRunnable;
 import me.aap.utils.log.Log;
 import me.aap.utils.text.SharedTextBuilder;
 
@@ -115,6 +117,10 @@ public class OsUtils {
 		return RmAvailable.available;
 	}
 
+	public static void addShutdownHook(CheckedRunnable hook) {
+		ShutdownHook.instance.hooks.add(hook);
+	}
+
 	private static final class Android {
 		static final boolean isAndroid;
 
@@ -135,5 +141,28 @@ public class OsUtils {
 
 	private static final class RmAvailable {
 		static final boolean available = isCommandAvailable("rm");
+	}
+
+	private static final class ShutdownHook extends Thread {
+		static final ShutdownHook instance = new ShutdownHook();
+		final List<CheckedRunnable> hooks = new ArrayList<>(3);
+
+		ShutdownHook() {
+			super("ShutdownHook");
+			Runtime.getRuntime().addShutdownHook(this);
+		}
+
+		@Override
+		public void run() {
+			for (CheckedRunnable h : hooks) {
+				Log.d("Running shutdown hook: ", h);
+
+				try {
+					h.run();
+				} catch (Throwable err) {
+					Log.e(err, "Shutdown hook failed: ", h);
+				}
+			}
+		}
 	}
 }

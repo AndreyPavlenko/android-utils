@@ -19,6 +19,7 @@ import androidx.annotation.Nullable;
 
 import java.io.Closeable;
 import java.util.Locale;
+import java.util.Set;
 
 import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
@@ -31,16 +32,22 @@ import me.aap.utils.ui.activity.ActivityDelegate;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class TextToSpeech implements Closeable {
 	private final android.speech.tts.TextToSpeech tts;
+	private final Context ctx;
 	private Promise promise;
 	private String uId;
 	private Object uData;
 	private int uCounter;
 
-	private TextToSpeech(Context ctx, String engine, Promise p) {
-		promise = p;
+	private TextToSpeech(Context ctx, String engine, Promise promise) {
+		this.ctx = ctx;
+		this.promise = promise;
 		Listener l = new Listener();
 		tts = new android.speech.tts.TextToSpeech(ctx, l, engine);
 		tts.setOnUtteranceProgressListener(l);
+	}
+
+	public static FutureSupplier<TextToSpeech> create(Context ctx) {
+		return create(ctx, null);
 	}
 
 	public static FutureSupplier<TextToSpeech> create(Context ctx, @Nullable Locale lang) {
@@ -53,19 +60,32 @@ public class TextToSpeech implements Closeable {
 		new TextToSpeech(ctx, engine, p);
 		if (lang == null) return p;
 		return p.map(t -> {
-			switch (t.tts.setLanguage(lang)) {
-				case LANG_MISSING_DATA:
-					t.close();
-					installLang(ctx);
-					throw new TextToSpeechException("Missing TTS data for language " + lang, TTS_ERR_LANG_MISSING_DATA);
-				case LANG_NOT_SUPPORTED:
-					t.close();
-					installLang(ctx);
-					throw new TextToSpeechException("Unsupported TTS language " + lang, TTS_ERR_LANG_NOT_SUPPORTED);
-				default:
-					return t;
-			}
+			t.setLanguage(lang);
+			return t;
 		});
+	}
+
+	public static FutureSupplier<Intent> installTtsData(Context ctx) {
+		return ActivityDelegate.getActivityDelegate(ctx).then(d ->
+				d.startActivityForResult(() -> new Intent(ACTION_INSTALL_TTS_DATA)));
+	}
+
+
+	public Set<Locale> getAvailableLanguages() {
+		return tts.getAvailableLanguages();
+	}
+
+	public void setLanguage(final Locale lang) throws TextToSpeechException {
+		switch (tts.setLanguage(lang)) {
+			case LANG_MISSING_DATA:
+				close();
+				installTtsData(ctx);
+				throw new TextToSpeechException("Missing TTS data for language " + lang, TTS_ERR_LANG_MISSING_DATA);
+			case LANG_NOT_SUPPORTED:
+				close();
+				installTtsData(ctx);
+				throw new TextToSpeechException("Unsupported TTS language " + lang, TTS_ERR_LANG_NOT_SUPPORTED);
+		}
 	}
 
 	public <T> FutureSupplier<T> speak(CharSequence text) {
@@ -97,11 +117,6 @@ public class TextToSpeech implements Closeable {
 		promise = null;
 		uData = null;
 		uId = null;
-	}
-
-	private static void installLang(Context ctx) {
-		ActivityDelegate.getActivityDelegate(ctx).onSuccess(d ->
-				d.startActivityForResult(() -> new Intent(ACTION_INSTALL_TTS_DATA)));
 	}
 
 	@SuppressWarnings("unchecked")

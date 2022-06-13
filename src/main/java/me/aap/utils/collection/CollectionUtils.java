@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -264,5 +265,11 @@ public class CollectionUtils {
 	public static <T extends Comparable<T>> T[] sort(T[] array) {
 		Arrays.sort(array);
 		return array;
+	}
+
+	@SuppressWarnings("ComparatorCombinators")
+	public static <T, U extends Comparable<? super U>> Comparator<T> comparing(
+			Function<? super T, ? extends U> k) {
+		return (c1, c2) -> k.apply(c1).compareTo(k.apply(c2));
 	}
 }

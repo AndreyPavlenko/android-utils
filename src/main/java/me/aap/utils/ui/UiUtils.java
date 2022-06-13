@@ -4,6 +4,8 @@ import static android.graphics.Bitmap.Config.ARGB_8888;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.view.KeyEvent.KEYCODE_DPAD_DOWN;
 import static android.view.KeyEvent.KEYCODE_DPAD_UP;
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -31,13 +33,22 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.annotation.StyleRes;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import me.aap.utils.R;
 import me.aap.utils.app.App;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.concurrent.ConcurrentUtils;
+import me.aap.utils.function.BiConsumer;
+import me.aap.utils.function.Predicate;
+import me.aap.utils.pref.BasicPreferenceStore;
+import me.aap.utils.pref.PreferenceSet;
+import me.aap.utils.pref.PreferenceStore;
+import me.aap.utils.pref.PreferenceViewAdapter;
 import me.aap.utils.ui.activity.ActivityDelegate;
+import me.aap.utils.ui.fragment.GenericDialogFragment;
 
 /**
  * @author Andrey Pavlenko
@@ -64,15 +75,16 @@ public class UiUtils {
 		return size;
 	}
 
-	public static void showAlert(Context ctx, @StringRes int msg) {
-		showAlert(ctx, ctx.getString(msg));
+	public static Promise<Void> showAlert(Context ctx, @StringRes int msg) {
+		return showAlert(ctx, ctx.getString(msg));
 	}
 
-	public static void showAlert(Context ctx, String msg) {
+	public static Promise<Void> showAlert(Context ctx, String msg) {
+		Promise<Void> p = new Promise<>();
 		ActivityDelegate.get(ctx).createDialogBuilder(ctx)
 				.setTitle(android.R.drawable.ic_dialog_alert, android.R.string.dialog_alert_title)
 				.setMessage(msg)
-				.setPositiveButton(android.R.string.ok, null)
+				.setPositiveButton(android.R.string.ok, (d, i) -> p.complete(null))
 				.show();
 		App.get().getHandler().submit(() -> {
 			ActivityDelegate a = ActivityDelegate.get(ctx);
@@ -85,6 +97,7 @@ public class UiUtils {
 				b.setNextFocusRightId(android.R.id.button1);
 			}
 		});
+		return p;
 	}
 
 	public static FutureSupplier<Void> showInfo(Context ctx, @StringRes int msg) {
@@ -183,6 +196,48 @@ public class UiUtils {
 				b.setNextFocusLeftId(android.R.id.button1);
 			}
 		});
+		return p;
+	}
+
+	public static FutureSupplier<PreferenceStore> queryPrefs(
+			Context ctx, @StringRes int title, BiConsumer<PreferenceStore, PreferenceSet> builder,
+			@Nullable Predicate<PreferenceStore> validator) {
+		return queryPrefs(ctx, ctx.getString(title), builder, validator);
+	}
+
+	public static FutureSupplier<PreferenceStore> queryPrefs(
+			Context ctx, String title, BiConsumer<PreferenceStore, PreferenceSet> builder,
+			@Nullable Predicate<PreferenceStore> validator) {
+		Promise<PreferenceStore> p = new Promise<>();
+		PreferenceStore store = new BasicPreferenceStore();
+		ActivityDelegate a = ActivityDelegate.get(ctx);
+		int active = a.getActiveFragmentId();
+		GenericDialogFragment f = a.showFragment(me.aap.utils.R.id.generic_dialog_fragment);
+		f.setTitle(title);
+		f.setContentProvider(g -> {
+			PreferenceSet set = new PreferenceSet();
+			RecyclerView v = new RecyclerView(ctx);
+			v.setLayoutParams(new RecyclerView.LayoutParams(MATCH_PARENT, MATCH_PARENT));
+			v.setHasFixedSize(true);
+			v.setLayoutManager(new LinearLayoutManager(g.getContext()));
+			v.setAdapter(new PreferenceViewAdapter(set));
+			builder.accept(store, set);
+			g.addView(v);
+		});
+		f.setBackHandler(() -> {
+			p.cancel();
+			return false;
+		});
+		f.setDialogConsumer(v -> {
+			a.showFragment(active);
+			if (v) p.complete(store);
+			else p.cancel();
+		});
+		if (validator != null) {
+			f.setDialogValidator(() -> validator.test(store));
+			store.addBroadcastListener((st, pr) ->
+					f.getToolBarMediator().onActivityEvent(a.getToolBar(), a, FRAGMENT_CONTENT_CHANGED));
+		}
 		return p;
 	}
 

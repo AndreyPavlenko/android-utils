@@ -247,7 +247,11 @@ public class PreferenceView extends ConstraintLayout {
 		});
 
 		setPrefListener((s, p) -> {
-			if (!ignoreChange[0] && p.contains(o.pref)) t.setText(o.store.getStringPref(o.pref));
+			if (!ignoreChange[0] && p.contains(o.pref)) {
+				ignoreChange[0] = true;
+				t.setText(o.store.getStringPref(o.pref));
+				ignoreChange[0] = false;
+			}
 		});
 	}
 
