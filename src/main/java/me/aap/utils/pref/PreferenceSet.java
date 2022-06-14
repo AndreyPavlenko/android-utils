@@ -1,5 +1,6 @@
 package me.aap.utils.pref;
 
+import android.content.Context;
 import android.content.res.Resources;
 import android.view.View;
 import android.view.ViewParent;
@@ -151,7 +152,14 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 	}
 
 	public void addToMenu(OverlayMenu.Builder b, boolean setMinWidth) {
-		RecyclerView prefsView = new RecyclerView(b.getMenu().getContext()) {
+		RecyclerView v = createView(b.getMenu().getContext(), setMinWidth);
+		b.setCloseHandlerHandler(m -> ((PreferenceViewAdapter) v.getAdapter()).onDestroy());
+		b.setView(v);
+		v.requestFocus();
+	}
+
+	public RecyclerView createView(Context ctx, boolean setMinWidth) {
+		RecyclerView v = new RecyclerView(ctx) {
 			@Override
 			public View focusSearch(View focused, int direction) {
 				View v = super.focusSearch(focused, direction);
@@ -161,15 +169,11 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 				return null;
 			}
 		};
-		adapter = new PreferenceViewAdapter(this);
-		b.setCloseHandlerHandler(m -> adapter.onDestroy());
-		b.setView(prefsView);
-		addToView(prefsView);
-		prefsView.requestFocus();
-
+		addToView(v);
 		if (setMinWidth) {
-			prefsView.setMinimumWidth(Resources.getSystem().getDisplayMetrics().widthPixels * 2 / 3);
+			v.setMinimumWidth(Resources.getSystem().getDisplayMetrics().widthPixels * 2 / 3);
 		}
+		return v;
 	}
 
 	public void configure(Consumer<PreferenceSet> c) {
