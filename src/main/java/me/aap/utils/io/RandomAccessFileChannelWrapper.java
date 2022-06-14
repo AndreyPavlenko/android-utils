@@ -114,8 +114,8 @@ public class RandomAccessFileChannelWrapper implements RandomAccessChannel {
 	}
 
 	@Override
-	protected void finalize() throws Throwable {
-		super.finalize();
+	protected void finalize() {
+		doClose();
 	}
 
 	protected void doClose() {

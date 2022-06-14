@@ -28,6 +28,7 @@ import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.collection.CacheMap;
 import me.aap.utils.function.Supplier;
+import me.aap.utils.io.IoUtils;
 import me.aap.utils.io.RandomAccessChannel;
 import me.aap.utils.io.RandomAccessFileChannelWrapper;
 import me.aap.utils.log.Log;
@@ -41,7 +42,7 @@ import me.aap.utils.vfs.VirtualResource;
 public class LocalFileSystem implements VirtualFileSystem {
 	private static final LocalFileSystem instance = new LocalFileSystem(LocalFileSystem::androidRoots);
 	private final Supplier<Collection<File>> roots;
-	private final CacheMap<File, CachedFileChannel> fileCache = new CacheMap<>(60);
+	private final CacheMap<File, CachedFileChannel[]> fileCache = new CacheMap<>(60);
 
 	LocalFileSystem(Supplier<Collection<File>> roots) {
 		this.roots = roots;
@@ -177,23 +178,41 @@ public class LocalFileSystem implements VirtualFileSystem {
 
 	@Nullable
 	RandomAccessChannel getChannel(File file, String mode) {
-		return fileCache.compute(file, (k, v) -> {
-			if ((v != null) && ("rw".equals(v.mode) || mode.equals(v.mode))) return v;
+		int idx;
+		String m;
+
+		switch (mode) {
+			case "r":
+				m = "r";
+				idx = 0;
+				break;
+			case "w":
+			case "rw":
+				m = "rw";
+				idx = 1;
+				break;
+			default:
+				throw new IllegalStateException("Invalid mode: " + mode);
+		}
+
+		RandomAccessChannel[] ch = fileCache.compute(file, (k, v) -> {
 			try {
-				if (v != null) v.doClose();
-				String m = (v == null) ? mode : "rw";
-				return new CachedFileChannel(file, m, new RandomAccessFile(file, m));
+				if (v == null) v = new CachedFileChannel[2];
+				if (v[idx] == null) v[idx] = new CachedFileChannel(file, new RandomAccessFile(file, m));
+				return v;
 			} catch (Throwable ex) {
 				Log.e(ex, "Failed to open file: ", file);
 				return null;
 			}
 		});
+
+		return (ch == null) ? null : ch[idx];
 	}
 
 	void closeCachedChannels(File... files) {
 		for (File file : files) {
 			fileCache.compute(file, (k, v) -> {
-				if (v != null) v.doClose();
+				IoUtils.close(v);
 				return null;
 			});
 		}
@@ -225,12 +244,10 @@ public class LocalFileSystem implements VirtualFileSystem {
 
 	private static final class CachedFileChannel extends RandomAccessFileChannelWrapper {
 		private final File file;
-		private final String mode;
 
-		CachedFileChannel(File file, String mode, RandomAccessFile raf) {
-			super(raf.getChannel(), raf.getChannel(), raf);
+		CachedFileChannel(File file, RandomAccessFile raf) {
+			super(raf.getChannel(), raf);
 			this.file = file;
-			this.mode = mode;
 		}
 
 		@NonNull

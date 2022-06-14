@@ -1,5 +1,7 @@
 package me.aap.utils.collection;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import android.os.Build;
 
 import androidx.annotation.NonNull;
@@ -24,8 +26,6 @@ import me.aap.utils.function.BiFunction;
 import me.aap.utils.function.Function;
 import me.aap.utils.log.Log;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 /**
  * @author Andrey Pavlenko
  */
@@ -45,7 +45,7 @@ public class CacheMap<K, V> implements Closeable {
 			App a = App.get();
 			this.scheduler = scheduler = (a != null) ? a.getScheduler() : Executors.newScheduledThreadPool(1);
 		} else {
-			this.scheduler = null;
+			this.scheduler = scheduler;
 		}
 
 		this.timeToLive = timeToLive;
@@ -422,6 +422,7 @@ public class CacheMap<K, V> implements Closeable {
 		}
 
 		@Override
+		@SuppressWarnings({"unchecked", "EqualsWhichDoesntCheckParameterClass"})
 		public boolean equals(Object o) {
 			return Objects.equals(get(), ((Value<T>) o).get());
 		}
@@ -431,6 +432,7 @@ public class CacheMap<K, V> implements Closeable {
 			return Objects.hash(get());
 		}
 
+		@NonNull
 		@Override
 		public String toString() {
 			return String.valueOf(get());
