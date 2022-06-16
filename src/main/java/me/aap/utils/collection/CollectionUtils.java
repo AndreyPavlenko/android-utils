@@ -272,4 +272,9 @@ public class CollectionUtils {
 			Function<? super T, ? extends U> k) {
 		return (c1, c2) -> k.apply(c1).compareTo(k.apply(c2));
 	}
+
+	@SuppressWarnings("ComparatorCombinators")
+	public static <T> Comparator<T> comparingInt(ToIntFunction<? super T> k) {
+		return (c1, c2) -> Integer.compare(k.applyAsInt(c1), k.applyAsInt(c2));
+	}
 }

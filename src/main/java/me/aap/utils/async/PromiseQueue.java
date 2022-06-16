@@ -40,6 +40,10 @@ public class PromiseQueue {
 		return (exec != null) ? exec : App.get().getExecutor();
 	}
 
+	public boolean isEmpty() {
+		return queue.isEmpty();
+	}
+
 	@SuppressWarnings("unchecked")
 	public <T> FutureSupplier<T> enqueue(CheckedSupplier<T, Throwable> task) {
 		Thread t = currentThread();
