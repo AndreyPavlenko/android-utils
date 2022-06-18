@@ -165,7 +165,7 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		setSystemUiVisibility();
 	}
 
-	protected void onActivityNewIntent(Intent intent){
+	protected void onActivityNewIntent(Intent intent) {
 		Log.d("onActivityNewIntent");
 	}
 
@@ -365,7 +365,12 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 	@SuppressWarnings("unchecked")
 	public <F extends ActivityFragment> F showFragment(@IdRes int id, Object input) {
 		int activeId = getActiveFragmentId();
-		if (id == activeId) return (F) getActiveFragment();
+
+		if (id == activeId) {
+			F f = (F) getActiveFragment();
+			if (input != null) f.setInput(input);
+			return f;
+		}
 
 		FragmentManager fm = getSupportFragmentManager();
 		FragmentTransaction tr = fm.beginTransaction();

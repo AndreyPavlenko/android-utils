@@ -416,6 +416,41 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	}
 
 	@SuppressWarnings("unchecked")
+	default <R> FutureSupplier<R> then(CheckedFunction<? super T, FutureSupplier<R>, Throwable> onSuccess,
+																		 CheckedFunction<Throwable, FutureSupplier<R>, Throwable> onFailure) {
+		if (isDone()) {
+			try {
+				return isFailed() ? onFailure.apply(getFailure()) : onSuccess.apply(get());
+			} catch (Throwable ex) {
+				Log.e(ex);
+				return failed(ex);
+			}
+		}
+
+		Promise<R> p = new Promise<R>() {
+			@Override
+			public boolean cancel(boolean mayInterruptIfRunning) {
+				return super.cancel(mayInterruptIfRunning)
+						|| FutureSupplier.this.cancel(mayInterruptIfRunning);
+			}
+		};
+
+		onCompletion((result, fail) -> {
+			try {
+				if (fail == null) {
+					onSuccess.apply(result).onCompletion(p::complete);
+				} else {
+					onFailure.apply(getFailure()).onCompletion(p::complete);
+				}
+			} catch (Throwable ex) {
+				p.completeExceptionally(ex);
+			}
+		});
+
+		return p;
+	}
+
+	@SuppressWarnings("unchecked")
 	default <R> FutureSupplier<R> closeableMap(CheckedFunction<? super T, ? extends R, Throwable> map) {
 		if (isDone()) {
 			if (isFailed()) return (FutureSupplier<R>) this;
