@@ -14,8 +14,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Method;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,7 +44,7 @@ import me.aap.utils.vfs.VirtualResource;
 public class LocalFileSystem implements VirtualFileSystem {
 	private static final LocalFileSystem instance = new LocalFileSystem(LocalFileSystem::androidRoots);
 	private final Supplier<Collection<File>> roots;
-	private final CacheMap<File, CachedFileChannel[]> fileCache = new CacheMap<>(60);
+	private final CacheMap<File, CachedFileChannel> fileCache = new CacheMap<>(60);
 
 	LocalFileSystem(Supplier<Collection<File>> roots) {
 		this.roots = roots;
@@ -178,35 +180,26 @@ public class LocalFileSystem implements VirtualFileSystem {
 
 	@Nullable
 	RandomAccessChannel getChannel(File file, String mode) {
-		int idx;
-		String m;
-
-		switch (mode) {
-			case "r":
-				m = "r";
-				idx = 0;
-				break;
-			case "w":
-			case "rw":
-				m = "rw";
-				idx = 1;
-				break;
-			default:
-				throw new IllegalStateException("Invalid mode: " + mode);
+		if (mode.indexOf('w') >= 0) {
+			try {
+				RandomAccessFile raf = new RandomAccessFile(file, "rw");
+				FileChannel wc = raf.getChannel();
+				FileChannel rc = (mode.indexOf('r') >= 0) ? wc : null;
+				return new RandomAccessFileChannelWrapper(rc, wc, raf);
+			} catch (FileNotFoundException ex) {
+				Log.e(ex, "Failed to open file: ", file);
+				return null;
+			}
 		}
 
-		RandomAccessChannel[] ch = fileCache.compute(file, (k, v) -> {
+		return fileCache.computeIfAbsent(file, k -> {
 			try {
-				if (v == null) v = new CachedFileChannel[2];
-				if (v[idx] == null) v[idx] = new CachedFileChannel(file, new RandomAccessFile(file, m));
-				return v;
+				return new CachedFileChannel(file, new RandomAccessFile(k, mode));
 			} catch (Throwable ex) {
 				Log.e(ex, "Failed to open file: ", file);
 				return null;
 			}
 		});
-
-		return (ch == null) ? null : ch[idx];
 	}
 
 	void closeCachedChannels(File... files) {
