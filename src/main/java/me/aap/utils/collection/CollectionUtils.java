@@ -46,6 +46,15 @@ public class CollectionUtils {
 		return -1;
 	}
 
+	public static <T> int indexOf(Iterable<T> i, Predicate<T> predicate) {
+		int idx = 0;
+		for (T t : i) {
+			if (predicate.test(t)) return idx;
+			idx++;
+		}
+		return -1;
+	}
+
 	public static boolean contains(int[] array, int value) {
 		return indexOf(array, value) != -1;
 	}
