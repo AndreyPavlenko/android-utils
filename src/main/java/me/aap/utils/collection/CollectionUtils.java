@@ -46,6 +46,13 @@ public class CollectionUtils {
 		return -1;
 	}
 
+	public static int indexOf(long[] array, long value) {
+		for (int i = 0; i < array.length; i++) {
+			if (value == array[i]) return i;
+		}
+		return -1;
+	}
+
 	public static <T> int indexOf(Iterable<T> i, Predicate<T> predicate) {
 		int idx = 0;
 		for (T t : i) {
@@ -56,6 +63,10 @@ public class CollectionUtils {
 	}
 
 	public static boolean contains(int[] array, int value) {
+		return indexOf(array, value) != -1;
+	}
+
+	public static boolean contains(long[] array, long value) {
 		return indexOf(array, value) != -1;
 	}
 
@@ -285,5 +296,17 @@ public class CollectionUtils {
 	@SuppressWarnings("ComparatorCombinators")
 	public static <T> Comparator<T> comparingInt(ToIntFunction<? super T> k) {
 		return (c1, c2) -> Integer.compare(k.applyAsInt(c1), k.applyAsInt(c2));
+	}
+
+	public static List<Long> boxed(long[] array) {
+		List<Long> list = new ArrayList<>(array.length);
+		for (long v : array) list.add(v);
+		return list;
+	}
+
+	public static long[] unboxed(List<Long> list) {
+		long[] array = new long[list.size()];
+		for (int i = 0, n = list.size(); i < n; i++) array[i] = list.get(i);
+		return array;
 	}
 }
