@@ -1,20 +1,36 @@
 package me.aap.utils.security;
 
-import android.os.Build;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static me.aap.utils.text.TextUtils.toByteArray;
+import static me.aap.utils.text.TextUtils.toHexString;
+
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.ProcessBuilder.Redirect;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.UUID;
+import java.util.Date;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -22,9 +38,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static me.aap.utils.text.TextUtils.toByteArray;
-import static me.aap.utils.text.TextUtils.toHexString;
+import me.aap.utils.app.App;
 
 /**
  * @author Andrey Pavlenko
@@ -335,60 +349,49 @@ public class SecurityUtils {
 		static final SSLContext context = create();
 
 		static SSLContext create() {
-			SSLContext ctx;
-			File keyStoreFile;
-			File trustStoreFile;
-			String keyStorePassword;
-			String keyStore = System.getProperty("javax.net.ssl.keyStore");
-			File tmpFile = null;
-			File tmpKeyStoreFile = null;
-
 			try {
-				if ((keyStore != null) && (keyStoreFile = new File(keyStore)).isFile()) {
-					String trustStore = System.getProperty("javax.net.ssl.trustStore", keyStore);
-					keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword", "");
-				} else {
-					String keytool =
-							System.getProperty("java.home") + File.separator + "bin" + File.separator + "keytool";
-					keyStorePassword = UUID.randomUUID().toString();
-					tmpFile = File.createTempFile("keystore", "_tmp");
-					tmpKeyStoreFile = new File(tmpFile.getAbsolutePath() + ".keystore");
+				KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+				KeyManagerFactory kmf =
+						KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+				String ksPath = System.getProperty("javax.net.ssl.keyStore");
 
-					ProcessBuilder pb =
-							new ProcessBuilder().command(keytool, "-noprompt", "-alias", "utils", "-dname",
-									"CN=, OU=, O=", "-validity", "99999", "-storepass", keyStorePassword, "-keypass",
-									keyStorePassword, "-keysize", "2048", "-genkey", "-keyalg", "RSA", "-storetype",
-									"jks", "-keystore", tmpKeyStoreFile.getAbsolutePath());
-					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-						pb.redirectError(Redirect.INHERIT).redirectOutput(Redirect.INHERIT);
+				if (ksPath != null) {
+					String pwd = System.getProperty("javax.net.ssl.keyStorePassword", "");
+					try (InputStream in = new FileInputStream(ksPath)) {
+						ks.load(in, pwd.toCharArray());
 					}
-					pb.start().waitFor();
-
-					keyStoreFile = tmpKeyStoreFile;
+					kmf.init(ks, pwd.toCharArray());
+				} else {
+					KeyPairGenerator g = KeyPairGenerator.getInstance("RSA");
+					g.initialize(2048);
+					KeyPair kp = g.generateKeyPair();
+					Certificate[] chain = new Certificate[1];
+					chain[0] = generateSelfSignedCertificate(kp);
+					ks.load(null, null);
+					ks.setKeyEntry("alias", kp.getPrivate(), null, chain);
+					kmf.init(ks, null);
 				}
 
-				String ksType = KeyStore.getDefaultType();
-				String kalg = KeyManagerFactory.getDefaultAlgorithm();
-				KeyManagerFactory kmf = KeyManagerFactory.getInstance(kalg);
-				KeyStore ks = KeyStore.getInstance(ksType);
-				KeyStore ts;
-
-				try (InputStream in = new FileInputStream(keyStoreFile)) {
-					ks.load(in, keyStorePassword.toCharArray());
-				}
-
-				kmf.init(ks, keyStorePassword.toCharArray());
-				ctx = SSLContext.getInstance("TLS");
+				SSLContext ctx = SSLContext.getInstance("TLS");
 				ctx.init(kmf.getKeyManagers(), new TrustManager[]{InsecureTrustManager.instance}, null);
+				return ctx;
 			} catch (Exception ex) {
 				throw new RuntimeException(ex);
-			} finally {
-				if (tmpFile != null) tmpFile.delete();
-				if (tmpKeyStoreFile != null) tmpKeyStoreFile.delete();
 			}
-
-			return ctx;
 		}
+	}
+
+	private static X509Certificate generateSelfSignedCertificate(KeyPair kp)
+			throws GeneralSecurityException, OperatorCreationException {
+		App app = App.get();
+		X500Name name = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN,
+				(app == null) ? "localhost" : app.getPackageName()).build();
+		long now = System.currentTimeMillis();
+		X509v3CertificateBuilder cb = new JcaX509v3CertificateBuilder(name, BigInteger.valueOf(now),
+				new Date(now - (1000 * 60 * 60 * 24)), new Date(now + (1000L * 60 * 60 * 24 * 365)), name,
+				kp.getPublic());
+		ContentSigner cs = new JcaContentSignerBuilder("SHA256WithRSA").build(kp.getPrivate());
+		return new JcaX509CertificateConverter().getCertificate(cb.build(cs));
 	}
 
 	private static final class InsecureTrustManager implements X509TrustManager {
