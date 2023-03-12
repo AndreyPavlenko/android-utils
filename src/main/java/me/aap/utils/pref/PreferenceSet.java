@@ -1,5 +1,8 @@
 package me.aap.utils.pref;
 
+import static me.aap.utils.collection.CollectionUtils.comparing;
+import static me.aap.utils.collection.CollectionUtils.mapToArray;
+
 import android.content.Context;
 import android.content.res.Resources;
 import android.view.View;
@@ -10,16 +13,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
+import me.aap.utils.app.App;
 import me.aap.utils.function.Consumer;
+import me.aap.utils.function.IntSupplier;
 import me.aap.utils.function.Supplier;
 import me.aap.utils.ui.menu.OverlayMenu;
+import me.aap.utils.voice.TextToSpeech;
 
 /**
  * @author Andrey Pavlenko
  */
 public class PreferenceSet implements Supplier<PreferenceView.Opts> {
+	private static Locale[] ttsLocales;
 	final List<Supplier<? extends PreferenceView.Opts>> preferences = new ArrayList<>();
 	private final int id;
 	private final PreferenceSet parent;
@@ -127,6 +137,61 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 		add(() -> {
 			PreferenceView.ListOpts o = new PreferenceView.ListOpts();
 			builder.accept(o);
+			return o;
+		});
+	}
+
+	public void addLocalePref(Consumer<PreferenceView.LocaleOpts> builder) {
+		addLocalePref(builder, false);
+	}
+
+	public void addTtsLocalePref(Consumer<PreferenceView.LocaleOpts> builder) {
+		addLocalePref(builder, true);
+	}
+
+	private void addLocalePref(Consumer<PreferenceView.LocaleOpts> builder, boolean tts) {
+		if (tts && (ttsLocales == null)) {
+			TextToSpeech.create(App.get()).onSuccess(t -> {
+				Set<Locale> locales = t.getAvailableLanguages();
+				if (locales != null) ttsLocales = locales.toArray(new Locale[0]);
+				t.close();
+			});
+		}
+		add(() -> {
+			PreferenceView.LocaleOpts lo = new PreferenceView.LocaleOpts();
+			builder.accept(lo);
+			Locale[] available = null;
+
+			if (lo.locales != null) available = lo.locales.get();
+			else if (ttsLocales != null) available = ttsLocales;
+			if (available == null) available = Locale.getAvailableLocales();
+
+			Locale[] locales = available;
+			String cur = lo.store.getStringPref(lo.pref);
+			Locale curLoc = (cur == null) ? Locale.getDefault() : Locale.forLanguageTag(cur);
+			Arrays.sort(locales, comparing(Locale::getDisplayName));
+			int currentIdx = -1;
+			for (int i = 0; i < locales.length; i++) {
+				if (locales[i].equals(curLoc)) {
+					currentIdx = i;
+					break;
+				}
+			}
+
+			String[] values = mapToArray(Arrays.asList(locales), Locale::getDisplayName, String[]::new);
+			PreferenceStore.Pref<IntSupplier> pref = PreferenceStore.Pref.i("L", currentIdx);
+			BasicPreferenceStore ps = new BasicPreferenceStore();
+			ps.addBroadcastListener((s, changed) -> lo.store.applyStringPref(lo.pref,
+					locales[ps.getIntPref(pref)].toLanguageTag()));
+			PreferenceView.ListOpts o = new PreferenceView.ListOpts();
+			o.store = ps;
+			o.pref = pref;
+			o.stringValues = values;
+			o.title = lo.title;
+			o.subtitle = lo.subtitle;
+			o.formatTitle = lo.formatTitle;
+			o.formatSubtitle = lo.formatSubtitle;
+			o.visibility = lo.visibility;
 			return o;
 		});
 	}

@@ -42,6 +42,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import me.aap.utils.R;
@@ -94,7 +95,8 @@ public class PreferenceView extends ConstraintLayout {
 				android.R.attr.preferenceStyle, R.style.Theme_Utils_Base_PreferenceStyle);
 		textTint = ta.getColorStateList(R.styleable.PreferenceView_android_textColor);
 		titleTextAppearance = ta.getResourceId(R.styleable.PreferenceView_titleTextAppearance, 0);
-		subtitleTextAppearance = ta.getResourceId(R.styleable.PreferenceView_subtitleTextAppearance, 0);
+		subtitleTextAppearance = ta.getResourceId(R.styleable.PreferenceView_subtitleTextAppearance,
+				0);
 		ta.recycle();
 	}
 
@@ -193,7 +195,8 @@ public class PreferenceView extends ConstraintLayout {
 		setPreference(R.layout.boolean_pref_layout, o);
 		CheckBox b = findViewById(R.id.pref_value);
 		b.setChecked(o.store.getBooleanPref(o.pref));
-		b.setOnCheckedChangeListener((v, checked) -> o.store.applyBooleanPref(o.removeDefault, o.pref, checked));
+		b.setOnCheckedChangeListener(
+				(v, checked) -> o.store.applyBooleanPref(o.removeDefault, o.pref, checked));
 		setOnClickListener(v -> b.setChecked(!b.isChecked()));
 
 		setPrefListener((s, p) -> {
@@ -304,32 +307,26 @@ public class PreferenceView extends ConstraintLayout {
 	private void setIntPreference(IntOpts o) {
 		setNumberPreference(o, () -> String.valueOf(o.store.getIntPref(o.pref)),
 				v -> o.store.applyIntPref(o.removeDefault, o.pref, Integer.parseInt(v)), String::valueOf,
-				Integer::parseInt,
-				null);
+				Integer::parseInt, null);
 	}
 
 	private void setFloatPreference(FloatOpts o) {
 		setNumberPreference(o, () -> String.valueOf(o.store.getFloatPref(o.pref)),
 				v -> o.store.applyFloatPref(o.removeDefault, o.pref, Float.parseFloat(v)),
-				v -> String.valueOf(v * o.scale),
-				v -> (int) (Float.parseFloat(v) / o.scale),
-				null);
+				v -> String.valueOf(v * o.scale), v -> (int) (Float.parseFloat(v) / o.scale), null);
 	}
 
 	private void setTimePreference(TimeOpts o) {
 		setNumberPreference(o, () -> TextUtils.timeToString(o.store.getIntPref(o.pref)),
 				v -> o.store.applyIntPref(o.removeDefault, o.pref, TextUtils.stringToTime(v)),
-				TextUtils::timeToString, TextUtils::stringToTime,
-				(t, sb) -> {
+				TextUtils::timeToString, TextUtils::stringToTime, (t, sb) -> {
 					t.setInputType(InputType.TYPE_CLASS_TEXT);
 					if (!o.editable) t.setKeyListener(null);
 				});
 	}
 
-	private <S> void setNumberPreference(NumberOpts<S> o, Supplier<String> get,
-																			 Consumer<String> set,
-																			 IntFunction<String> fromInt,
-																			 ToIntFunction<String> toInt,
+	private <S> void setNumberPreference(NumberOpts<S> o, Supplier<String> get, Consumer<String> set,
+																			 IntFunction<String> fromInt, ToIntFunction<String> toInt,
 																			 BiConsumer<EditText, SeekBar> viewConfigurator) {
 		setPreference(R.layout.number_pref_layout, o);
 		EditText t = findViewById(R.id.pref_value);
@@ -589,7 +586,8 @@ public class PreferenceView extends ConstraintLayout {
 		return (TextView) getChildAt(2);
 	}
 
-	private static BiHolder<? extends VirtualResource, List<? extends VirtualResource>> fileSupplier(CharSequence text) {
+	private static BiHolder<? extends VirtualResource, List<? extends VirtualResource>> fileSupplier(
+			CharSequence text) {
 		String path = text.toString().trim();
 		LocalFileSystem fs = LocalFileSystem.getInstance();
 
@@ -628,8 +626,7 @@ public class PreferenceView extends ConstraintLayout {
 		public boolean removeDefault = true;
 	}
 
-	public static class BooleanOpts extends PrefOpts<BooleanSupplier> {
-	}
+	public static class BooleanOpts extends PrefOpts<BooleanSupplier> {}
 
 	public static class StringOpts extends PrefOpts<Supplier<String>> {
 		@SuppressLint("InlinedApi")
@@ -649,8 +646,7 @@ public class PreferenceView extends ConstraintLayout {
 		public boolean showProgress = true;
 	}
 
-	public static class IntOpts extends NumberOpts<IntSupplier> {
-	}
+	public static class IntOpts extends NumberOpts<IntSupplier> {}
 
 	public static class FloatOpts extends NumberOpts<DoubleSupplier> {
 		public float scale = 1f;
@@ -666,7 +662,8 @@ public class PreferenceView extends ConstraintLayout {
 		public byte mode = FILE_OR_FOLDER;
 		public boolean useSaf;
 		public Pattern pattern;
-		public FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>> supplier;
+		public FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>>
+				supplier;
 	}
 
 	public static class ListOpts extends PrefOpts<IntSupplier> {
@@ -677,6 +674,12 @@ public class PreferenceView extends ConstraintLayout {
 		public boolean formatTitle;
 		public boolean formatSubtitle;
 		public Consumer<ListOpts> initList;
+	}
+
+	public static class LocaleOpts extends PrefOpts<Supplier<String>> {
+		public Supplier<Locale[]> locales;
+		public boolean formatTitle;
+		public boolean formatSubtitle;
 	}
 
 	public static class ButtonOpts extends Opts {

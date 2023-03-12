@@ -11,8 +11,10 @@ import java.nio.ByteBuffer;
  * @author Andrey Pavlenko
  */
 public enum HttpHeader {
+	ACCEPT("Accept", "*/*"),
 	ACCEPT_ENCODING("Accept-Encoding", "gzip,deflate"),
 	ACCEPT_RANGES("Accept-Ranges", "bytes"),
+	AUTHORIZATION("Authorization"),
 	CONNECTION("Connection", "close"),
 	CONTENT_ENCODING("Content-Encoding"),
 	CONTENT_LENGTH("Content-Length"),

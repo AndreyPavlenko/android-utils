@@ -10,6 +10,7 @@ import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNS
 import static me.aap.utils.ui.UiUtils.getTextAppearanceSize;
 import static me.aap.utils.ui.UiUtils.isVisible;
 import static me.aap.utils.ui.UiUtils.toIntPx;
+import static me.aap.utils.ui.UiUtils.toPx;
 import static me.aap.utils.ui.fragment.ViewFragmentMediator.attachMediator;
 
 import android.content.Context;
@@ -306,8 +307,10 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 
 		default EditText createEditText(ToolBarView tb) {
 			Context ctx = tb.getContext();
+			int p = (int) toPx(ctx, 5);
 			EditText t = ActivityDelegate.get(ctx).createEditText(ctx);
 			t.setTextAppearance(tb.editTextAppearance);
+			t.setPadding(p, p, p, p);
 			return t;
 		}
 
@@ -534,15 +537,8 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 				t.addTextChangedListener(l);
 				t.setBackgroundResource(R.color.tool_bar_edittext_bg);
 				t.setOnKeyListener(UiUtils::dpadFocusHelper);
-				t.setMaxLines(1);
-				setFilterPadding(t);
-				setLayoutParams(t, 0, MATCH_PARENT);
+				setLayoutParams(t, 0, WRAP_CONTENT);
 				return t;
-			}
-
-			default void setFilterPadding(EditText t) {
-				int p = toIntPx(t.getContext(), 2);
-				t.setPadding(p, p, p, p);
 			}
 
 			@IdRes

@@ -6,6 +6,7 @@ import java.io.Closeable;
  * @author Andrey Pavlenko
  */
 public interface Cancellable extends Closeable {
+	Cancellable CANCELED = () -> true;
 
 	boolean cancel();
 

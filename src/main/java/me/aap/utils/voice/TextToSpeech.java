@@ -109,6 +109,11 @@ public class TextToSpeech implements Closeable {
 		return p;
 	}
 
+	public void stop() {
+		if (promise != null) promise.cancel();
+		tts.stop();
+	}
+
 	@Override
 	public void close() {
 		if (promise != null) promise.cancel();
