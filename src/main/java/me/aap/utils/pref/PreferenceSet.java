@@ -177,6 +177,24 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 					break;
 				}
 			}
+			if (currentIdx == -1) {
+				String lang = curLoc.getLanguage();
+				curLoc = new Locale(lang);
+				for (int i = 0; i < locales.length; i++) {
+					if (locales[i].equals(curLoc)) {
+						currentIdx = i;
+						break;
+					}
+				}
+				if (currentIdx == -1) {
+					for (int i = 0; i < locales.length; i++) {
+						if (locales[i].getLanguage().equals(lang)) {
+							currentIdx = i;
+							break;
+						}
+					}
+				}
+			}
 
 			String[] values = mapToArray(Arrays.asList(locales), Locale::getDisplayName, String[]::new);
 			PreferenceStore.Pref<IntSupplier> pref = PreferenceStore.Pref.i("L", currentIdx);

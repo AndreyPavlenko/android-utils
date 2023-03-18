@@ -210,6 +210,7 @@ public class PreferenceView extends ConstraintLayout {
 
 	private void setStringPreference(StringOpts o, @LayoutRes int layout) {
 		setPreference(layout, o);
+		setOnClickListener(o.clickListener);
 		EditText t = findViewById(R.id.pref_footer);
 		boolean[] ignoreChange = new boolean[1];
 		t.setMaxLines(o.maxLines);
@@ -408,7 +409,7 @@ public class PreferenceView extends ConstraintLayout {
 		Runnable formatTitle;
 		Runnable formatSubtitle;
 
-		if (o.formatTitle) {
+		if (o.formatTitle && (opts.ctitle == null)) {
 			formatTitle = () -> formatListTitle(o, this::getTitleView, o.title);
 			formatTitle.run();
 			setPrefListener((s, p) -> {
@@ -418,7 +419,7 @@ public class PreferenceView extends ConstraintLayout {
 			formatTitle = null;
 		}
 
-		if (o.formatSubtitle) {
+		if (o.formatSubtitle && (opts.csubtitle == null)) {
 			formatSubtitle = () -> formatListTitle(o, this::getSubtitleView, o.subtitle);
 			formatSubtitle.run();
 			setPrefListener((s, p) -> {
@@ -525,7 +526,8 @@ public class PreferenceView extends ConstraintLayout {
 		ImageView iconView = getIconView();
 		TextView titleView = getTitleView();
 		TextView subtitleView = getSubtitleView();
-		titleView.setText(opts.title);
+		if (opts.ctitle != null) titleView.setText(opts.ctitle);
+		else titleView.setText(opts.title);
 
 		if (opts.icon == ID_NULL) {
 			iconView.setVisibility(GONE);
@@ -535,7 +537,7 @@ public class PreferenceView extends ConstraintLayout {
 			iconView.setPadding(0, 0, toIntPx(getContext(), 5), 0);
 		}
 
-		if (opts.subtitle == ID_NULL) {
+		if ((opts.csubtitle == null) && (opts.subtitle == ID_NULL)) {
 			if (!(opts instanceof NumberOpts) && !(opts instanceof BooleanOpts)) {
 				int padding = (int) toPx(getContext(), 8);
 				titleView.setPadding(0, padding, 0, padding);
@@ -545,7 +547,8 @@ public class PreferenceView extends ConstraintLayout {
 		} else {
 			titleView.setPadding(0, 0, 0, 0);
 			subtitleView.setVisibility(VISIBLE);
-			subtitleView.setText(opts.subtitle);
+			if (opts.csubtitle != null) subtitleView.setText(opts.csubtitle);
+			else subtitleView.setText(opts.subtitle);
 		}
 
 		float scale = ActivityDelegate.get(getContext()).getTextIconSize();
@@ -617,6 +620,8 @@ public class PreferenceView extends ConstraintLayout {
 		@SuppressLint("InlinedApi")
 		@StringRes
 		public int subtitle = ID_NULL;
+		public CharSequence ctitle;
+		public CharSequence csubtitle;
 		public ChangeableCondition visibility;
 	}
 
@@ -636,6 +641,7 @@ public class PreferenceView extends ConstraintLayout {
 		public int maxLines = 1;
 		public boolean trim;
 		public boolean removeBlank;
+		public OnClickListener clickListener;
 	}
 
 	public static class NumberOpts<S> extends PrefOpts<S> {
