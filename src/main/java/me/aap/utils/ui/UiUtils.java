@@ -1,5 +1,6 @@
 package me.aap.utils.ui;
 
+import static android.content.Context.CLIPBOARD_SERVICE;
 import static android.graphics.Bitmap.Config.ARGB_8888;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.view.KeyEvent.KEYCODE_DPAD_DOWN;
@@ -7,6 +8,8 @@ import static android.view.KeyEvent.KEYCODE_DPAD_UP;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CONTENT_CHANGED;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -256,6 +259,11 @@ public class UiUtils {
 			default:
 				return false;
 		}
+	}
+
+	public static void addToClipboard(Context ctx, CharSequence label, CharSequence text) {
+		ClipboardManager clipboard = (ClipboardManager) ctx.getSystemService(CLIPBOARD_SERVICE);
+		clipboard.setPrimaryClip(ClipData.newPlainText(label, text));
 	}
 
 	@IdRes
