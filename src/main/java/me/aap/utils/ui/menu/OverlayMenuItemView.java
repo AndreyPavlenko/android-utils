@@ -44,16 +44,17 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 	private boolean isLongClick;
 
 	OverlayMenuItemView(OverlayMenuView parent, int id, Drawable icon, CharSequence text, float scale) {
-		super(parent.getContext(), null, R.attr.popupMenuStyle);
+		super(parent.getContext(), null, com.google.android.material.R.attr.popupMenuStyle);
 		this.parent = parent;
 		setId(id);
 
 		Context ctx = parent.getContext();
 		TypedArray ta = ctx.obtainStyledAttributes(null, R.styleable.OverlayMenuItemView,
-				R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
+				com.google.android.material.R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
 		ColorStateList iconTint = ta.getColorStateList(R.styleable.OverlayMenuItemView_tint);
 		int textColor = ta.getColor(R.styleable.OverlayMenuItemView_android_textColor, Color.BLACK);
-		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance, R.attr.textAppearanceListItem);
+		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance,
+				com.google.android.material.R.attr.textAppearanceListItem);
 		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_itemPadding, 5);
 		ta.recycle();
 		init(icon, iconTint, text, textColor, textAppearance, padding, scale);
@@ -61,16 +62,16 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 
 	@SuppressLint("InlinedApi")
 	public OverlayMenuItemView(Context ctx, AttributeSet attrs) {
-		super(ctx, attrs, R.attr.popupMenuStyle);
+		super(ctx, attrs, com.google.android.material.R.attr.popupMenuStyle);
 
 		TypedArray ta = ctx.obtainStyledAttributes(attrs, R.styleable.OverlayMenuItemView,
-				R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
+				com.google.android.material.R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
 		ColorStateList iconTint = ta.getColorStateList(R.styleable.OverlayMenuItemView_tint);
 		Drawable icon = ta.getDrawable(R.styleable.OverlayMenuItemView_icon);
 		CharSequence text = ta.getText(R.styleable.OverlayMenuItemView_text);
 		int textColor = ta.getColor(R.styleable.OverlayMenuItemView_android_textColor, Color.BLACK);
 		int textAppearance = ta.getResourceId(R.styleable.OverlayMenuItemView_android_textAppearance,
-				R.attr.textAppearanceListItem);
+				com.google.android.material.R.attr.textAppearanceListItem);
 		int padding = (int) ta.getDimension(R.styleable.OverlayMenuItemView_itemPadding, 5);
 		int submenu = ta.getResourceId(R.styleable.OverlayMenuItemView_submenu, ID_NULL);
 		ta.recycle();

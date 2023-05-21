@@ -149,7 +149,8 @@ public class GenericDialogFragment extends GenericFragment {
 		}
 
 		default ImageButton createOkButton(ToolBarView tb, GenericDialogFragment f) {
-			ImageButton b = new ImageButton(tb.getContext(), null, R.attr.toolbarStyle);
+			ImageButton b = new ImageButton(tb.getContext(), null,
+					com.google.android.material.R.attr.toolbarStyle);
 			initButton(b, getOkButtonIcon(), v -> onOkButtonClick(f));
 			return b;
 		}
@@ -180,7 +181,8 @@ public class GenericDialogFragment extends GenericFragment {
 		}
 
 		default ImageButton createCloseButton(ToolBarView tb, GenericDialogFragment f) {
-			ImageButton b = new ImageButton(tb.getContext(), null, R.attr.toolbarStyle);
+			ImageButton b = new ImageButton(tb.getContext(), null,
+					com.google.android.material.R.attr.toolbarStyle);
 			initButton(b, getCloseButtonIcon(), v -> onCloseButtonClick(f));
 			return b;
 		}

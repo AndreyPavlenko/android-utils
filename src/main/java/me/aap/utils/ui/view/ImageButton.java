@@ -26,7 +26,7 @@ public class ImageButton extends AppCompatImageButton implements OnLongClickList
 	private long enterPressedTime = -1;
 
 	public ImageButton(Context context, @Nullable AttributeSet attrs) {
-		this(context, attrs, R.attr.imageButtonStyle);
+		this(context, attrs, com.google.android.material.R.attr.imageButtonStyle);
 	}
 
 	public ImageButton(Context context, AttributeSet attrs, int defStyleAttr) {

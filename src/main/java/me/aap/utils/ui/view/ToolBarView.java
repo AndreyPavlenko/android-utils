@@ -61,14 +61,14 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 	private final Collection<ListenerRef<Listener>> listeners = new LinkedList<>();
 
 	public ToolBarView(@NonNull Context context, @Nullable AttributeSet attrs) {
-		this(context, attrs, R.attr.toolbarStyle);
+		this(context, attrs, com.google.android.material.R.attr.toolbarStyle);
 	}
 
 	public ToolBarView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
 
 		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.ToolBarView,
-				R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
+				com.google.android.material.R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
 		size = ta.getLayoutDimension(R.styleable.ToolBarView_size, 0);
 		textAppearance = ta.getResourceId(R.styleable.ToolBarView_textAppearance, 0);
 		editTextAppearance = ta.getResourceId(R.styleable.ToolBarView_editTextAppearance, 0);
@@ -276,7 +276,8 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 
 		default ImageButton addButton(ToolBarView tb, @DrawableRes int icon, OnClickListener onClick,
 																	@IdRes int id, int side) {
-			ImageButton b = new ImageButton(tb.getContext(), null, R.attr.toolbarStyle);
+			ImageButton b = new ImageButton(tb.getContext(), null,
+					com.google.android.material.R.attr.toolbarStyle);
 			initButton(b, icon, onClick);
 			addView(tb, b, id, side);
 			return b;
@@ -392,7 +393,8 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 
 			default TextView createTitleText(ToolBarView tb) {
 				Context ctx = tb.getContext();
-				MaterialTextView t = new MaterialTextView(ctx, null, R.attr.toolbarStyle);
+				MaterialTextView t = new MaterialTextView(ctx, null,
+						com.google.android.material.R.attr.toolbarStyle);
 				t.setTextAppearance(tb.textAppearance);
 				t.setMaxLines(1);
 				t.setFocusable(false);
@@ -418,7 +420,8 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 			}
 
 			default ForcedVisibilityButton createBackButton(ToolBarView tb) {
-				ForcedVisibilityButton b = new ForcedVisibilityButton(tb.getContext(), null, R.attr.toolbarStyle);
+				ForcedVisibilityButton b = new ForcedVisibilityButton(tb.getContext(), null,
+						com.google.android.material.R.attr.toolbarStyle);
 				initButton(b, getBackButtonIcon(), this);
 				return b;
 			}
@@ -552,7 +555,8 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 			}
 
 			default ForcedVisibilityButton createFilterButton(ToolBarView tb) {
-				ForcedVisibilityButton b = new ForcedVisibilityButton(tb.getContext(), null, R.attr.toolbarStyle);
+				ForcedVisibilityButton b = new ForcedVisibilityButton(tb.getContext(), null,
+						com.google.android.material.R.attr.toolbarStyle);
 				initButton(b, getFilterButtonIcon(), this);
 				return b;
 			}

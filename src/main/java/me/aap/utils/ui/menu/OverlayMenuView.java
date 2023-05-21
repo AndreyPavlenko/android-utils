@@ -45,10 +45,10 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 	MenuBuilder builder;
 
 	public OverlayMenuView(Context ctx, AttributeSet attrs) {
-		super(ctx, attrs, R.attr.popupMenuStyle);
+		super(ctx, attrs, com.google.android.material.R.attr.popupMenuStyle);
 
 		TypedArray ta = ctx.obtainStyledAttributes(attrs, R.styleable.OverlayMenuView,
-				R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
+				com.google.android.material.R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
 		headerColor = ta.getColor(OverlayMenuView_colorPrimarySurface, Color.TRANSPARENT);
 		setBackgroundColor(ta.getColor(OverlayMenuView_android_colorBackground, Color.TRANSPARENT));
 		ta.recycle();

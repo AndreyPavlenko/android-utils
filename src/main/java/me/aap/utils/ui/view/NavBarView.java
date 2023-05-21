@@ -2,7 +2,6 @@ package me.aap.utils.ui.view;
 
 import static android.content.res.Configuration.SCREEN_HEIGHT_DP_UNDEFINED;
 import static android.content.res.Configuration.SCREEN_WIDTH_DP_UNDEFINED;
-import static android.util.TypedValue.COMPLEX_UNIT_PX;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static me.aap.utils.ui.UiUtils.getTextAppearanceSize;
 import static me.aap.utils.ui.UiUtils.isVisible;
@@ -55,14 +54,14 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 	private Mediator mediator;
 
 	public NavBarView(@NonNull Context context, @Nullable AttributeSet attrs) {
-		this(context, attrs, R.attr.bottomNavigationStyle);
+		this(context, attrs, com.google.android.material.R.attr.bottomNavigationStyle);
 	}
 
 	public NavBarView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
 
 		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.NavBarView,
-				R.attr.bottomNavigationStyle, R.style.Theme_Utils_Base_NavBarStyle);
+				com.google.android.material.R.attr.bottomNavigationStyle, R.style.Theme_Utils_Base_NavBarStyle);
 		tint = ta.getColor(R.styleable.NavBarView_tint, Color.TRANSPARENT);
 		size = ta.getLayoutDimension(R.styleable.NavBarView_size, 0);
 		textAppearance = ta.getResourceId(R.styleable.NavBarView_textAppearance, 0);

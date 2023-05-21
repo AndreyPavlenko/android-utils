@@ -25,7 +25,7 @@ import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import me.aap.utils.R;
+import com.google.android.material.R;
 
 /**
  * @author Andrey Pavlenko
@@ -94,12 +94,12 @@ public class DialogView extends FrameLayout implements DialogInterface {
 
 		public Builder(Context context) {
 			TypedArray ta = context.obtainStyledAttributes(new int[]{R.attr.materialAlertDialogTheme});
-			int theme = ta.getResourceId(0, R.style.Theme_Utils_Base_AlertDialog);
+			int theme = ta.getResourceId(0, me.aap.utils.R.style.Theme_Utils_Base_AlertDialog);
 			ta.recycle();
 			Context ctx = new ContextThemeWrapper(context, theme);
 			ta = ctx.obtainStyledAttributes(null,
 					new int[]{android.R.attr.layout},
-					R.attr.alertDialogStyle, R.style.Theme_Utils_Base_AlertDialog_Style);
+					R.attr.alertDialogStyle, me.aap.utils.R.style.Theme_Utils_Base_AlertDialog_Style);
 			@SuppressLint("PrivateResource")
 			int layout = ta.getResourceId(0, R.layout.mtrl_alert_dialog);
 			ta.recycle();
@@ -172,8 +172,8 @@ public class DialogView extends FrameLayout implements DialogInterface {
 		public DialogBuilder setSingleChoiceItems(@NonNull CharSequence[] items, int checkedItem,
 																							@Nullable DialogInterface.OnClickListener listener) {
 			Context ctx = getContext();
-			TypedArray a = ctx.obtainStyledAttributes(null, R.styleable.DialogView,
-					R.attr.alertDialogStyle, R.style.Theme_Utils_Base_AlertDialog_Style);
+			TypedArray a = ctx.obtainStyledAttributes(null, me.aap.utils.R.styleable.DialogView,
+					R.attr.alertDialogStyle, me.aap.utils.R.style.Theme_Utils_Base_AlertDialog_Style);
 			int layout = a.getResourceId(DialogView_listLayout, 0);
 			int itemLayout = a.getResourceId(DialogView_singleChoiceItemLayout,
 					R.layout.mtrl_alert_select_dialog_singlechoice);

@@ -42,7 +42,7 @@ public class FloatingButton extends FloatingActionButton implements ActivityList
 	private float scale = 1f;
 
 	public FloatingButton(Context context, AttributeSet attrs) {
-		this(context, attrs, R.attr.floatingActionButtonStyle);
+		this(context, attrs, com.google.android.material.R.attr.floatingActionButtonStyle);
 	}
 
 	public FloatingButton(Context context, AttributeSet attrs, int defStyleAttr) {

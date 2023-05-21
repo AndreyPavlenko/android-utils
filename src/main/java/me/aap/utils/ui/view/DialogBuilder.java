@@ -100,7 +100,8 @@ public interface DialogBuilder {
 	}
 
 	static DialogBuilder create(Context ctx) {
-		TypedArray ta = ctx.obtainStyledAttributes(new int[]{R.attr.materialAlertDialogTheme});
+		TypedArray ta = ctx.obtainStyledAttributes(
+				new int[]{com.google.android.material.R.attr.materialAlertDialogTheme});
 		int theme = ta.getResourceId(0, R.style.Theme_Utils_Base_AlertDialog);
 		ta.recycle();
 
