@@ -102,6 +102,7 @@ public class HandlerExecutor extends Handler implements Executor {
 		}
 
 		private Runnable remove() {
+			if (task == null) return null;
 			synchronized (HandlerExecutor.this) {
 				Runnable t = task;
 				if (t == null) return null;

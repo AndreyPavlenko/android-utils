@@ -29,8 +29,7 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 
 	@SuppressWarnings("unchecked")
 	public static <T> FutureSupplier<T> cancelled() {
-		if (BuildConfig.D) return new Failed<>(new CancellationException());
-		else return Cancelled.instance;
+		return Cancelled.instance;
 	}
 
 	public static <T> FutureSupplier<T> failed(Throwable fail) {

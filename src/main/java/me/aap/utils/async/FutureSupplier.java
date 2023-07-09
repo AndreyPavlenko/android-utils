@@ -76,6 +76,10 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return getFailure() != null;
 	}
 
+	default boolean isDoneNotFailed() {
+		return isDone() && !isFailed();
+	}
+
 	@Nullable
 	default Executor getExecutor() {
 		return null;

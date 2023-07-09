@@ -24,7 +24,12 @@ public class Utf8LineReader extends Utf8Reader {
 	}
 
 	public int readLine(Appendable a) throws IOException {
-		for (int n = 0; ; n++) {
+		return readLine(a, Integer.MAX_VALUE);
+	}
+
+	public int readLine(Appendable a, int maxLen) throws IOException {
+		int n = 0;
+		for (; n < maxLen; n++) {
 			int c = read();
 			if (c == -1) return (n == 0) ? -1 : n;
 
@@ -39,6 +44,7 @@ public class Utf8LineReader extends Utf8Reader {
 					a.append((char) c);
 			}
 		}
+		return (n == 0) ? -1 : n;
 	}
 
 	public int skipLine() throws IOException {

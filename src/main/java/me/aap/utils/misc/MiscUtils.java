@@ -13,6 +13,10 @@ import me.aap.utils.function.Supplier;
  */
 public class MiscUtils {
 
+	public static boolean nonNull(Object obj) {
+		return obj != null;
+	}
+
 	public static <T> T ifNull(T check, @NonNull T otherwise) {
 		return (check != null) ? check : otherwise;
 	}

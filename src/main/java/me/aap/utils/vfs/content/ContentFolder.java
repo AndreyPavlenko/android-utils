@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.provider.DocumentsContract;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,18 +33,30 @@ import me.aap.utils.vfs.VirtualResource;
  * @author Andrey Pavlenko
  */
 public class ContentFolder extends ContentResource implements VirtualFolder {
-	private static final String[] queryFields = new String[]{COLUMN_DISPLAY_NAME, COLUMN_DOCUMENT_ID, COLUMN_MIME_TYPE};
+	private static final String[] queryFields =
+			new String[]{COLUMN_DISPLAY_NAME, COLUMN_DOCUMENT_ID, COLUMN_MIME_TYPE};
 
 	public ContentFolder(ContentFolder parent, String name, String id) {
 		super(parent, name, id);
 	}
 
 	@Override
+	public Filter filterChildren() {
+		return new ContentFilter();
+	}
+
+	@Override
 	public FutureSupplier<List<VirtualResource>> getChildren() {
+		return getChildren(null, null);
+	}
+
+	private FutureSupplier<List<VirtualResource>> getChildren(@Nullable String selection,
+																														@Nullable String[] selectionArgs) {
 		return App.get().execute(() -> {
 			Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(getRootUri(), getId());
 
-			try (Cursor c = App.get().getContentResolver().query(childrenUri, queryFields, null, null, null)) {
+			try (Cursor c = App.get().getContentResolver()
+					.query(childrenUri, queryFields, selection, selectionArgs, null)) {
 				if ((c != null) && c.moveToNext()) {
 					List<VirtualResource> list = new ArrayList<>(c.getCount());
 
@@ -114,5 +127,74 @@ public class ContentFolder extends ContentResource implements VirtualFolder {
 
 	private static boolean isDir(String mime) {
 		return MIME_TYPE_DIR.equals(mime) || "directory".equals(mime);
+	}
+
+	private final class ContentFilter extends BasicFilter {
+		private final StringBuilder selection = new StringBuilder();
+		private final List<String> selectionArgs = new ArrayList<>();
+		private boolean not = false;
+
+		ContentFilter() {
+			super(ContentFolder.this);
+		}
+
+		@Override
+		public FutureSupplier<List<VirtualResource>> apply() {
+			return getChildren(selection.toString(), selectionArgs.toArray(new String[0])).map(
+					this::apply);
+		}
+
+		@Override
+		public Filter starts(String prefix) {
+			super.starts(prefix);
+			return like("?%", prefix);
+		}
+
+		@Override
+		public Filter ends(String suffix) {
+			super.ends(suffix);
+			return like("%?", suffix);
+		}
+
+		@Override
+		public Filter startsEnds(String prefix, String suffix) {
+			super.startsEnds(prefix, suffix);
+			return like("?%?", prefix, suffix);
+		}
+
+		@Override
+		public Filter and() {
+			super.and();
+			if (selection.length() != 0) selection.append(" AND ");
+			return this;
+		}
+
+		@Override
+		public Filter or() {
+			super.or();
+			if (selection.length() != 0) selection.append(" OR ");
+			return this;
+		}
+
+		@Override
+		public Filter not() {
+			super.not();
+			not = true;
+			return this;
+		}
+
+		private Filter like(String like, String... args) {
+			selection.append('?');
+			selectionArgs.add(COLUMN_DISPLAY_NAME);
+			if (not) {
+				not = false;
+				selection.append(" NOT LIKE ");
+			} else {
+				selection.append(" LIKE ");
+			}
+			selection.append(like);
+			Collections.addAll(selectionArgs, args);
+			return this;
+		}
 	}
 }
