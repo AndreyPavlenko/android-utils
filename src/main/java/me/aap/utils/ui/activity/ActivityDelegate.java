@@ -133,7 +133,7 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		}
 
 		IllegalArgumentException ex = new IllegalArgumentException("Unsupported context: " + ctx);
-		Log.e(ex, "Activity delegate not found. contextToDelegate = ", f);
+		if (f != null) Log.e(ex, "Activity delegate not found. contextToDelegate = ", f);
 		return failed(ex);
 	}
 
