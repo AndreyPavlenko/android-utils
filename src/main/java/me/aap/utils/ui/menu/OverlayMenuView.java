@@ -48,7 +48,8 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		super(ctx, attrs, com.google.android.material.R.attr.popupMenuStyle);
 
 		TypedArray ta = ctx.obtainStyledAttributes(attrs, R.styleable.OverlayMenuView,
-				com.google.android.material.R.attr.popupMenuStyle, R.style.Theme_Utils_Base_PopupMenuStyle);
+				com.google.android.material.R.attr.popupMenuStyle,
+				R.style.Theme_Utils_Base_PopupMenuStyle);
 		headerColor = ta.getColor(OverlayMenuView_colorPrimarySurface, Color.TRANSPARENT);
 		setBackgroundColor(ta.getColor(OverlayMenuView_android_colorBackground, Color.TRANSPARENT));
 		ta.recycle();
@@ -164,6 +165,26 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 		return items;
 	}
 
+	@Override
+	public View focusSearch(int direction) {
+		List<OverlayMenuItem> items = getItems();
+		for (int i = 0, n = items.size(); i < n; i++) {
+			OverlayMenuItem item = items.get(i);
+			if ((item instanceof View v) && v.isFocused()) {
+				int nextIdx;
+				if (direction == FOCUS_DOWN) nextIdx = (i < n - 1) ? i + 1 : 0;
+				else nextIdx = (i > 0) ? i - 1 : n - 1;
+				OverlayMenuItem next = items.get(nextIdx);
+				if (next instanceof View nv) return nv;
+			}
+		}
+		for (int i = 0, n = items.size(); i < n; i++) {
+			OverlayMenuItem item = items.get(i);
+			if (item instanceof View v) return v;
+		}
+		return null;
+	}
+
 	void menuItemSelected(OverlayMenuItemView item) {
 		if (item.submenuBuilder == null) {
 			SelectionHandler handler = item.handler;
@@ -228,14 +249,15 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 
 		@Override
 		public OverlayMenuItem addItem(int id, Drawable icon, CharSequence title) {
-			OverlayMenuItemView i = new OverlayMenuItemView(OverlayMenuView.this, id, icon, title, scale);
+			OverlayMenuItemView i = new OverlayMenuItemView(OverlayMenuView.this, id, icon, title,
+					scale);
 			view.addView(i);
 			return i;
 		}
 
 		@Override
-		public OverlayMenuItem addItem(int id, Drawable icon, CharSequence title,
-																	 int relativeToId, boolean after) {
+		public OverlayMenuItem addItem(int id, Drawable icon, CharSequence title, int relativeToId,
+																	 boolean after) {
 			OverlayMenuItemView i = (OverlayMenuItemView) findItem(relativeToId);
 			if (i == null) return addItem(id, icon, title);
 
@@ -269,7 +291,8 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 
 			Context ctx = getContext();
 			MaterialTextView v = new MaterialTextView(ctx);
-			LinearLayoutCompat.LayoutParams p = new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
+			LinearLayoutCompat.LayoutParams p =
+					new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
 			int padding = (int) toPx(ctx, 10);
 			int elevation = (int) toPx(ctx, 5);
 			v.setId(R.id.overlay_menu_title);

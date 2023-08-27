@@ -120,8 +120,7 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		} else if (ctx instanceof ContextWrapper) {
 			do {
 				ctx = ((ContextWrapper) ctx).getBaseContext();
-				if (ctx instanceof AppActivity)
-					return ((AppActivity) ctx).getActivityDelegate();
+				if (ctx instanceof AppActivity) return ((AppActivity) ctx).getActivityDelegate();
 			} while (ctx instanceof ContextWrapper);
 		}
 
@@ -241,9 +240,7 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		CharSequence appName = getString(App.get().getApplicationInfo().labelRes);
 		String subj = appName + " crash report";
 		String body = TextUtils.toString(err);
-		String uri = "mailto:" + email +
-				"?subject=" + Uri.encode(subj) +
-				"&body=" + Uri.encode(body);
+		String uri = "mailto:" + email + "?subject=" + Uri.encode(subj) + "&body=" + Uri.encode(body);
 		Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse(uri));
 		Context ctx = getContext();
 		if (i.resolveActivity(ctx.getPackageManager()) == null) return completedVoid();
@@ -253,12 +250,10 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 			@Override
 			public void run() {
 				Looper.prepare();
-				new MaterialAlertDialogBuilder(ctx)
-						.setTitle(appName)
+				new MaterialAlertDialogBuilder(ctx).setTitle(appName)
 						.setMessage(appName + " has been crashed.\nSend crash report?")
 						.setNegativeButton(android.R.string.cancel, (d, w) -> p.cancel())
-						.setPositiveButton(android.R.string.ok, (d, w) -> p.complete(null))
-						.setCancelable(false)
+						.setPositiveButton(android.R.string.ok, (d, w) -> p.complete(null)).setCancelable(false)
 						.show();
 				Looper.loop();
 			}
@@ -456,9 +451,15 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 			}
 		}
 
-		backPressed = true;
-		Toast.makeText(getContext(), getExitMsg(), Toast.LENGTH_SHORT).show();
-		App.get().getHandler().postDelayed(() -> backPressed = false, 2000);
+		if (exitOnBackPressed()) {
+			backPressed = true;
+			Toast.makeText(getContext(), getExitMsg(), Toast.LENGTH_SHORT).show();
+			App.get().getHandler().postDelayed(() -> backPressed = false, 2000);
+		}
+	}
+
+	protected boolean exitOnBackPressed() {
+		return true;
 	}
 
 	@Override
@@ -490,8 +491,13 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		return true;
 	}
 
+	@Nullable
+	public OverlayMenu getActiveMenu() {
+		return activeMenu;
+	}
+
 	public boolean isMenuActive() {
-		return activeMenu != null;
+		return getActiveMenu() != null;
 	}
 
 	public boolean interceptTouchEvent(MotionEvent e, Function<MotionEvent, Boolean> view) {
@@ -519,15 +525,18 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		setFullScreen(isFullScreen());
 	}
 
-	public boolean onKeyUp(int keyCode, KeyEvent keyEvent, IntObjectFunction<KeyEvent, Boolean> next) {
+	public boolean onKeyUp(int keyCode, KeyEvent keyEvent,
+												 IntObjectFunction<KeyEvent, Boolean> next) {
 		return next.apply(keyCode, keyEvent);
 	}
 
-	public boolean onKeyDown(int keyCode, KeyEvent keyEvent, IntObjectFunction<KeyEvent, Boolean> next) {
+	public boolean onKeyDown(int keyCode, KeyEvent keyEvent,
+													 IntObjectFunction<KeyEvent, Boolean> next) {
 		return next.apply(keyCode, keyEvent);
 	}
 
-	public boolean onKeyLongPress(int keyCode, KeyEvent keyEvent, IntObjectFunction<KeyEvent, Boolean> next) {
+	public boolean onKeyLongPress(int keyCode, KeyEvent keyEvent,
+																IntObjectFunction<KeyEvent, Boolean> next) {
 		return next.apply(keyCode, keyEvent);
 	}
 
