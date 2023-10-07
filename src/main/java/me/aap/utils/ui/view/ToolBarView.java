@@ -515,7 +515,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 			@Override
 			default boolean onBackPressed(ToolBarView tb) {
 				EditText f = tb.findViewById(getFilterId());
-				if (f.getVisibility() == VISIBLE) {
+				if ((f != null) && (f.getVisibility() == VISIBLE)) {
 					setFilterVisibility(tb, false);
 					return true;
 				} else {

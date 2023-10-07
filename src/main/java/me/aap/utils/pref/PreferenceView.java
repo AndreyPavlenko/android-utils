@@ -1,10 +1,14 @@
 package me.aap.utils.pref;
 
+import static android.content.Intent.ACTION_OPEN_DOCUMENT;
+import static android.content.Intent.ACTION_OPEN_DOCUMENT_TREE;
 import static android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION;
 import static android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+import static android.os.Build.VERSION.SDK_INT;
 import static android.util.TypedValue.COMPLEX_UNIT_PX;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static me.aap.utils.async.Completed.completed;
+import static me.aap.utils.misc.MiscUtils.isSafSupported;
 import static me.aap.utils.text.TextUtils.isBlank;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 import static me.aap.utils.ui.UiUtils.toIntPx;
@@ -12,6 +16,7 @@ import static me.aap.utils.ui.UiUtils.toPx;
 import static me.aap.utils.ui.fragment.FilePickerFragment.FILE_OR_FOLDER;
 import static me.aap.utils.ui.fragment.FilePickerFragment.WRITABLE;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -21,6 +26,7 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.net.Uri;
+import android.os.Build;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -267,41 +273,59 @@ public class PreferenceView extends ConstraintLayout {
 
 		setOnClickListener(v -> {
 			ActivityDelegate a = ActivityDelegate.get(getContext());
+			Runnable runPicker = () -> {
+				int current = a.getActiveFragmentId();
+				FilePickerFragment picker = a.showFragment(R.id.file_picker);
+				Object state = picker.resetState();
+				picker.setMode(o.mode);
+				picker.setPattern(o.pattern);
+				picker.setSupplier(
+						(o.supplier != null) ? o.supplier : completed(fileSupplier(t.getText())));
 
-			if (o.useSaf && ((o.mode & FilePickerFragment.FOLDER) != 0)) {
+				picker.setFileConsumer(file -> {
+					if (file != null) {
+						File local = file.getLocalFile();
+						t.setText((local != null) ? local.getAbsolutePath() : file.getRid().toString());
+					}
+
+					picker.restoreState(state);
+					a.showFragment(current);
+				});
+			};
+
+			if (o.useSaf()) {
 				try {
-					a.startActivityForResult(() -> new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
-							.onSuccess(data -> {
-								if (data == null) return;
-								Uri uri = data.getData();
-								if (uri == null) return;
-								int f = FLAG_GRANT_READ_URI_PERMISSION;
-								if ((o.mode & WRITABLE) != 0) f |= FLAG_GRANT_WRITE_URI_PERMISSION;
-								a.getContext().getContentResolver().takePersistableUriPermission(uri, f);
-								o.store.applyStringPref(o.pref, uri.toString());
-							});
+					a.startActivityForResult(() -> {
+						if ((o.mode & FilePickerFragment.FOLDER) != 0) {
+							return new Intent(ACTION_OPEN_DOCUMENT_TREE);
+						} else {
+							Intent intent = new Intent(ACTION_OPEN_DOCUMENT);
+							intent.addCategory(Intent.CATEGORY_OPENABLE);
+							intent.setType("*/*");
+							return intent;
+						}
+					}).onCompletion((data, err) -> {
+						if (err != null) {
+							Log.e(err, "SAF picker failed");
+							runPicker.run();
+							return;
+						}
+
+						if (data == null) return;
+						Uri uri = data.getData();
+						if (uri == null) return;
+						int f = FLAG_GRANT_READ_URI_PERMISSION;
+						if ((o.mode & WRITABLE) != 0) f |= FLAG_GRANT_WRITE_URI_PERMISSION;
+						a.getContext().getContentResolver().takePersistableUriPermission(uri, f);
+						o.store.applyStringPref(o.pref, uri.toString());
+					});
 					return;
 				} catch (ActivityNotFoundException ex) {
 					Log.e(ex);
 				}
 			}
 
-			int current = a.getActiveFragmentId();
-			FilePickerFragment picker = a.showFragment(R.id.file_picker);
-			Object state = picker.resetState();
-			picker.setMode(o.mode);
-			picker.setPattern(o.pattern);
-			picker.setSupplier((o.supplier != null) ? o.supplier : completed(fileSupplier(t.getText())));
-
-			picker.setFileConsumer(file -> {
-				if (file != null) {
-					File local = file.getLocalFile();
-					t.setText((local != null) ? local.getAbsolutePath() : file.getRid().toString());
-				}
-
-				picker.restoreState(state);
-				a.showFragment(current);
-			});
+			runPicker.run();
 		});
 	}
 
@@ -666,10 +690,17 @@ public class PreferenceView extends ConstraintLayout {
 		@DrawableRes
 		public int browseIcon = R.drawable.browse;
 		public byte mode = FILE_OR_FOLDER;
-		public boolean useSaf;
+		public Boolean useSaf;
 		public Pattern pattern;
 		public FutureSupplier<BiHolder<? extends VirtualResource, List<? extends VirtualResource>>>
 				supplier;
+
+		public boolean useSaf() {
+			if (useSaf != null) return useSaf;
+			return (SDK_INT > Build.VERSION_CODES.R) &&
+					!App.get().hasManifestPermission(Manifest.permission.MANAGE_EXTERNAL_STORAGE) &&
+					isSafSupported();
+		}
 	}
 
 	public static class ListOpts extends PrefOpts<IntSupplier> {
