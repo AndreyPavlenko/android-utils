@@ -192,7 +192,8 @@ public class FilePickerFragment extends GenericDialogFragment implements
 	}
 
 	private boolean filter(VirtualResource f) {
-		return (state.pattern == null) || state.pattern.matcher(f.getName()).matches();
+		return (state.pattern == null) || (f instanceof VirtualFolder) ||
+				state.pattern.matcher(f.getName()).matches();
 	}
 
 	@Override
@@ -286,7 +287,11 @@ public class FilePickerFragment extends GenericDialogFragment implements
 		ListView<VirtualResource> v = getListView();
 		if (v == null) return GONE;
 		if (v.getParentItem() == null) return GONE;
-		return ((state.mode & FOLDER) != 0) ? VISIBLE : GONE;
+		if ((state.mode & FOLDER) != 0) {
+			if (state.pattern == null) return VISIBLE;
+			return state.pattern.matcher(v.getParentItem().getName()).matches() ? VISIBLE : GONE;
+		}
+		return GONE;
 	}
 
 	public Object resetState() {
