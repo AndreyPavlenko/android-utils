@@ -104,6 +104,11 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 	@StringRes
 	protected abstract int getExitMsg();
 
+	@Nullable
+	public static Function<Context, ActivityDelegate> getContextToDelegate() {
+		return contextToDelegate;
+	}
+
 	public static void setContextToDelegate(Function<Context, ActivityDelegate> contextToDelegate) {
 		ActivityDelegate.contextToDelegate = contextToDelegate;
 	}
