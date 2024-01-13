@@ -95,8 +95,11 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		assert delegate == NO_DELEGATE;
-
-		delegate = createDelegate(this).main().onCompletion((d, err) -> {
+		delegate = createDelegate(this);
+		StartActivityContract ac = new StartActivityContract();
+		activityLauncher = registerForActivityResult(ac, ac);
+		if (delegate == NO_DELEGATE) return;
+		delegate.onCompletion((d, err) -> {
 			if (err != null) {
 				Log.e(err, "Failed to create activity delegate");
 				delegate = failed(err);
@@ -113,9 +116,6 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 				else c.complete(this);
 			}
 		});
-
-		StartActivityContract c = new StartActivityContract();
-		activityLauncher = registerForActivityResult(c, c);
 	}
 
 	@CallSuper
