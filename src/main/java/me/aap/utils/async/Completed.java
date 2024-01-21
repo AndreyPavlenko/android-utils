@@ -141,6 +141,16 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 		}
 
 		@Override
+		public boolean isDone() {
+			return true;
+		}
+
+		@Override
+		public boolean isDoneNotFailed() {
+			return true;
+		}
+
+		@Override
 		public final boolean isFailed() {
 			return false;
 		}
@@ -152,6 +162,11 @@ public abstract class Completed<T> implements FutureSupplier<T> {
 
 		@Override
 		public abstract T get();
+
+		@Override
+		public T getOrThrow() {
+			return get();
+		}
 
 		@Override
 		public final T get(long timeout, @NonNull TimeUnit unit) {

@@ -242,12 +242,13 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 	public void installApk(Uri u, boolean known) {
 		checkPermissions(Manifest.permission.REQUEST_INSTALL_PACKAGES).onSuccess(perms -> {
 			Intent i = new Intent("android.intent.action.INSTALL_PACKAGE");
+			int flags = Intent.FLAG_ACTIVITY_NEW_TASK;
+			if (SDK_INT >= VERSION_CODES.N) flags |= Intent.FLAG_GRANT_READ_URI_PERMISSION;
 			i.setData(u);
-			if (SDK_INT >= VERSION_CODES.N) i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK + 1);
-			else i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			i.setFlags(flags);
 			if (known) {
-				i.putExtra("android.intent.extra.NOT_UNKNOWN_SOURCE", true);
-				i.putExtra("android.intent.extra.INSTALLER_PACKAGE_NAME", "com.android.vending");
+				i.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+				i.putExtra(Intent.EXTRA_INSTALLER_PACKAGE_NAME, "com.android.vending");
 			}
 			startActivity(i);
 		});

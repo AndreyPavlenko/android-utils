@@ -12,7 +12,6 @@ import androidx.annotation.Nullable;
 import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -34,28 +33,34 @@ import me.aap.utils.log.Log;
 
 /**
  * @author Andrey Pavlenko
+ * @noinspection unused, UnusedReturnValue
  */
 public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwable>, Cancellable {
 
 	FutureSupplier<T> addConsumer(@NonNull ProgressiveResultConsumer<? super T> consumer);
 
-	default FutureSupplier<T> onCompletion(@NonNull ProgressiveResultConsumer.Completion<? super T> consumer) {
+	default FutureSupplier<T> onCompletion(
+			@NonNull ProgressiveResultConsumer.Completion<? super T> consumer) {
 		return addConsumer(consumer);
 	}
 
-	default FutureSupplier<T> onSuccess(@NonNull ProgressiveResultConsumer.Success<? super T> consumer) {
+	default FutureSupplier<T> onSuccess(
+			@NonNull ProgressiveResultConsumer.Success<? super T> consumer) {
 		return addConsumer(consumer);
 	}
 
-	default FutureSupplier<T> onFailure(@NonNull ProgressiveResultConsumer.Failure<? super T> consumer) {
+	default FutureSupplier<T> onFailure(
+			@NonNull ProgressiveResultConsumer.Failure<? super T> consumer) {
 		return addConsumer(consumer);
 	}
 
-	default FutureSupplier<T> onCancel(@NonNull ProgressiveResultConsumer.Cancel<? super T> consumer) {
+	default FutureSupplier<T> onCancel(
+			@NonNull ProgressiveResultConsumer.Cancel<? super T> consumer) {
 		return addConsumer(consumer);
 	}
 
-	default FutureSupplier<T> onProgress(@NonNull ProgressiveResultConsumer.Progress<? super T> consumer) {
+	default FutureSupplier<T> onProgress(
+			@NonNull ProgressiveResultConsumer.Progress<? super T> consumer) {
 		return addConsumer(consumer);
 	}
 
@@ -92,13 +97,12 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	default FutureSupplier<T> withExecutor(Executor executor, boolean ignoreIfDone) {
 		if ((executor == getExecutor()) || (ignoreIfDone && isDone())) return this;
 
-		ProxySupplier<T, T> p = new ProxySupplier<T, T>() {
+		var p = new ProxySupplier<T, T>() {
 			private final Executor exec;
 			private volatile boolean cancelled;
 
 			{
-				if (executor instanceof HandlerExecutor) {
-					HandlerExecutor handler = (HandlerExecutor) executor;
+				if (executor instanceof HandlerExecutor handler) {
 					exec = task -> {
 						if (handler.getLooper().isCurrentThread()) {
 							if (handler.isClosed()) Log.e("Handler closed! Unable to run task ", task);
@@ -172,11 +176,17 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return p;
 	}
 
+	/**
+	 * @noinspection ConfusingMainMethod
+	 */
 	default FutureSupplier<T> main() {
 		if (isDone() && isMainThread()) return this;
 		return withExecutor(App.get().getHandler(), false);
 	}
 
+	/**
+	 * @noinspection ConfusingMainMethod
+	 */
 	default FutureSupplier<T> main(HandlerExecutor handler) {
 		if (isDone() && (Thread.currentThread() == handler.getLooper().getThread())) return this;
 		return withExecutor(handler, false);
@@ -184,7 +194,7 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 
 	default FutureSupplier<T> fork() {
 		if (isDone()) return this;
-		Promise<T> p = new Promise<>();
+		var p = new Promise<T>();
 		onCompletionSupply(p);
 		return p;
 	}
@@ -197,9 +207,9 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 
 	default FutureSupplier<T> timeout(long millis, CheckedSupplier<T, Throwable> onTimeout) {
 		if (isDone()) return this;
-		Throwable trace = BuildConfig.FUTURE_TRACE ? new TimeoutException() : null;
-		Promise<T> p = new Promise<>();
-		ScheduledFuture<?> t = App.get().getScheduler().schedule(() -> {
+		var trace = BuildConfig.FUTURE_TRACE ? new TimeoutException() : null;
+		var p = new Promise<T>();
+		var t = App.get().getScheduler().schedule(() -> {
 			if (p.isDone()) return;
 			if (BuildConfig.FUTURE_TRACE) Log.d(trace, "FutureSupplier timed out");
 
@@ -302,7 +312,8 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		});
 	}
 
-	default <R> FutureSupplier<R> mapIfNotNull(CheckedFunction<? super T, ? extends R, Throwable> map) {
+	default <R> FutureSupplier<R> mapIfNotNull(
+			CheckedFunction<? super T, ? extends R, Throwable> map) {
 		return map(v -> (v != null) ? map.apply(v) : null);
 	}
 
@@ -369,6 +380,9 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		}
 	}
 
+	/**
+	 * @noinspection rawtypes
+	 */
 	default FutureSupplier<T> ifNotDone(CheckedRunnable run) {
 		if (!isDone()) {
 			try {
@@ -382,7 +396,8 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	}
 
 	@SuppressWarnings("unchecked")
-	default <R> FutureSupplier<R> then(CheckedFunction<? super T, FutureSupplier<R>, Throwable> then) {
+	default <R> FutureSupplier<R> then(
+			CheckedFunction<? super T, FutureSupplier<R>, Throwable> then) {
 		if (isDone()) {
 			if (isFailed()) return (FutureSupplier<R>) this;
 
@@ -394,11 +409,11 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			}
 		}
 
-		Promise<R> p = new Promise<R>() {
+		var p = new Promise<R>() {
 			@Override
 			public boolean cancel(boolean mayInterruptIfRunning) {
-				return super.cancel(mayInterruptIfRunning)
-						|| FutureSupplier.this.cancel(mayInterruptIfRunning);
+				return super.cancel(mayInterruptIfRunning) ||
+						FutureSupplier.this.cancel(mayInterruptIfRunning);
 			}
 		};
 
@@ -419,9 +434,9 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return p;
 	}
 
-	@SuppressWarnings("unchecked")
-	default <R> FutureSupplier<R> then(CheckedFunction<? super T, FutureSupplier<R>, Throwable> onSuccess,
-																		 CheckedFunction<Throwable, FutureSupplier<R>, Throwable> onFailure) {
+	default <R> FutureSupplier<R> then(
+			CheckedFunction<? super T, FutureSupplier<R>, Throwable> onSuccess,
+			CheckedFunction<Throwable, FutureSupplier<R>, Throwable> onFailure) {
 		if (isDone()) {
 			try {
 				return isFailed() ? onFailure.apply(getFailure()) : onSuccess.apply(get());
@@ -431,11 +446,11 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			}
 		}
 
-		Promise<R> p = new Promise<R>() {
+		var p = new Promise<R>() {
 			@Override
 			public boolean cancel(boolean mayInterruptIfRunning) {
-				return super.cancel(mayInterruptIfRunning)
-						|| FutureSupplier.this.cancel(mayInterruptIfRunning);
+				return super.cancel(mayInterruptIfRunning) ||
+						FutureSupplier.this.cancel(mayInterruptIfRunning);
 			}
 		};
 
@@ -454,8 +469,40 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return p;
 	}
 
+	default <R> FutureSupplier<R> thenIgnoreResult(
+			CheckedSupplier<FutureSupplier<R>, Throwable> then) {
+		if (isDone()) {
+			try {
+				return then.get();
+			} catch (Throwable ex) {
+				Log.e(ex);
+				return failed(ex);
+			}
+		}
+
+		var p = new Promise<R>() {
+			@Override
+			public boolean cancel(boolean mayInterruptIfRunning) {
+				return super.cancel(mayInterruptIfRunning) ||
+						FutureSupplier.this.cancel(mayInterruptIfRunning);
+			}
+		};
+
+		onCompletion((ignore, fail) -> {
+			try {
+				if (fail != null) Log.d(fail);
+				then.get().onCompletion(p::complete);
+			} catch (Throwable ex) {
+				p.completeExceptionally(ex);
+			}
+		});
+
+		return p;
+	}
+
 	@SuppressWarnings("unchecked")
-	default <R> FutureSupplier<R> closeableMap(CheckedFunction<? super T, ? extends R, Throwable> map) {
+	default <R> FutureSupplier<R> closeableMap(
+			CheckedFunction<? super T, ? extends R, Throwable> map) {
 		if (isDone()) {
 			if (isFailed()) return (FutureSupplier<R>) this;
 
@@ -478,7 +525,8 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	}
 
 	@SuppressWarnings("unchecked")
-	default <R> FutureSupplier<R> closeableThen(CheckedFunction<? super T, FutureSupplier<R>, Throwable> then) {
+	default <R> FutureSupplier<R> closeableThen(
+			CheckedFunction<? super T, FutureSupplier<R>, Throwable> then) {
 		if (isDone()) {
 			if (isFailed()) return (FutureSupplier<R>) this;
 
@@ -490,10 +538,10 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 			}
 		}
 
-		Promise<R> p = new Promise<R>() {
+		var p = new Promise<R>() {
 			public boolean cancel(boolean mayInterruptIfRunning) {
-				return super.cancel(mayInterruptIfRunning)
-						|| FutureSupplier.this.cancel(mayInterruptIfRunning);
+				return super.cancel(mayInterruptIfRunning) ||
+						FutureSupplier.this.cancel(mayInterruptIfRunning);
 			}
 		};
 
@@ -514,10 +562,14 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return p;
 	}
 
-	default FutureSupplier<T> thenIterate(CheckedFunction<FutureSupplier<T>, FutureSupplier<T>, Throwable> next) {
+	default FutureSupplier<T> thenIterate(
+			CheckedFunction<FutureSupplier<T>, FutureSupplier<T>, Throwable> next) {
 		return Async.iterate(this, next);
 	}
 
+	/**
+	 * @noinspection unchecked
+	 */
 	default FutureSupplier<T> thenIterate(FutureSupplier<T>... next) {
 		return Async.iterate(this, next);
 	}
@@ -538,6 +590,9 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return onCompletion(complete::complete);
 	}
 
+	/**
+	 * @noinspection unchecked
+	 */
 	default FutureSupplier<T> thenComplete(Completable<T>... complete) {
 		return onCompletion(((result, fail) -> {
 			for (Completable<T> c : complete) {
@@ -562,7 +617,8 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	}
 
 	@SuppressWarnings("rawtypes")
-	default FutureSupplier<T> thenReplace(AtomicReferenceFieldUpdater updater, Object owner, Object expect) {
+	default FutureSupplier<T> thenReplace(AtomicReferenceFieldUpdater updater, Object owner,
+																				Object expect) {
 		return thenReplace(updater, owner, expect, Completed::completed);
 	}
 
@@ -572,22 +628,24 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 	}
 
 	@SuppressWarnings("rawtypes")
-	default FutureSupplier<T> thenReplaceOrClear(AtomicReferenceFieldUpdater updater, Object owner, Object expect) {
+	default FutureSupplier<T> thenReplaceOrClear(AtomicReferenceFieldUpdater updater, Object owner,
+																							 Object expect) {
 		return thenReplace(updater, owner, expect, Completed::completedOrNull);
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
-	default FutureSupplier<T> thenReplace(AtomicReferenceFieldUpdater updater, Object owner, Object expect,
+	default FutureSupplier<T> thenReplace(AtomicReferenceFieldUpdater updater, Object owner,
+																				Object expect,
 																				Function<FutureSupplier<T>, FutureSupplier<T>> replaceWith) {
 		if (isDone()) {
-			FutureSupplier<T> replacement = replaceWith.apply(this);
+			var replacement = replaceWith.apply(this);
 			updater.compareAndSet(owner, expect, replacement);
 			if (expect instanceof Completable) ((Completable) expect).completeAs(this);
 			return replacement;
 		}
 
 		return onCompletion((result, fail) -> {
-			FutureSupplier<T> replacement = replaceWith.apply(this);
+			var replacement = replaceWith.apply(this);
 			updater.compareAndSet(owner, expect, replacement);
 			if (expect instanceof Completable) ((Completable) expect).complete(result, fail);
 		});
@@ -597,7 +655,8 @@ public interface FutureSupplier<T> extends Future<T>, CheckedSupplier<T, Throwab
 		return Async.and(this, second);
 	}
 
-	default <U> FutureSupplier<?> and(FutureSupplier<U> second, CheckedBiConsumer<T, U, Throwable> consumer) {
+	default <U> FutureSupplier<?> and(FutureSupplier<U> second,
+																		CheckedBiConsumer<T, U, Throwable> consumer) {
 		return Async.and(this, second, consumer);
 	}
 
