@@ -358,31 +358,29 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		return null;
 	}
 
-	public <F extends ActivityFragment> F showFragment(@IdRes int id) {
+	@Nullable
+	public ActivityFragment showFragment(@IdRes int id) {
 		return showFragment(id, null);
 	}
 
-	@SuppressWarnings("unchecked")
-	public <F extends ActivityFragment> F showFragment(@IdRes int id, Object input) {
+	@Nullable
+	public ActivityFragment showFragment(@IdRes int id, Object input) {
 		int activeId = getActiveFragmentId();
 
 		if (id == activeId) {
-			F f = (F) getActiveFragment();
+			var f = getActiveFragment();
 			if (input != null) f.setInput(input);
 			return f;
 		}
 
-		FragmentManager fm = getSupportFragmentManager();
-		FragmentTransaction tr = fm.beginTransaction();
+		var fm = getSupportFragmentManager();
+		var tr = fm.beginTransaction();
 		ActivityFragment switchingFrom = null;
 		ActivityFragment switchingTo = null;
 
-		for (Fragment f : fm.getFragments()) {
-			if (!(f instanceof ActivityFragment)) continue;
-
-			ActivityFragment af = (ActivityFragment) f;
+		for (var f : fm.getFragments()) {
+			if (!(f instanceof ActivityFragment af)) continue;
 			int afid = af.getFragmentId();
-
 			if (afid == id) {
 				tr.show(f);
 				switchingTo = af;
@@ -404,9 +402,15 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		if (switchingFrom != null) switchingFrom.switchingTo(switchingTo);
 		switchingTo.switchingFrom(switchingFrom);
 		if (input != null) switchingTo.setInput(input);
-		tr.commitAllowingStateLoss();
-		postBroadcastEvent(FRAGMENT_CHANGED);
-		return (F) switchingTo;
+		try {
+			tr.commitNow();
+			postBroadcastEvent(FRAGMENT_CHANGED);
+			return switchingTo;
+		} catch (IllegalStateException err) {
+			activeFragmentId = ID_NULL;
+			Log.d(err);
+			return null;
+		}
 	}
 
 	protected ActivityFragment createFragment(int id) {

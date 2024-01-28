@@ -41,6 +41,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import me.aap.utils.R;
 import me.aap.utils.app.App;
+import me.aap.utils.async.Completed;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.concurrent.ConcurrentUtils;
@@ -211,11 +212,13 @@ public class UiUtils {
 	public static FutureSupplier<PreferenceStore> queryPrefs(
 			Context ctx, String title, BiConsumer<PreferenceStore, PreferenceSet> builder,
 			@Nullable Predicate<PreferenceStore> validator) {
+		ActivityDelegate a = ActivityDelegate.get(ctx);
+		if (!(a.showFragment(
+				me.aap.utils.R.id.generic_dialog_fragment) instanceof GenericDialogFragment f))
+			return Completed.cancelled();
 		Promise<PreferenceStore> p = new Promise<>();
 		PreferenceStore store = new BasicPreferenceStore();
-		ActivityDelegate a = ActivityDelegate.get(ctx);
 		int active = a.getActiveFragmentId();
-		GenericDialogFragment f = a.showFragment(me.aap.utils.R.id.generic_dialog_fragment);
 		f.setTitle(title);
 		f.setContentProvider(g -> {
 			PreferenceSet set = new PreferenceSet();
@@ -268,30 +271,19 @@ public class UiUtils {
 
 	@IdRes
 	public static int getArrayItemId(int idx) {
-		switch (idx) {
-			case 0:
-				return R.id.array_item_id_0;
-			case 1:
-				return R.id.array_item_id_1;
-			case 2:
-				return R.id.array_item_id_2;
-			case 3:
-				return R.id.array_item_id_3;
-			case 4:
-				return R.id.array_item_id_4;
-			case 5:
-				return R.id.array_item_id_5;
-			case 6:
-				return R.id.array_item_id_6;
-			case 7:
-				return R.id.array_item_id_7;
-			case 8:
-				return R.id.array_item_id_8;
-			case 9:
-				return R.id.array_item_id_9;
-			default:
-				return R.id.array_item_id_unknown;
-		}
+		return switch (idx) {
+			case 0 -> R.id.array_item_id_0;
+			case 1 -> R.id.array_item_id_1;
+			case 2 -> R.id.array_item_id_2;
+			case 3 -> R.id.array_item_id_3;
+			case 4 -> R.id.array_item_id_4;
+			case 5 -> R.id.array_item_id_5;
+			case 6 -> R.id.array_item_id_6;
+			case 7 -> R.id.array_item_id_7;
+			case 8 -> R.id.array_item_id_8;
+			case 9 -> R.id.array_item_id_9;
+			default -> R.id.array_item_id_unknown;
+		};
 	}
 
 	public static Bitmap getBitmap(Drawable d) {
@@ -306,9 +298,8 @@ public class UiUtils {
 		}
 
 		if (SDK_INT < VERSION_CODES.O) return null;
-		if (!(d instanceof AdaptiveIconDrawable)) return null;
+		if (!(d instanceof AdaptiveIconDrawable ad)) return null;
 
-		AdaptiveIconDrawable ad = (AdaptiveIconDrawable) d;
 		Drawable bg = ad.getBackground();
 		Drawable fg = ad.getForeground();
 		LayerDrawable ld = new LayerDrawable(new Drawable[]{bg, fg});

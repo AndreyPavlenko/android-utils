@@ -275,7 +275,7 @@ public class PreferenceView extends ConstraintLayout {
 			ActivityDelegate a = ActivityDelegate.get(getContext());
 			Runnable runPicker = () -> {
 				int current = a.getActiveFragmentId();
-				FilePickerFragment picker = a.showFragment(R.id.file_picker);
+				if (!(a.showFragment(R.id.file_picker) instanceof FilePickerFragment picker)) return;
 				Object state = picker.resetState();
 				picker.setMode(o.mode);
 				picker.setPattern(o.pattern);
