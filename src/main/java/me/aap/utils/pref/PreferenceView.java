@@ -47,8 +47,11 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import me.aap.utils.R;
@@ -460,6 +463,8 @@ public class PreferenceView extends ConstraintLayout {
 
 			menu.show(b -> {
 				int currentValue = o.store.getIntPref(o.pref);
+				var map = (o.cmp == null) ? new LinkedHashMap<String, Integer>() :
+						new TreeMap<String, Integer>(o.cmp);
 
 				if (o.values != null) {
 					Resources res = getContext().getResources();
@@ -467,16 +472,19 @@ public class PreferenceView extends ConstraintLayout {
 					for (int i = 0; i < o.values.length; i++) {
 						if (!o.valuesFilter.apply(i)) continue;
 						int id = (o.valuesMap == null) ? i : o.valuesMap[i];
-						OverlayMenuItem item = b.addItem(id, res.getString(o.values[i]));
-						if (id == currentValue) b.setSelectedItem(item);
+						map.put(res.getString(o.values[i]), id);
 					}
 				} else {
 					for (int i = 0; i < o.stringValues.length; i++) {
 						if (!o.valuesFilter.apply(i)) continue;
 						int id = (o.valuesMap == null) ? i : o.valuesMap[i];
-						OverlayMenuItem item = b.addItem(id, o.stringValues[i]);
-						if (id == currentValue) b.setSelectedItem(item);
+						map.put(o.stringValues[i], id);
 					}
+				}
+				for (var e : map.entrySet()) {
+					int id = e.getValue();
+					OverlayMenuItem item = b.addItem(id, e.getKey());
+					if (id == currentValue) b.setSelectedItem(item);
 				}
 
 				b.setSelectionHandler(item -> {
@@ -711,6 +719,7 @@ public class PreferenceView extends ConstraintLayout {
 		public boolean formatTitle;
 		public boolean formatSubtitle;
 		public Consumer<ListOpts> initList;
+		public Comparator<String> cmp;
 	}
 
 	public static class LocaleOpts extends PrefOpts<Supplier<String>> {
