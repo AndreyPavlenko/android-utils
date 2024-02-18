@@ -75,7 +75,7 @@ import me.aap.utils.ui.view.ToolBarView;
  */
 public abstract class ActivityDelegate implements EventBroadcaster<ActivityListener>,
 		Thread.UncaughtExceptionHandler {
-	private static final int FULLSCREEN_FLAGS = SYSTEM_UI_FLAG_LAYOUT_STABLE |
+	public static final int FULLSCREEN_FLAGS = SYSTEM_UI_FLAG_LAYOUT_STABLE |
 			SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
 			SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
 			SYSTEM_UI_FLAG_LOW_PROFILE |

@@ -5,10 +5,14 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.ViewHolder;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * @author Andrey Pavlenko
  */
-public abstract class MovableRecyclerViewAdapter<VH extends ViewHolder> extends RecyclerView.Adapter<VH> {
+public abstract class MovableRecyclerViewAdapter<VH extends ViewHolder>
+		extends RecyclerView.Adapter<VH> {
 	private boolean isCallbackCall;
 
 	protected abstract void onItemDismiss(int position);
@@ -43,7 +47,8 @@ public abstract class MovableRecyclerViewAdapter<VH extends ViewHolder> extends 
 			@Override
 			public int getMovementFlags(@NonNull RecyclerView recyclerView,
 																	@NonNull ViewHolder viewHolder) {
-				int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
+				int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN | ItemTouchHelper.LEFT |
+						ItemTouchHelper.RIGHT;
 				int swipeFlags = ItemTouchHelper.START | ItemTouchHelper.END;
 				return makeMovementFlags(dragFlags, swipeFlags);
 			}
@@ -74,5 +79,21 @@ public abstract class MovableRecyclerViewAdapter<VH extends ViewHolder> extends 
 				notifyItemRemoved(pos);
 			}
 		};
+	}
+
+	protected void move(List<?> list, int fromPosition, int toPosition) {
+		if (fromPosition < toPosition) {
+			for (int i = fromPosition; i < toPosition; i++) {
+				swap(list, i, i + 1);
+			}
+		} else {
+			for (int i = fromPosition; i > toPosition; i--) {
+				swap(list, i, i - 1);
+			}
+		}
+	}
+
+	protected void swap(List<?> list, int fromPosition, int toPosition) {
+		Collections.swap(list, fromPosition, toPosition);
 	}
 }
