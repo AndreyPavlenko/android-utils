@@ -213,12 +213,12 @@ public class UiUtils {
 			Context ctx, String title, BiConsumer<PreferenceStore, PreferenceSet> builder,
 			@Nullable Predicate<PreferenceStore> validator) {
 		ActivityDelegate a = ActivityDelegate.get(ctx);
+		int active = a.getActiveFragmentId();
 		if (!(a.showFragment(
 				me.aap.utils.R.id.generic_dialog_fragment) instanceof GenericDialogFragment f))
 			return Completed.cancelled();
 		Promise<PreferenceStore> p = new Promise<>();
 		PreferenceStore store = new BasicPreferenceStore();
-		int active = a.getActiveFragmentId();
 		f.setTitle(title);
 		f.setContentProvider(g -> {
 			PreferenceSet set = new PreferenceSet();

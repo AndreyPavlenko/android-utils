@@ -98,6 +98,7 @@ public class OverlayMenuItemView extends AppCompatTextView implements OverlayMen
 		setPadding(padding, padding, padding, padding);
 		setSingleLine(true);
 		setVisibility(VISIBLE);
+		setTextDirection(TEXT_DIRECTION_LOCALE);
 		setTextAlignment(TEXT_ALIGNMENT_VIEW_START);
 
 		setFocusable(true);
