@@ -5,6 +5,8 @@ import static android.speech.tts.TextToSpeech.LANG_MISSING_DATA;
 import static android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED;
 import static android.speech.tts.TextToSpeech.QUEUE_FLUSH;
 import static android.speech.tts.TextToSpeech.SUCCESS;
+import static me.aap.utils.async.Completed.cancelled;
+import static me.aap.utils.voice.TextToSpeechException.TTS_ERR_CLOSED;
 import static me.aap.utils.voice.TextToSpeechException.TTS_ERR_INIT;
 import static me.aap.utils.voice.TextToSpeechException.TTS_ERR_LANG_MISSING_DATA;
 import static me.aap.utils.voice.TextToSpeechException.TTS_ERR_LANG_NOT_SUPPORTED;
@@ -18,6 +20,7 @@ import android.speech.tts.UtteranceProgressListener;
 import androidx.annotation.Nullable;
 
 import java.io.Closeable;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Set;
 
@@ -31,7 +34,8 @@ import me.aap.utils.ui.activity.ActivityDelegate;
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class TextToSpeech implements Closeable {
-	private final android.speech.tts.TextToSpeech tts;
+	@Nullable
+	private android.speech.tts.TextToSpeech tts;
 	private final Context ctx;
 	private Promise promise;
 	private String uId;
@@ -65,26 +69,34 @@ public class TextToSpeech implements Closeable {
 		});
 	}
 
+	/**
+	 * @noinspection UnusedReturnValue
+	 */
 	public static FutureSupplier<Intent> installTtsData(Context ctx) {
-		return ActivityDelegate.getActivityDelegate(ctx).then(d ->
-				d.startActivityForResult(() -> new Intent(ACTION_INSTALL_TTS_DATA)));
+		return ActivityDelegate.getActivityDelegate(ctx)
+				.then(d -> d.startActivityForResult(() -> new Intent(ACTION_INSTALL_TTS_DATA)));
 	}
 
 
 	public Set<Locale> getAvailableLanguages() {
-		return tts.getAvailableLanguages();
+		return (tts == null) ? Collections.emptySet() : tts.getAvailableLanguages();
 	}
 
 	public void setLanguage(final Locale lang) throws TextToSpeechException {
+		if (tts == null) throw new TextToSpeechException("TTS closed", TTS_ERR_CLOSED);
 		switch (tts.setLanguage(lang)) {
-			case LANG_MISSING_DATA:
+			case LANG_MISSING_DATA -> {
 				close();
 				installTtsData(ctx);
-				throw new TextToSpeechException("Missing TTS data for language " + lang, TTS_ERR_LANG_MISSING_DATA);
-			case LANG_NOT_SUPPORTED:
+				throw new TextToSpeechException("Missing TTS data for language " + lang,
+						TTS_ERR_LANG_MISSING_DATA);
+			}
+			case LANG_NOT_SUPPORTED -> {
 				close();
 				installTtsData(ctx);
-				throw new TextToSpeechException("Unsupported TTS language " + lang, TTS_ERR_LANG_NOT_SUPPORTED);
+				throw new TextToSpeechException("Unsupported TTS language " + lang,
+						TTS_ERR_LANG_NOT_SUPPORTED);
+			}
 		}
 	}
 
@@ -97,28 +109,33 @@ public class TextToSpeech implements Closeable {
 	}
 
 
-	public <T> FutureSupplier<T> speak(CharSequence text, @Nullable T data, @Nullable Bundle params) {
+	public <T> FutureSupplier<T> speak(CharSequence text, @Nullable T data,
+																		 @Nullable Bundle params) {
+		if (tts == null) return cancelled();
 		if (promise != null) promise.cancel();
 		Promise<T> p = new Promise<>();
 		promise = p;
 		uData = data;
 		uId = String.valueOf(uCounter++);
 		if (tts.speak(text, QUEUE_FLUSH, params, uId) != SUCCESS) {
-			p.completeExceptionally(new TextToSpeechException("Failed to speak " + text, TTS_ERR_SPEAK_FAILED));
+			p.completeExceptionally(
+					new TextToSpeechException("Failed to speak " + text, TTS_ERR_SPEAK_FAILED));
 		}
 		return p;
 	}
 
 	public void stop() {
 		if (promise != null) promise.cancel();
-		tts.stop();
+		if (tts != null) tts.stop();
 	}
 
 	@Override
 	public void close() {
+		if (tts == null) return;
 		if (promise != null) promise.cancel();
 		tts.stop();
 		tts.shutdown();
+		tts = null;
 		promise = null;
 		uData = null;
 		uId = null;
@@ -136,7 +153,8 @@ public class TextToSpeech implements Closeable {
 			if (status == SUCCESS) {
 				p.complete(TextToSpeech.this);
 			} else {
-				p.completeExceptionally(new TextToSpeechException("TTS initialization failed", TTS_ERR_INIT));
+				p.completeExceptionally(
+						new TextToSpeechException("TTS initialization failed", TTS_ERR_INIT));
 			}
 		}
 
@@ -165,7 +183,8 @@ public class TextToSpeech implements Closeable {
 				promise = null;
 				uData = null;
 				uId = null;
-				p.completeExceptionally(new TextToSpeechException("TTS speak failed", TTS_ERR_SPEAK_FAILED));
+				p.completeExceptionally(
+						new TextToSpeechException("TTS speak failed", TTS_ERR_SPEAK_FAILED));
 			});
 		}
 
@@ -177,8 +196,8 @@ public class TextToSpeech implements Closeable {
 				promise = null;
 				uData = null;
 				uId = null;
-				p.completeExceptionally(new TextToSpeechException("TTS speak error " + errorCode,
-						TTS_ERR_SPEAK_FAILED));
+				p.completeExceptionally(
+						new TextToSpeechException("TTS speak error " + errorCode, TTS_ERR_SPEAK_FAILED));
 			});
 		}
 

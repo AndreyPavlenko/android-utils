@@ -9,12 +9,14 @@ import static android.speech.SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED;
 import static android.speech.SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE;
 import static android.speech.SpeechRecognizer.ERROR_NO_MATCH;
 import static android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT;
+import static me.aap.utils.async.Completed.cancelled;
 import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_UNKNOWN;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.speech.ModelDownloadListener;
 import android.speech.RecognitionListener;
@@ -36,21 +38,31 @@ import me.aap.utils.log.Log;
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class SpeechToText implements RecognitionListener, Closeable {
-	private final SpeechRecognizer recognizer;
+	@Nullable
+	private SpeechRecognizer recognizer;
 	private final Intent recognizerIntent;
 	private Promise promise;
 	private Result result;
 
-	public SpeechToText(Context ctx, Locale lang) {
+	public SpeechToText(Context ctx) {
+		this(ctx, null);
+	}
+
+	public SpeechToText(Context ctx, @Nullable Locale lang) {
 		recognizer = SpeechRecognizer.createSpeechRecognizer(ctx);
 		recognizer.setRecognitionListener(this);
 		recognizerIntent = new Intent(ACTION_RECOGNIZE_SPEECH);
 		recognizerIntent.putExtra(EXTRA_PARTIAL_RESULTS, true);
-		recognizerIntent.putExtra(EXTRA_LANGUAGE, lang.toLanguageTag());
 		recognizerIntent.putExtra(EXTRA_LANGUAGE_MODEL, LANGUAGE_MODEL_FREE_FORM);
+		if (lang != null) recognizerIntent.putExtra(EXTRA_LANGUAGE, lang.toLanguageTag());
+	}
+
+	public Intent getRecognizerIntent() {
+		return recognizerIntent;
 	}
 
 	public <D> FutureSupplier<Result<D>> recognize(@Nullable D data) {
+		if (recognizer == null) return cancelled();
 		if (promise != null) promise.cancel();
 		Promise<Result<D>> p = new Promise<>();
 		promise = p;
@@ -59,13 +71,21 @@ public class SpeechToText implements RecognitionListener, Closeable {
 		return p;
 	}
 
+	public void stop() {
+		if (promise != null) promise.cancel();
+		if (recognizer != null) recognizer.cancel();
+	}
+
 	@Override
 	public void close() {
+		if (recognizer == null) return;
 		if (promise != null) promise.cancel();
 		promise = null;
 		result = null;
 		recognizer.destroy();
+		recognizer = null;
 	}
+
 
 	@Override
 	public void onResults(Bundle b) {
@@ -103,7 +123,7 @@ public class SpeechToText implements RecognitionListener, Closeable {
 				return;
 			}
 			case ERROR_LANGUAGE_NOT_SUPPORTED, ERROR_LANGUAGE_UNAVAILABLE -> {
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+				if ((recognizer != null) && (VERSION.SDK_INT >= VERSION_CODES.UPSIDE_DOWN_CAKE)) {
 					Log.i(new SpeechToTextException(error).toString(), ". Trying to download.");
 					recognizer.triggerModelDownload(recognizerIntent, App.get().getHandler(),
 							new ModelDownloadListener() {

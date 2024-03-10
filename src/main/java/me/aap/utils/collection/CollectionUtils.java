@@ -207,18 +207,27 @@ public class CollectionUtils {
 		return map(collection, (i, t, a) -> a[i] = mapper.apply(t), generator);
 	}
 
+	public static <T, R> List<R> map(Collection<? extends T> collection,
+																	 Function<? super T, R> mapper) {
+		var a = new ArrayList<R>(collection.size());
+		for (var e : collection) a.add(mapper.apply(e));
+		return a;
+	}
+
 	public static <T, R> R map(Collection<? extends T> collection,
 														 IntBiConsumer<? super T, R> mapper,
 														 IntFunction<R> generator) {
 		return filterMap(collection, t -> true, mapper, generator);
 	}
 
-	public static <T> List<T> filter(List<T> list, Predicate<? super T> predicate) {
+	public static <T> List<T> filter(Collection<T> list, Predicate<? super T> predicate) {
 		return filter(list, predicate, ArrayList::new);
 	}
 
-	public static <T, C extends Collection<T>> C filter(C collection, Predicate<? super T> predicate,
-																											IntFunction<C> generator) {
+	public static <T, C1 extends Collection<T>, C2 extends Collection<T>> C2 filter(C1 collection,
+																																									Predicate<?
+																																											super T> predicate,
+																																									IntFunction<C2> generator) {
 		return filterMap(collection, predicate, t -> t, generator);
 	}
 
