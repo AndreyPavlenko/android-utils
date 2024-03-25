@@ -24,7 +24,8 @@ public interface RandomAccessChannel extends Closeable {
 
 	long transferTo(long position, long count, WritableByteChannel target) throws IOException;
 
-	default long transferFrom(RandomAccessChannel src, long srcPos, long pos, long count) throws IOException {
+	default long transferFrom(RandomAccessChannel src, long srcPos, long pos, long count)
+			throws IOException {
 		ByteBuffer bb = ByteBuffer.allocate((int) Math.min(count, 8192));
 		long n = 0;
 
@@ -41,7 +42,8 @@ public interface RandomAccessChannel extends Closeable {
 		return n;
 	}
 
-	default long transferTo(long pos, long targetPos, long count, RandomAccessChannel target) throws IOException {
+	default long transferTo(long pos, long targetPos, long count, RandomAccessChannel target)
+			throws IOException {
 		return target.transferFrom(this, pos, targetPos, count);
 	}
 
@@ -132,11 +134,16 @@ public interface RandomAccessChannel extends Closeable {
 	@Override
 	void close();
 
+	default void close(boolean force) {
+		close();
+	}
+
 	static RandomAccessChannel wrap(FileChannel rw, Closeable... close) {
 		return wrap(rw, rw, close);
 	}
 
-	static RandomAccessChannel wrap(@Nullable FileChannel read, @Nullable FileChannel write, Closeable... close) {
+	static RandomAccessChannel wrap(@Nullable FileChannel read, @Nullable FileChannel write,
+																	Closeable... close) {
 		return new RandomAccessFileChannelWrapper(read, write, close);
 	}
 }

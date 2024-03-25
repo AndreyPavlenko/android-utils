@@ -42,7 +42,8 @@ import me.aap.utils.vfs.VirtualFolder;
 import me.aap.utils.vfs.VirtualResource;
 
 public class LocalFileSystem implements VirtualFileSystem {
-	private static final LocalFileSystem instance = new LocalFileSystem(LocalFileSystem::androidRoots);
+	private static final LocalFileSystem instance =
+			new LocalFileSystem(LocalFileSystem::androidRoots);
 	private final Supplier<Collection<File>> roots;
 	private final CacheMap<File, CachedFileChannel> fileCache = new CacheMap<>(60);
 
@@ -251,6 +252,13 @@ public class LocalFileSystem implements VirtualFileSystem {
 
 		@Override
 		public void close() {
+		}
+
+		@Override
+		public void close(boolean force) {
+			if (!force) return;
+			getInstance().fileCache.remove(file, this);
+			doClose();
 		}
 
 		@Override
