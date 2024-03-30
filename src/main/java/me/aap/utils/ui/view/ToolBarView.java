@@ -1,6 +1,9 @@
 package me.aap.utils.ui.view;
 
+import static android.content.Context.INPUT_METHOD_SERVICE;
 import static android.util.TypedValue.COMPLEX_UNIT_PX;
+import static android.view.KeyEvent.KEYCODE_DPAD_DOWN;
+import static android.view.KeyEvent.KEYCODE_DPAD_UP;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.LEFT;
@@ -17,10 +20,14 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.text.TextUtils;
+import android.text.method.BaseKeyListener;
 import android.util.AttributeSet;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -539,8 +546,30 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 				TextChangedListener l = s -> tb.fireBroadcastEvent(r -> r.onToolBarEvent(tb, Listener.FILTER_CHANGED));
 				t.addTextChangedListener(l);
 				t.setBackgroundResource(R.color.tool_bar_edittext_bg);
-				t.setOnKeyListener(UiUtils::dpadFocusHelper);
 				setLayoutParams(t, 0, WRAP_CONTENT);
+				t.setOnKeyListener((v,c,e)->{
+					if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
+
+					switch (c) {
+						case KEYCODE_DPAD_UP:
+						case KEYCODE_DPAD_DOWN:
+							var next = v.focusSearch(c == KEYCODE_DPAD_UP ? View.FOCUS_UP : View.FOCUS_DOWN);
+
+							if (next != null) {
+								next.requestFocus();
+								return true;
+							}
+						case KeyEvent.KEYCODE_ENTER:
+						case KeyEvent.KEYCODE_DPAD_CENTER:
+						case KeyEvent.KEYCODE_NUMPAD_ENTER:
+							setFilterVisibility(tb, false);
+							var imm = (InputMethodManager) v.getContext().getSystemService(INPUT_METHOD_SERVICE);
+							imm.hideSoftInputFromWindow(t.getWindowToken(), 0);
+							return true;
+						default:
+							return false;
+					}
+				});
 				return t;
 			}
 
