@@ -1,5 +1,9 @@
 package me.aap.utils.module;
 
+import static android.app.NotificationManager.IMPORTANCE_LOW;
+import static android.content.Context.NOTIFICATION_SERVICE;
+import static me.aap.utils.function.ProgressiveResultConsumer.progressShift;
+
 import android.app.Activity;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -10,8 +14,8 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import com.google.android.play.core.install.InstallException;
 import com.google.android.play.core.splitcompat.SplitCompat;
+import com.google.android.play.core.splitinstall.SplitInstallException;
 import com.google.android.play.core.splitinstall.SplitInstallManager;
 import com.google.android.play.core.splitinstall.SplitInstallManagerFactory;
 import com.google.android.play.core.splitinstall.SplitInstallRequest;
@@ -26,10 +30,6 @@ import javax.annotation.Nonnull;
 import me.aap.utils.async.FutureSupplier;
 import me.aap.utils.async.Promise;
 import me.aap.utils.log.Log;
-
-import static android.app.NotificationManager.IMPORTANCE_LOW;
-import static android.content.Context.NOTIFICATION_SERVICE;
-import static me.aap.utils.function.ProgressiveResultConsumer.progressShift;
 
 /**
  * @author Andrey Pavlenko
@@ -133,7 +133,7 @@ public class DynamicModuleInstaller {
 		}
 
 		@Override
-		public void onStateUpdate(SplitInstallSessionState st) {
+		public void onStateUpdate(@NonNull SplitInstallSessionState st) {
 			if ((sessionId == 0) && !st.moduleNames().contains(moduleName)) return;
 			else if (st.sessionId() != sessionId) return;
 
@@ -160,7 +160,7 @@ public class DynamicModuleInstaller {
 					complete(null);
 					return;
 				case SplitInstallSessionStatus.FAILED:
-					completeExceptionally(new InstallException(st.errorCode()));
+					completeExceptionally(new SplitInstallException(st.errorCode()));
 					return;
 				case SplitInstallSessionStatus.CANCELED:
 				case SplitInstallSessionStatus.CANCELING:
