@@ -97,21 +97,26 @@ public class HttpFileDownloader {
 			}
 		}
 
-		HttpConnection.connect(o -> {
-			o.url = src;
-			o.responseTimeout = prefs.getIntPref(RESP_TIMEOUT);
-			o.userAgent = prefs.getStringPref(AGENT);
-			if (exist) o.ifNonMatch = prefs.getStringPref(ETAG);
-		}, (resp, err) -> {
+		var o = new HttpConnection.Opts();
+		o.url = src;
+		o.responseTimeout = prefs.getIntPref(RESP_TIMEOUT);
+		o.userAgent = prefs.getStringPref(AGENT);
+		if (exist) o.ifNonMatch = prefs.getStringPref(ETAG);
+		HttpConnection.connect(o, (resp, err) -> {
 			if (err != null) {
 				completeExceptionally(p, err, new DownloadStatus(src, dst, 0), listener);
 				return p;
 			}
 
-			DownloadStatus status = new DownloadStatus(src, dst, resp.getContentLength());
+			var enc = resp.getContentEncoding();
+			if (enc == null) {
+				var path = o.url.getPath();
+				if ((path != null) && (path.endsWith(".gzip") || path.endsWith(".gz"))) enc = "gzip";
+			}
+			var status = new DownloadStatus(src, dst, resp.getContentLength());
 			status.setEtag(resp.getEtag());
 			status.setCharset(resp.getCharset());
-			status.setEncoding(resp.getContentEncoding());
+			status.setEncoding(enc);
 			Log.d("Response received:\n", resp);
 
 			if (resp.getStatusCode() == HttpStatusCode.NOT_MODIFIED) {
