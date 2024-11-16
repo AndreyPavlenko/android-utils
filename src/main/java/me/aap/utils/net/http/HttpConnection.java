@@ -398,6 +398,7 @@ public class HttpConnection extends HttpResponseEncoder implements HttpResponseH
 		}
 
 		private void redirect(String location, int status, int n) {
+			if (location.endsWith("#")) location = location.substring(0, location.length() - 1);
 			boolean permanent = (status == MOVED_PERMANENTLY) || (status == PERMANENT_REDIRECT);
 			if (permanent) Log.d("Permanent redirect(", n, "): ", o.url, " -> ", location);
 			else Log.d("Temporary redirect(", n, "): ", o.url, " -> ", location);

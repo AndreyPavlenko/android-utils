@@ -140,6 +140,13 @@ public class HttpFileDownloader {
 					//noinspection ResultOfMethodCallIgnored
 					incomplete.delete();
 				} else if (incomplete.renameTo(dst)) {
+					if (status.getContentEncoding() == null) {
+						try (var in = new FileInputStream(dst)) {
+							if ((in.read() == 0x1F) && (in.read() == 0x8B)) status.setEncoding("gzip");
+						} catch (IOException ex) {
+							Log.e(ex, "Failed to read file: ", dst);
+						}
+					}
 					try (PreferenceStore.Edit edit = prefs.editPreferenceStore()) {
 						edit.setStringPref(ETAG, status.getEtag());
 						edit.setStringPref(CHARSET, status.getCharacterEncoding());
@@ -322,6 +329,7 @@ public class HttpFileDownloader {
 			return failure;
 		}
 
+		@NonNull
 		@Override
 		public String toString() {
 			return "DownloadStatus {" +
