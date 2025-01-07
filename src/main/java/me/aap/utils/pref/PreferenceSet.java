@@ -245,11 +245,12 @@ public class PreferenceSet implements Supplier<PreferenceView.Opts> {
 		RecyclerView v = new RecyclerView(ctx) {
 			@Override
 			public View focusSearch(View focused, int direction) {
-				View v = super.focusSearch(focused, direction);
+				View found = super.focusSearch(focused, direction);
+				View v = found;
 				for (ViewParent p = (v == null) ? null : v.getParent(); p != null; p = p.getParent()) {
 					if (p == this) return v;
 				}
-				return null;
+				return found;
 			}
 		};
 		addToView(v);

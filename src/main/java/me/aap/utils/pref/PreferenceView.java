@@ -273,8 +273,10 @@ public class PreferenceView extends ConstraintLayout {
 		EditText t = findViewById(R.id.pref_footer);
 		ImageView img = findViewById(R.id.pref_value);
 		img.setImageResource(o.browseIcon);
+		t.setNextFocusRightId(img.getId());
+		img.setNextFocusLeftId(t.getId());
 
-		setOnClickListener(v -> {
+		OnClickListener onClick = v -> {
 			ActivityDelegate a = ActivityDelegate.get(getContext());
 			Runnable runPicker = () -> {
 				int current = a.getActiveFragmentId();
@@ -329,7 +331,10 @@ public class PreferenceView extends ConstraintLayout {
 			}
 
 			runPicker.run();
-		});
+		};
+
+		setOnClickListener(onClick);
+		img.setOnClickListener(onClick);
 	}
 
 	private void setIntPreference(IntOpts o) {
