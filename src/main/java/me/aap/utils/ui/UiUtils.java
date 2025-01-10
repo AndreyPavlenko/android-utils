@@ -20,7 +20,9 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.drawable.AdaptiveIconDrawable;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.VectorDrawable;
 import android.os.Build.VERSION_CODES;
@@ -32,10 +34,12 @@ import android.widget.EditText;
 import androidx.annotation.ColorInt;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.annotation.StyleRes;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -312,11 +316,25 @@ public class UiUtils {
 
 	public static Bitmap drawBitmap(Drawable d, @ColorInt int bgColor, @ColorInt int fgColor,
 																	int width, int height) {
+		return drawBitmap(d, bgColor, fgColor, width, height, 0);
+	}
+
+	public static Bitmap drawBitmap(Drawable d, @ColorInt int bgColor, @ColorInt int fgColor,
+																	int width, int height, float squeeze) {
 		int w = (width != 0) ? width : d.getIntrinsicWidth();
 		int h = (height != 0) ? height : d.getIntrinsicHeight();
 		Bitmap bm = Bitmap.createBitmap(w, h, ARGB_8888);
 		Canvas c = new Canvas(bm);
-		d.setBounds(0, 0, c.getWidth(), c.getHeight());
+
+		if ((squeeze == 0) || (squeeze >= 1)) {
+			d.setBounds(0, 0, w, h);
+		} else {
+			squeeze = 1 - squeeze;
+			int dw = (int) (w * squeeze);
+			int dh = (int) (h * squeeze);
+			d.setBounds(dw, dh, w - dw, h - dh);
+		}
+
 		if (bgColor != Color.TRANSPARENT) bm.eraseColor(bgColor);
 		if (fgColor != Color.TRANSPARENT) d.setTint(fgColor);
 		d.draw(c);
@@ -327,9 +345,13 @@ public class UiUtils {
 		int width = bm.getWidth();
 		int height = bm.getHeight();
 		if ((width <= maxSize) && (height <= maxSize)) return bm;
+		var dims = adjustDims(width, height, maxSize);
+		return Bitmap.createScaledBitmap(bm, dims[0], dims[1], true);
+	}
 
+	public static int[] adjustDims(int width, int height, int maxSize) {
+		if ((width <= maxSize) && (height <= maxSize)) return new int[]{width, height};
 		float ratio = (float) width / (float) height;
-
 		if (ratio > 1) {
 			width = maxSize;
 			height = (int) (width / ratio);
@@ -337,8 +359,7 @@ public class UiUtils {
 			height = maxSize;
 			width = (int) (height * ratio);
 		}
-
-		return Bitmap.createScaledBitmap(bm, width, height, true);
+		return new int[]{width, height};
 	}
 
 	public static Paint getPaint() {
@@ -346,6 +367,23 @@ public class UiUtils {
 		Paint p = PaintHolder.paint;
 		p.reset();
 		return p;
+	}
+
+	@NonNull
+	public static int[] getDrawableColor(Context ctx, @DrawableRes int id, int defaultColor) {
+		var d = ContextCompat.getDrawable(ctx, id);
+		if (d instanceof ColorDrawable c) {
+			return new int[]{c.getColor()};
+		} else if ((SDK_INT >= VERSION_CODES.N) && (d instanceof GradientDrawable g)) {
+			var colors = g.getColors();
+			return (colors == null) ? new int[]{defaultColor} : colors;
+		} else {
+			var bm = getBitmap(d);
+			if (bm == null) return new int[]{defaultColor};
+			int x = bm.getWidth();
+			int y = bm.getHeight() / 2;
+			return new int[]{bm.getPixel(0, y), bm.getPixel(x / 2, y), bm.getPixel(x - 1, y)};
+		}
 	}
 
 	public static void drawGroupOutline(Canvas canvas, ViewGroup group, View label,

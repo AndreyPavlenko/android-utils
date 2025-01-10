@@ -107,6 +107,7 @@
         <item name="borderFocusColor">?attr/colorAccent</item>
         <item name="tint">?attr/colorOnPrimary</item>
         <item name="backgroundTint">?attr/colorPrimary</item>
+        <item name="rippleColor">?colorAccent</item>
     </style>
 
     <declare-styleable name="AlertDialog">
