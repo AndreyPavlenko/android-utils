@@ -8,7 +8,6 @@ import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.async.Completed.completedNull;
 import static me.aap.utils.async.Completed.failed;
 
-import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.DocumentsContract;
@@ -82,19 +81,43 @@ public class ContentFolder extends ContentResource implements VirtualFolder {
 
 	@Override
 	public FutureSupplier<VirtualFile> createFile(CharSequence name) {
-		return getChild(name).then(f -> {
-			if (f instanceof VirtualFile) return completed((VirtualFile) f);
-			if (f instanceof VirtualFolder) return failed(new IOException("Folder exists " + name));
-			try {
-				ContentResolver cr = App.get().getContentResolver();
-				String n = name.toString();
-				Uri u = DocumentsContract.buildDocumentUriUsingTree(getRid().toAndroidUri(), getId());
-				u = DocumentsContract.createDocument(cr, u, "application/tmp", n);
-				if (u == null) return failed(new IOException("Failed to create file " + name));
-				return completed(new ContentFile(this, n, DocumentsContract.getDocumentId(u)));
-			} catch (Exception ex) {
-				return failed(ex);
+		return createDocument(name.toString(), ContentFile.class).cast();
+	}
+
+	@Override
+	public FutureSupplier<VirtualFolder> createFolder(CharSequence name) {
+		String n = name.toString();
+		if (n.isEmpty()) return completed(this);
+		return createDocument(n, ContentFolder.class).cast();
+	}
+
+	private <T> FutureSupplier<T> createDocument(String name, Class<T> type) {
+		String[] names = name.toString().split("/");
+		if (names.length > 1) {
+			FutureSupplier<VirtualFolder> f = completed(this);
+			for (int i = 0; i < names.length - 1; i++) {
+				var n = names[i];
+				if (!n.isEmpty()) f = f.then(p -> p.createFolder(n));
 			}
+			return f.then(p -> ((ContentFolder) p).createDocument(names[names.length - 1], type));
+		}
+
+		return getChild(name).map(c -> {
+			if (c != null) {
+				if (type.isInstance(c)) return type.cast(c);
+				else throw new IOException(
+						(c instanceof ContentFolder) ? "Folder" : "File" + " exists " + name);
+			}
+
+			var cr = App.get().getContentResolver();
+			var n = name.toString();
+			var u = DocumentsContract.buildDocumentUriUsingTree(getRid().toAndroidUri(), getId());
+			var mime = (type == ContentFolder.class) ? MIME_TYPE_DIR : "application/tmp";
+			u = DocumentsContract.createDocument(cr, u, mime, n);
+			if (u == null) throw new IOException("Failed to create file " + name);
+			return type.getConstructor(
+					ContentFolder.class, String.class, String.class).newInstance(this, n,
+					DocumentsContract.getDocumentId(u));
 		});
 	}
 
