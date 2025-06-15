@@ -13,18 +13,23 @@ import static me.aap.utils.async.Completed.cancelled;
 import static me.aap.utils.function.ProgressiveResultConsumer.PROGRESS_UNKNOWN;
 
 import android.annotation.SuppressLint;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ResolveInfo;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.speech.ModelDownloadListener;
 import android.speech.RecognitionListener;
+import android.speech.RecognitionService;
 import android.speech.SpeechRecognizer;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.io.Closeable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -49,7 +54,26 @@ public class SpeechToText implements RecognitionListener, Closeable {
 	}
 
 	public SpeechToText(Context ctx, @Nullable Locale lang) {
-		recognizer = SpeechRecognizer.createSpeechRecognizer(ctx);
+		this(ctx, lang, null);
+	}
+
+	public SpeechToText(Context ctx, @Nullable Locale lang,
+											@Nullable ComponentName serviceComponent) {
+		ComponentName cn = null;
+
+		if (serviceComponent != null) {
+			Intent intent = new Intent(RecognitionService.SERVICE_INTERFACE);
+			for (ResolveInfo service : ctx.getPackageManager().queryIntentServices(intent, 0)) {
+				if (serviceComponent.getPackageName().equals(service.serviceInfo.packageName) &&
+						serviceComponent.getClassName().equals(service.serviceInfo.name)) {
+					cn = serviceComponent;
+					Log.i("Using the recognition service ", cn);
+					break;
+				}
+			}
+		}
+
+		recognizer = SpeechRecognizer.createSpeechRecognizer(ctx, cn);
 		recognizer.setRecognitionListener(this);
 		recognizerIntent = new Intent(ACTION_RECOGNIZE_SPEECH);
 		recognizerIntent.putExtra(EXTRA_PARTIAL_RESULTS, true);
@@ -94,17 +118,33 @@ public class SpeechToText implements RecognitionListener, Closeable {
 		Result r = result;
 		promise = null;
 		result = null;
-		List<String> t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-		r.text = ((t == null) || t.isEmpty()) ? null : t.get(0);
+		var t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+		if ((t != null) && !t.isEmpty() && (t.get(0) != null)) r.text = t;
 		p.complete(r);
 	}
 
 	@Override
 	public void onPartialResults(Bundle b) {
 		if (promise == null) return;
-		List<String> t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-		result.text = ((t == null) || t.isEmpty()) ? null : t.get(0);
+		var t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+		if ((t == null) || t.isEmpty() || (t.get(0) == null)) return;
+		result.text = t;
 		promise.setProgress(result, PROGRESS_UNKNOWN, PROGRESS_UNKNOWN);
+	}
+
+	@Override
+	public void onEndOfSegmentedSession() {
+		if (promise == null) return;
+		Promise p = promise;
+		Result r = result;
+		promise = null;
+		result = null;
+		p.complete(r);
+	}
+
+	@Override
+	public void onSegmentResults(@NonNull Bundle b) {
+		onPartialResults(b);
 	}
 
 	@SuppressLint("SwitchIntDef")
@@ -118,7 +158,7 @@ public class SpeechToText implements RecognitionListener, Closeable {
 				Result r = result;
 				promise = null;
 				result = null;
-				r.text = null;
+				r.text = Result.EMPTY;
 				p.complete(r);
 				return;
 			}
@@ -188,8 +228,10 @@ public class SpeechToText implements RecognitionListener, Closeable {
 	}
 
 	public static class Result<D> {
+		static final List<String> EMPTY = Collections.singletonList(null);
 		private final D data;
-		String text;
+		@NonNull
+		List<String> text = EMPTY;
 
 		public Result(D data) {
 			this.data = data;
@@ -199,8 +241,8 @@ public class SpeechToText implements RecognitionListener, Closeable {
 			return data;
 		}
 
-		@Nullable
-		public String getText() {
+		@NonNull
+		public List<String> getText() {
 			return text;
 		}
 	}
