@@ -288,6 +288,10 @@ public class NavBarView extends LinearLayoutCompat implements ActivityListener {
 
 		@Nullable
 		default View focusSearch(NavBarView nb, View focused, int direction) {
+			if (direction == FOCUS_UP) {
+				if (ActivityDelegate.get(nb.getContext()).getActiveMenu() instanceof View v)
+					return v.findFocus();
+			}
 			return null;
 		}
 

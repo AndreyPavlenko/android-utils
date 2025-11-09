@@ -70,7 +70,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 				pendingConsumer = null;
 			}
 
-			return completed((A) i);
+			return completed((A) i).main();
 		} else {
 			if (pending != null) pending.cancel();
 			Promise<A> p = new Promise<>();
@@ -80,7 +80,7 @@ public abstract class ActivityBase extends AppCompatActivity implements AppActiv
 			Intent intent = new Intent(ctx, c);
 			b.setFullScreenIntent(PendingIntent.getActivity(ctx, 0, intent, FLAG_IMMUTABLE), true);
 			NotificationManagerCompat.from(ctx).notify(0, b.build());
-			return p;
+			return p.main();
 		}
 	}
 

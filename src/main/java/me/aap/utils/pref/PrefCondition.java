@@ -26,7 +26,7 @@ public class PrefCondition<T> implements ChangeableCondition, PreferenceStore.Li
 	}
 
 	public static PrefCondition<BooleanSupplier> create(PreferenceStore store,
-																							 Pref<BooleanSupplier> pref) {
+																											Pref<BooleanSupplier> pref) {
 		return new PrefCondition<>(store, pref, store::getBooleanPref);
 	}
 
@@ -44,6 +44,11 @@ public class PrefCondition<T> implements ChangeableCondition, PreferenceStore.Li
 			this.listener = null;
 			store.removeBroadcastListener(this);
 		}
+	}
+
+	@Override
+	public ChangeableCondition copy() {
+		return new PrefCondition<T>(store, pref, predicate);
 	}
 
 	@Override

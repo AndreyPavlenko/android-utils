@@ -11,6 +11,8 @@ public interface ChangeableCondition {
 
 	void setListener(@Nullable Listener listener);
 
+	ChangeableCondition copy();
+
 	interface Listener {
 		void onConditionChanged(ChangeableCondition condition);
 	}
@@ -34,6 +36,11 @@ public interface ChangeableCondition {
 					condition.setListener(null);
 					ChangeableCondition.this.setListener(null);
 				}
+			}
+
+			@Override
+			public ChangeableCondition copy() {
+				return this.and(condition.copy());
 			}
 
 			@Override
@@ -64,6 +71,11 @@ public interface ChangeableCondition {
 					condition.setListener(null);
 					ChangeableCondition.this.setListener(null);
 				}
+			}
+
+			@Override
+			public ChangeableCondition copy() {
+				return this.or(condition.copy());
 			}
 
 			@Override

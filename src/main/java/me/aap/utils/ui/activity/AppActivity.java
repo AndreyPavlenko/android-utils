@@ -72,7 +72,7 @@ public interface AppActivity {
 	}
 
 	default EditText createEditText(Context ctx) {
-		return new TextInputEditText(ctx, null, com.google.android.material.R.attr.editTextStyle);
+		return new TextInputEditText(ctx, null, androidx.appcompat.R.attr.editTextStyle);
 	}
 
 	default DialogBuilder createDialogBuilder(Context ctx) {

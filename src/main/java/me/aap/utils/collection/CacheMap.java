@@ -229,10 +229,7 @@ public class CacheMap<K, V> implements Closeable {
 		checkClosed();
 
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-			return unwrap(map.compute(key, (k, v) -> {
-				V u = unwrap(v);
-				return (u == null) ? wrap(value) : v;
-			}));
+			return unwrap(map.putIfAbsent(key, wrap(value)));
 		} else {
 			synchronized (map) {
 				V v = get(key);

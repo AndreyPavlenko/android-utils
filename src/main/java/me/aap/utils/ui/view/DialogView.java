@@ -99,7 +99,8 @@ public class DialogView extends FrameLayout implements DialogInterface {
 			Context ctx = new ContextThemeWrapper(context, theme);
 			ta = ctx.obtainStyledAttributes(null,
 					new int[]{android.R.attr.layout},
-					R.attr.alertDialogStyle, me.aap.utils.R.style.Theme_Utils_Base_AlertDialog_Style);
+					androidx.appcompat.R.attr.alertDialogStyle,
+					me.aap.utils.R.style.Theme_Utils_Base_AlertDialog_Style);
 			@SuppressLint("PrivateResource")
 			int layout = ta.getResourceId(0, R.layout.mtrl_alert_dialog);
 			ta.recycle();
@@ -173,7 +174,8 @@ public class DialogView extends FrameLayout implements DialogInterface {
 																							@Nullable DialogInterface.OnClickListener listener) {
 			Context ctx = getContext();
 			TypedArray a = ctx.obtainStyledAttributes(null, me.aap.utils.R.styleable.DialogView,
-					R.attr.alertDialogStyle, me.aap.utils.R.style.Theme_Utils_Base_AlertDialog_Style);
+					androidx.appcompat.R.attr.alertDialogStyle,
+					me.aap.utils.R.style.Theme_Utils_Base_AlertDialog_Style);
 			int layout = a.getResourceId(DialogView_listLayout, 0);
 			int itemLayout = a.getResourceId(DialogView_singleChoiceItemLayout,
 					R.layout.mtrl_alert_select_dialog_singlechoice);

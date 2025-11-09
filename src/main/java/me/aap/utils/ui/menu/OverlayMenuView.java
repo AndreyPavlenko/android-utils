@@ -45,10 +45,10 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 	MenuBuilder builder;
 
 	public OverlayMenuView(Context ctx, AttributeSet attrs) {
-		super(ctx, attrs, com.google.android.material.R.attr.popupMenuStyle);
+		super(ctx, attrs, androidx.appcompat.R.attr.popupMenuStyle);
 
 		TypedArray ta = ctx.obtainStyledAttributes(attrs, R.styleable.OverlayMenuView,
-				com.google.android.material.R.attr.popupMenuStyle,
+				androidx.appcompat.R.attr.popupMenuStyle,
 				R.style.Theme_Utils_Base_PopupMenuStyle);
 		headerColor = ta.getColor(OverlayMenuView_colorPrimarySurface, Color.TRANSPARENT);
 		setBackgroundColor(ta.getColor(OverlayMenuView_android_colorBackground, Color.TRANSPARENT));
@@ -163,6 +163,14 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 			if (c instanceof OverlayMenuItem) items.add((OverlayMenuItem) c);
 		}
 		return items;
+	}
+
+	@Override
+	public View findFocus() {
+		for (var i : getItems()) {
+			if (i instanceof View v && v.isFocused()) return v;
+		}
+		return focusSearch(FOCUS_DOWN);
 	}
 
 	@Override

@@ -20,13 +20,11 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.text.TextUtils;
-import android.text.method.BaseKeyListener;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -47,7 +45,6 @@ import java.util.LinkedList;
 
 import me.aap.utils.R;
 import me.aap.utils.event.EventBroadcaster;
-import me.aap.utils.ui.UiUtils;
 import me.aap.utils.ui.activity.ActivityDelegate;
 import me.aap.utils.ui.activity.ActivityListener;
 import me.aap.utils.ui.fragment.ActivityFragment;
@@ -68,14 +65,14 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 	private final Collection<ListenerRef<Listener>> listeners = new LinkedList<>();
 
 	public ToolBarView(@NonNull Context context, @Nullable AttributeSet attrs) {
-		this(context, attrs, com.google.android.material.R.attr.toolbarStyle);
+		this(context, attrs, androidx.appcompat.R.attr.toolbarStyle);
 	}
 
 	public ToolBarView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
 
 		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.ToolBarView,
-				com.google.android.material.R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
+				androidx.appcompat.R.attr.toolbarStyle, R.style.Theme_Utils_Base_ToolBarStyle);
 		size = ta.getLayoutDimension(R.styleable.ToolBarView_size, 0);
 		textAppearance = ta.getResourceId(R.styleable.ToolBarView_textAppearance, 0);
 		editTextAppearance = ta.getResourceId(R.styleable.ToolBarView_editTextAppearance, 0);
@@ -201,8 +198,11 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 
 		@Nullable
 		default View focusSearch(ToolBarView tb, View focused, int direction) {
-			if (direction != FOCUS_UP) return null;
 			ActivityDelegate a = ActivityDelegate.get(tb.getContext());
+			if (direction == FOCUS_DOWN) {
+				if (a.getActiveMenu() instanceof View v) return v.findFocus();
+			}
+			if (direction != FOCUS_UP) return null;
 			NavBarView nb = a.getNavBar();
 			return nb.isBottom() && isVisible(nb) ? nb.focusSearch() : null;
 		}
@@ -284,7 +284,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 		default ImageButton addButton(ToolBarView tb, @DrawableRes int icon, OnClickListener onClick,
 																	@IdRes int id, int side) {
 			ImageButton b = new ImageButton(tb.getContext(), null,
-					com.google.android.material.R.attr.toolbarStyle);
+					androidx.appcompat.R.attr.toolbarStyle);
 			initButton(b, icon, onClick);
 			addView(tb, b, id, side);
 			return b;
@@ -401,7 +401,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 			default TextView createTitleText(ToolBarView tb) {
 				Context ctx = tb.getContext();
 				MaterialTextView t = new MaterialTextView(ctx, null,
-						com.google.android.material.R.attr.toolbarStyle);
+						androidx.appcompat.R.attr.toolbarStyle);
 				t.setTextAppearance(tb.textAppearance);
 				t.setMaxLines(1);
 				t.setFocusable(false);
@@ -428,7 +428,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 
 			default ForcedVisibilityButton createBackButton(ToolBarView tb) {
 				ForcedVisibilityButton b = new ForcedVisibilityButton(tb.getContext(), null,
-						com.google.android.material.R.attr.toolbarStyle);
+						androidx.appcompat.R.attr.toolbarStyle);
 				initButton(b, getBackButtonIcon(), this);
 				return b;
 			}
@@ -585,7 +585,7 @@ public class ToolBarView extends ConstraintLayout implements ActivityListener,
 
 			default ForcedVisibilityButton createFilterButton(ToolBarView tb) {
 				ForcedVisibilityButton b = new ForcedVisibilityButton(tb.getContext(), null,
-						com.google.android.material.R.attr.toolbarStyle);
+						androidx.appcompat.R.attr.toolbarStyle);
 				initButton(b, getFilterButtonIcon(), this);
 				return b;
 			}

@@ -31,6 +31,7 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.util.Pair;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -725,6 +726,30 @@ public class PreferenceView extends ConstraintLayout {
 		public boolean formatSubtitle;
 		public Consumer<ListOpts> initList;
 		public Comparator<String> cmp;
+
+		public void setStringValues(PreferenceStore ps, PreferenceStore.Pref<Supplier<String>> pref,
+																List<Pair<String, String>> values) {
+			var strValues = new String[values.size()];
+			var selected = ps.getStringPref(pref);
+			var selectedIdx = 0;
+			for (int i = 0, n = strValues.length; i < n; i++) {
+				var l = values.get(i);
+				strValues[i] = l.second;
+				if (l.first.equals(selected)) {
+					selectedIdx = i;
+				}
+			}
+			var vps = new BasicPreferenceStore();
+			vps.addBroadcastListener((s, p) -> {
+				//noinspection unchecked
+				ps.applyStringPref(pref,
+						values.get(vps.getIntPref((PreferenceStore.Pref<IntSupplier>) p.get(0))).first);
+			});
+
+			this.store = vps;
+			this.stringValues = strValues;
+			this.pref = PreferenceStore.Pref.i("proxy", selectedIdx);
+		}
 	}
 
 	public static class LocaleOpts extends PrefOpts<Supplier<String>> {
